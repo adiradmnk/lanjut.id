@@ -24,7 +24,7 @@ export function EntitySwitcher({
     <div className="relative">
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between px-2.5 py-2 mb-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer transition-colors select-none group border border-border/40 bg-card/40"
+        className="flex items-center justify-between px-2.5 py-2 mb-3 rounded-lg hover:bg-black/5 cursor-pointer transition-colors select-none group border border-border/40 bg-card/40"
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-[6px] bg-primary text-primary-foreground flex items-center justify-center font-bold text-[13px] shadow-sm">
@@ -49,7 +49,7 @@ export function EntitySwitcher({
               <div
                 key={e.id}
                 onClick={() => { onSelect(e.id); setIsOpen(false); }}
-                className={`px-3 py-2 mx-1 text-[12px] rounded-md cursor-pointer transition-colors ${current.id === e.id ? 'bg-primary/10 text-primary font-medium' : 'text-foreground/80 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                className={`px-3 py-2 mx-1 text-[12px] rounded-md cursor-pointer transition-colors ${current.id === e.id ? 'bg-primary/10 text-primary font-medium' : 'text-foreground/80 hover:bg-black/5'}`}
               >
                 <div className="font-medium text-foreground">{e.name}</div>
                 <div className="text-[10px] text-muted-foreground">{e.category}</div>
@@ -90,8 +90,8 @@ export function NavItem({
       <div
         className={`group flex items-center justify-between px-2.5 py-[7px] rounded-[6px] cursor-pointer transition-all duration-200 select-none
           ${isActive
-            ? 'bg-black/5 dark:bg-white/10 text-foreground font-medium'
-            : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 hover:text-foreground/90'
+            ? 'bg-black/5 text-foreground font-medium'
+            : 'text-muted-foreground hover:bg-black/5 hover:text-foreground/90'
           }
         `}
         style={{ paddingLeft: `${level * 12 + 10}px` }}
@@ -116,7 +116,7 @@ export function NavItem({
             </kbd>
           )}
           {item.badge && (
-            <span className="flex items-center justify-center h-4 px-1.5 text-[9px] font-semibold rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+            <span className="flex items-center justify-center h-4 px-1.5 text-[9px] font-semibold rounded-full bg-emerald-500/15 text-emerald-600">
               {item.badge}
             </span>
           )}
@@ -137,7 +137,7 @@ export function NavItem({
         >
           <div className="overflow-hidden min-h-0 relative flex flex-col gap-0.5 mt-0.5">
             <div
-              className="absolute top-0 bottom-0 border-l border-black/5 dark:border-white/5"
+              className="absolute top-0 bottom-0 border-l border-black/5"
               style={{ left: `${level * 12 + 17.5}px` }}
             />
             {item.children!.map((child) => (
@@ -161,7 +161,7 @@ export function Sidebar({
   brandMark,
   brandName,
   brandBadge,
-  brandBadgeColorClass = 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
+  brandBadgeColorClass = 'bg-orange-500/10 text-orange-600',
   brandMarkColorClass = 'bg-orange-600',
   switcher,
   navGroups,

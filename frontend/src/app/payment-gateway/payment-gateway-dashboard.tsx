@@ -246,7 +246,7 @@ export default function PaymentGatewayDashboard() {
         brandName: 'BNI PG Gateway',
         brandBadge: 'SNAP v2.1',
         brandMarkColorClass: 'bg-orange-600',
-        brandBadgeColorClass: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
+        brandBadgeColorClass: 'bg-orange-500/10 text-orange-600',
         switcher: (
           <EntitySwitcher
             entities={merchants}
@@ -280,7 +280,7 @@ export default function PaymentGatewayDashboard() {
           {(activeTab === 'overview' || activeTab === 'home') && (
             <div className="flex flex-col gap-6 max-w-6xl mx-auto">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-orange-600">
                   Bank BNI Relationship Manager & SNAP Dashboard
                 </span>
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mt-1">
@@ -339,13 +339,13 @@ export default function PaymentGatewayDashboard() {
               {merchantInsights?.narrative && (
                 <div className="p-5 bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent border border-orange-500/20 rounded-xl">
                   <div className="flex items-start gap-3.5">
-                    <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center shrink-0 text-orange-600 dark:text-orange-400">
+                    <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center shrink-0 text-orange-600">
                       <Activity className="w-4 h-4" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-sm text-foreground">Analisis Kesehatan Bisnis AI (BNI RM Advisor)</span>
-                        <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                        <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-500/15 text-emerald-600">
                           {merchantInsights.narrative.health_status || 'PRIME'}
                         </span>
                       </div>
@@ -369,19 +369,19 @@ export default function PaymentGatewayDashboard() {
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => setStatusFilter('all')}
-                      className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${statusFilter === 'all' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5'}`}
+                      className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${statusFilter === 'all' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-black/5'}`}
                     >
                       Semua ({payments.length})
                     </button>
                     <button 
                       onClick={() => setStatusFilter('paid')}
-                      className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${statusFilter === 'paid' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5'}`}
+                      className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${statusFilter === 'paid' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:bg-black/5'}`}
                     >
                       Lunas ({paidCount})
                     </button>
                     <button 
                       onClick={() => setStatusFilter('pending')}
-                      className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${statusFilter === 'pending' ? 'bg-amber-600 text-white' : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5'}`}
+                      className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${statusFilter === 'pending' ? 'bg-amber-600 text-white' : 'text-muted-foreground hover:bg-black/5'}`}
                     >
                       Menunggu ({pendingCount})
                     </button>
@@ -390,7 +390,7 @@ export default function PaymentGatewayDashboard() {
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-border/40 text-muted-foreground font-medium">
+                    <thead className="bg-black/[0.02] border-b border-border/40 text-muted-foreground font-medium">
                       <tr>
                         <th className="py-3 px-4">Invoice / Trx ID</th>
                         <th className="py-3 px-4">Nama Member</th>
@@ -410,15 +410,15 @@ export default function PaymentGatewayDashboard() {
                         filteredPayments.slice(0, 15).map(p => {
                           const isPaid = paymentStatus(p.status) === 'paid';
                           return (
-                            <tr key={p.id} className="hover:bg-black/[0.015] dark:hover:bg-white/[0.015] transition-colors">
+                            <tr key={p.id} className="hover:bg-black/[0.015] transition-colors">
                               <td className="py-3 px-4 font-mono font-medium text-foreground">{p.id}</td>
                               <td className="py-3 px-4 font-medium text-foreground">{p.memberName}</td>
                               <td className="py-3 px-4 font-semibold text-foreground">{formatRupiah(p.amount)}</td>
                               <td className="py-3 px-4">
                                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
                                   isPaid 
-                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
-                                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                    ? 'bg-emerald-500/10 text-emerald-600' 
+                                    : 'bg-amber-500/10 text-amber-600'
                                 }`}>
                                   {isPaid ? <CheckCircle2 className="w-3 h-3" /> : <Clock3 className="w-3 h-3" />}
                                   {paymentStatusLabel(p.status)}
@@ -458,7 +458,7 @@ export default function PaymentGatewayDashboard() {
                     <div className="text-sm font-mono font-medium text-foreground">https://lanjut.id/api/bni/va-webhook</div>
                   </div>
                 </div>
-                <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-600">
                   Active (200 OK)
                 </span>
               </div>
@@ -470,7 +470,7 @@ export default function PaymentGatewayDashboard() {
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-border/40 text-muted-foreground font-medium">
+                    <thead className="bg-black/[0.02] border-b border-border/40 text-muted-foreground font-medium">
                       <tr>
                         <th className="py-3 px-4">Transaction ID</th>
                         <th className="py-3 px-4">Member</th>
@@ -481,7 +481,7 @@ export default function PaymentGatewayDashboard() {
                     </thead>
                     <tbody className="divide-y divide-border/30">
                       {payments.map(p => (
-                        <tr key={p.id} className="hover:bg-black/[0.015] dark:hover:bg-white/[0.015]">
+                        <tr key={p.id} className="hover:bg-black/[0.015]">
                           <td className="py-3 px-4 font-mono font-medium text-foreground">{p.id}</td>
                           <td className="py-3 px-4 font-medium">{p.memberName}</td>
                           <td className="py-3 px-4 font-bold text-foreground">{formatRupiah(p.amount)}</td>
@@ -531,7 +531,7 @@ export default function PaymentGatewayDashboard() {
                     )}
                   </div>
                   <div className="mt-6 pt-4 border-t border-border/40">
-                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                    <span className="text-xs font-semibold text-emerald-600">
                       {creditDss?.recommendedRMAction || 'Menunggu hasil evaluasi DSS untuk rekomendasi RM.'}
                     </span>
                   </div>
@@ -570,7 +570,7 @@ export default function PaymentGatewayDashboard() {
               <div className="p-6 bg-card rounded-xl border border-border/60 shadow-xs flex flex-col gap-4">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground uppercase">BNI Company Code</label>
-                  <div className="text-sm font-mono font-bold text-foreground mt-1 p-2.5 bg-black/5 dark:bg-white/5 rounded-md">
+                  <div className="text-sm font-mono font-bold text-foreground mt-1 p-2.5 bg-black/5 rounded-md">
                     8808 (Produksi Virtual Account)
                   </div>
                 </div>
@@ -578,7 +578,7 @@ export default function PaymentGatewayDashboard() {
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground uppercase">API Secret Key (HMAC-SHA256)</label>
                   <div className="flex items-center gap-2 mt-1">
-                    <div className="flex-1 text-sm font-mono text-foreground p-2.5 bg-black/5 dark:bg-white/5 rounded-md truncate">
+                    <div className="flex-1 text-sm font-mono text-foreground p-2.5 bg-black/5 rounded-md truncate">
                       ••••••••••••••••••••••••••••••••••••••••••••
                     </div>
                     <button 
@@ -591,7 +591,7 @@ export default function PaymentGatewayDashboard() {
                   </div>
                 </div>
 
-                <div className="p-3.5 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-600 dark:text-blue-400 mt-2">
+                <div className="p-3.5 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-600 mt-2">
                   Kredensial dilindungi oleh sistem keamanan Bank BNI. Jangan pernah membagikan Secret Key kepada pihak ketiga.
                 </div>
               </div>
@@ -634,7 +634,7 @@ export default function PaymentGatewayDashboard() {
               />
               <kbd 
                 onClick={() => setIsSearchOpen(false)}
-                className="hidden sm:inline-flex items-center justify-center h-5 px-1.5 ml-2 text-[10px] font-mono text-muted-foreground bg-black/5 dark:bg-white/10 rounded cursor-pointer"
+                className="hidden sm:inline-flex items-center justify-center h-5 px-1.5 ml-2 text-[10px] font-mono text-muted-foreground bg-black/5 rounded cursor-pointer"
               >
                 ESC
               </kbd>
@@ -651,7 +651,7 @@ export default function PaymentGatewayDashboard() {
                 <div 
                   key={p.id}
                   onClick={() => { setActiveTab('transactions'); setIsSearchOpen(false); }}
-                  className="p-2.5 mx-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer flex items-center justify-between"
+                  className="p-2.5 mx-1 rounded-lg hover:bg-black/5 cursor-pointer flex items-center justify-between"
                 >
                   <div>
                     <div className="text-xs font-medium text-foreground">{p.memberName} ({p.id})</div>

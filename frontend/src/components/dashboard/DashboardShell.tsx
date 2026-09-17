@@ -35,7 +35,7 @@ export function DashboardHeader({
       <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onToggleSidebar}
-          className="p-1.5 rounded-md text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 hover:text-foreground transition-colors"
+          className="p-1.5 rounded-md text-muted-foreground hover:bg-black/5 hover:text-foreground transition-colors"
           title="Toggle Menu"
         >
           {isSidebarOpen ? <PanelLeftClose className="w-[18px] h-[18px]" /> : <PanelLeftOpen className="w-[18px] h-[18px]" />}
@@ -55,7 +55,7 @@ export function DashboardHeader({
         {onSearchClick && (
           <button
             onClick={onSearchClick}
-            className="hidden md:flex items-center gap-2 h-8 px-3 text-xs text-muted-foreground bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-md transition-colors border border-border/40"
+            className="hidden md:flex items-center gap-2 h-8 px-3 text-xs text-muted-foreground bg-black/5 hover:bg-black/10 rounded-md transition-colors border border-border/40"
           >
             <Search className="w-3.5 h-3.5" />
             <span>{searchPlaceholder}</span>
@@ -69,7 +69,7 @@ export function DashboardHeader({
           <button
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium text-foreground bg-card hover:bg-black/5 dark:hover:bg-white/5 border border-border/60 rounded-md shadow-xs transition-colors"
+            className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium text-foreground bg-card hover:bg-black/5 border border-border/60 rounded-md shadow-xs transition-colors"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Sinkronisasi</span>
@@ -110,7 +110,7 @@ export function DashboardShell({
     <div className="flex h-screen w-full bg-background font-sans overflow-hidden">
       <Sidebar isOpen={isSidebarOpen} {...sidebarProps} />
 
-      <div className="flex-1 flex flex-col min-w-0 bg-black/[0.015] dark:bg-white/[0.015] overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 bg-black/[0.015] overflow-hidden">
         {header}
         <main className="flex-1 overflow-y-auto p-6 md:p-8 [&::-webkit-scrollbar]:hidden">
           {children}

@@ -46,7 +46,7 @@ export function AvatarProgressTable({
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id} className="border-b border-border/30 last:border-none hover:bg-black/[0.015] dark:hover:bg-white/[0.02]">
+                <tr key={row.id} className="border-b border-border/30 last:border-none hover:bg-black/[0.015]">
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2.5">
                       <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-[11px] font-semibold text-foreground shrink-0">
