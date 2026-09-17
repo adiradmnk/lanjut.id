@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import PrecisionSection from '@/components/PrecisionSection';
 import DualDilemmaSection from '@/components/DualDilemmaSection';
 import WorkflowStepsSection from '@/components/WorkflowStepsSection';
@@ -17,7 +18,6 @@ import {
   X,
   Sparkles,
   ShieldCheck,
-  Zap,
   ExternalLink,
 } from 'lucide-react';
 
@@ -108,32 +108,25 @@ export default function MeridianBentoLandingPage() {
             </button>
           </nav>
 
-          {/* Center — logo */}
-          <Link className="logo" href="/" aria-label="LANJUT × BNI AEGIS">
-            <svg viewBox="0 0 42 34">
-              <polygon points="12,0 30,0 33.2,3.2 15.2,3.2" />
-              <polygon points="14.6,5.6 32.6,5.6 35.8,8.8 17.8,8.8" />
-              <polygon points="17.2,11.2 35.2,11.2 38.4,14.4 20.4,14.4" />
-              <polygon points="3.2,16.8 21.2,16.8 24.4,20 6.4,20" />
-              <polygon points="5.8,22.4 23.8,22.4 27,25.6 9,25.6" />
-              <polygon points="8.4,28 26.4,28 29.6,31.2 11.6,31.2" />
-            </svg>
+          {/* Center — logo from public/logo.png */}
+          <Link className="logo flex items-center" href="/" aria-label="LANJUT × BNI AEGIS">
+            <Image
+              src="/logo.png"
+              alt="LANJUT Logo"
+              width={120}
+              height={32}
+              className="object-contain h-8 w-auto"
+              priority
+            />
           </Link>
 
-          {/* Right — Login & Book Demo button */}
+          {/* Right — Login button (replaced Book Demo) & Mobile Burger */}
           <div className="flex items-center gap-3">
             <Link
               href="/login"
-              className="px-4 py-2 text-xs font-semibold text-white/80 hover:text-white transition-colors"
-            >
-              Masuk
-            </Link>
-            <button
-              type="button"
-              onClick={() => setDemoModalOpen(true)}
               className="btn btn--nav cursor-pointer"
             >
-              <span>Book Demo</span>
+              <span>Login</span>
               <span className="btn__icon">
                 <svg viewBox="0 0 20 20" fill="none">
                   <path
@@ -145,7 +138,7 @@ export default function MeridianBentoLandingPage() {
                   />
                 </svg>
               </span>
-            </button>
+            </Link>
           </div>
 
           {/* Mobile Burger */}
@@ -198,15 +191,11 @@ export default function MeridianBentoLandingPage() {
               Pricing & Impact
             </button>
           </div>
-          <button
-            type="button"
-            className="btn btn--nav w-full justify-center"
-            onClick={() => {
-              closeMenu();
-              setDemoModalOpen(true);
-            }}
+          <Link
+            href="/login"
+            className="btn btn--nav w-full justify-center text-center"
           >
-            <span>Book Demo</span>
+            <span>Login</span>
             <span className="btn__icon">
               <svg viewBox="0 0 20 20" fill="none">
                 <path
@@ -218,7 +207,7 @@ export default function MeridianBentoLandingPage() {
                 />
               </svg>
             </span>
-          </button>
+          </Link>
         </div>
 
         {/* Hero Section */}
@@ -249,14 +238,14 @@ export default function MeridianBentoLandingPage() {
 
           {/* Actions */}
           <div className="hero__actions">
-            {/* Tombol Utama: Buka Demo Interaktif */}
+            {/* Tombol Utama: Start Now */}
             <button
               type="button"
               onClick={() => setDemoModalOpen(true)}
               className="btn btn--light wipe cursor-pointer"
               style={{ '--d': '0.56s' } as React.CSSProperties}
             >
-              <span>Buka Demo Interaktif</span>
+              <span>Start Now</span>
               <span className="btn__icon">
                 <svg viewBox="0 0 20 20" fill="none">
                   <path
