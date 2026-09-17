@@ -1,0 +1,133 @@
+name: Deploy to Biznet VPS (Selective Changes)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+      ai: ${{ steps.filter.outputs.ai }}
+      compose: ${{ steps.filter.outputs.compose }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            backend:
+              - 'backend-go/**'
+            ai:
+              - 'ai/**'
+            compose:
+              - 'docker-compose.yml'
+              - '.github/workflows/**'
+
+  test-backend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache-dependency-path: backend-go/go.sum
+
+      - name: Vet & build Go backend
+        run: |
+          cd backend-go
+          go vet ./...
+          go build ./...
+
+  deploy:
+    needs: [detect-changes, test-backend]
+    if: always() && needs.detect-changes.result == 'success' && (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy changed services to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          NEEDS_FRONTEND: ${{ needs.detect-changes.outputs.frontend }}
+          NEEDS_BACKEND: ${{ needs.detect-changes.outputs.backend }}
+          NEEDS_AI: ${{ needs.detect-changes.outputs.ai }}
+          NEEDS_COMPOSE: ${{ needs.detect-changes.outputs.compose }}
+        with:
+          host: ${{ secrets.VPS_IP || secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          envs: NEEDS_FRONTEND,NEEDS_BACKEND,NEEDS_AI,NEEDS_COMPOSE
+          script: |
+            set -e
+            echo "🔍 Detected Changes:"
+            echo "  - Frontend : $NEEDS_FRONTEND"
+            echo "  - Backend  : $NEEDS_BACKEND"
+            echo "  - AI       : $NEEDS_AI"
+            echo "  - Compose  : $NEEDS_COMPOSE"
+
+            PROJECT_DIR="${{ secrets.VPS_PROJECT_DIR || '/home/ilmora/Tidur-Malam-Minum-Es-teh-Satu-Gelas' }}"
+
+            # Setup direktori proyek jika belum ada
+            if [ ! -d "$PROJECT_DIR" ]; then
+              echo "📂 First time setup: Cloning repository..."
+              git clone https://github.com/adiradmnk/Tidur-Malam-Minum-Es-teh-Satu-Gelas.git "$PROJECT_DIR"
+              cd "$PROJECT_DIR"
+              echo "🐳 Building all services for initial deployment..."
+              docker compose build
+              docker compose up -d
+              exit 0
+            fi
+
+            cd "$PROJECT_DIR"
+            echo "🔄 Pulling latest changes from git..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Jika docker-compose atau config workflow berubah, rebuild semua
+            if [ "$NEEDS_COMPOSE" = "true" ]; then
+              echo "⚙️ Config/Compose changed. Rebuilding updated services..."
+              docker compose up -d --build
+            else
+              # Rebuild HANYA service yang berubah secara selektif
+              SERVICES_TO_REBUILD=""
+
+              if [ "$NEEDS_FRONTEND" = "true" ]; then
+                echo "🎨 Rebuilding Frontend service only..."
+                SERVICES_TO_REBUILD="$SERVICES_TO_REBUILD frontend"
+              fi
+
+              if [ "$NEEDS_BACKEND" = "true" ]; then
+                echo "⚙️ Rebuilding Backend service only..."
+                SERVICES_TO_REBUILD="$SERVICES_TO_REBUILD backend"
+              fi
+
+              if [ "$NEEDS_AI" = "true" ]; then
+                echo "🧠 Rebuilding AI service only..."
+                SERVICES_TO_REBUILD="$SERVICES_TO_REBUILD ai"
+              fi
+
+              if [ -n "$SERVICES_TO_REBUILD" ]; then
+                echo "🚀 Deploying:$SERVICES_TO_REBUILD"
+                docker compose up -d --no-deps --build $SERVICES_TO_REBUILD
+              else
+                echo "ℹ️ No service changes detected. Skipping Docker build."
+              fi
+            fi
+
+            echo "🧹 Cleaning dangling images..."
+            docker image prune -f
+
+            echo "✅ Deployment completed successfully!"
