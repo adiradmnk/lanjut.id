@@ -434,7 +434,7 @@ class SessionCandidateInput(BaseModel):
 class RankSmartOptionsRequest(BaseModel):
     member_id: str
     member_name: str
-    available_sessions: List[SessionCapacityInput]
+    available_sessions: List[SessionCandidateInput]
     remaining_quota: int
     days_to_expiry: int
     tenant_constraint: Optional[TenantConstraint] = None
