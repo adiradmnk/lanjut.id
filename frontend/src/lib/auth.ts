@@ -43,17 +43,18 @@ interface CredentialsPayload {
  * or if the backend/Mailjet isn't reachable, so the caller can show a real
  * error instead of silently falling back to a demo session.
  */
-export async function requestOtp({ email, password, role }: CredentialsPayload): Promise<void> {
+export async function requestOtp({ email, password, role }: CredentialsPayload): Promise<{ message?: string; demo_otp?: string }> {
   const res = await fetch('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, role }),
   });
 
+  const data = await res.json().catch(() => null);
   if (!res.ok) {
-    const data = await res.json().catch(() => null);
     throw new Error(data?.message || 'Email atau kata sandi salah.');
   }
+  return data || {};
 }
 
 interface VerifyOtpPayload {

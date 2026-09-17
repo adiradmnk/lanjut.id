@@ -46,7 +46,10 @@ export default function LoginForm({
 
     setIsSubmitting(true);
     try {
-      await requestOtp({ email, password, role });
+      const res = await requestOtp({ email, password, role });
+      if (res?.demo_otp) {
+        setOtp(res.demo_otp);
+      }
       setStep('otp');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal masuk. Silakan coba lagi.');
