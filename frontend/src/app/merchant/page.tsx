@@ -7,6 +7,7 @@ import VisualAnalyticsTab from '@/components/merchant/VisualAnalyticsTab';
 import AiPredictionTab from '@/components/merchant/AiPredictionTab';
 import FutureScenariosTab from '@/components/merchant/FutureScenariosTab';
 import CancellationFeedbackDemoModal from '@/components/merchant/CancellationFeedbackDemoModal';
+import BusinessLogicTab from '@/components/merchant/BusinessLogicTab';
 import { 
   SidebarNav, 
   type NavGroupData, 
@@ -293,18 +294,26 @@ export default function MerchantDashboardPage() {
 
         {/* Dynamic Body Content */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#171717]">
-          {/* Empty clean placeholder for each page */}
-          <div className="flex flex-col items-center justify-center min-h-[60vh] border border-dashed border-white/10 rounded-2xl p-12 text-center">
-            <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white mb-4">
-              <Cpu className="w-6 h-6 text-white" />
+          {activeId === 'business-logic' ? (
+            <BusinessLogicTab 
+              tenantId={selectedTenant.id}
+              tenantName={selectedTenant.name}
+              tenantCategory={selectedTenant.category}
+            />
+          ) : (
+            /* Empty clean placeholder for each page */
+            <div className="flex flex-col items-center justify-center min-h-[60vh] border border-dashed border-white/10 rounded-2xl p-12 text-center">
+              <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white mb-4">
+                <Cpu className="w-6 h-6 text-white" />
+              </div>
+              <h2 className="text-lg font-semibold text-white tracking-tight capitalize">
+                {activeId.replace('-', ' ')}
+              </h2>
+              <p className="text-xs text-neutral-400 mt-1 max-w-sm">
+                Halaman ini telah dikosongkan dan siap untuk implementasi modul berikutnya.
+              </p>
             </div>
-            <h2 className="text-lg font-semibold text-white tracking-tight capitalize">
-              {activeId.replace('-', ' ')}
-            </h2>
-            <p className="text-xs text-neutral-400 mt-1 max-w-sm">
-              Halaman ini telah dikosongkan dan siap untuk implementasi {activeId === 'business-logic' ? 'Business Logic engine' : 'modul berikutnya'}.
-            </p>
-          </div>
+          )}
         </main>
       </div>
 

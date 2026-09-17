@@ -52,6 +52,7 @@ func Register(r *gin.Engine, h *handlers.Handlers) {
 		api.POST("/merchant/:tenantId/guidebook", h.UploadGuidebook)
 		api.GET("/merchant/:tenantId/guidebook", h.GetGuidebook)
 		api.GET("/merchant/:tenantId/guidebook/history", h.ListGuidebooks)
+		api.GET("/merchant/:tenantId/business-rules", h.GetBusinessRules)
 
 		api.GET("/merchant/:tenantId/feedback", h.ListMerchantFeedback)
 

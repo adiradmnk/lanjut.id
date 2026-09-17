@@ -425,5 +425,20 @@ func (h *Handlers) MerchantChatbotInstruction(c *gin.Context) {
 		return
 	}
 
+	// Jika status ACCEPTED, update tenant config di database
+	if status, ok := out["status"].(string); ok && status == "ACCEPTED" {
+		if updatedRules, ok := out["updated_rules"].(map[string]any); ok {
+			if fc, ok := updatedRules["financial_constraints"].(map[string]any); ok {
+				if maxDisc, ok := fc["max_discount_allowed_pct"].(float64); ok && maxDisc > 0 {
+					tenant.Config.MaxDiscountPct = maxDisc
+				}
+				if minMargin, ok := fc["min_margin_floor_idr"].(float64); ok && minMargin > 0 {
+					tenant.Config.MinMarginFloorIDR = minMargin
+				}
+				_ = h.Store.UpdateTenantConfig(ctx, tenant.ID, tenant.Config)
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, out)
 }

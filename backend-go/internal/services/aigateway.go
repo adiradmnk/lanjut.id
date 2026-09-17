@@ -256,6 +256,60 @@ func (a *AIGateway) ExtractDocumentText(ctx context.Context, filename, contentTy
 	return out.ExtractedText, nil
 }
 
+// ExtractRulesFromDocument uploads a raw guidebook file to the AI sidecar's /api/v1/guidebook/upload-and-extract
+// endpoint, returning full structured business rules (financial constraints, catalog, triggers, etc.)
+func (a *AIGateway) ExtractRulesFromDocument(ctx context.Context, filename string, data []byte, notes string) (*models.ExtractedBusinessRules, string, string, error) {
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+
+	part, err := writer.CreateFormFile("file", filename)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("create form file: %w", err)
+	}
+	if _, err := part.Write(data); err != nil {
+		return nil, "", "", fmt.Errorf("write form file: %w", err)
+	}
+	if notes != "" {
+		_ = writer.WriteField("notes", notes)
+	}
+	if err := writer.Close(); err != nil {
+		return nil, "", "", fmt.Errorf("close multipart writer: %w", err)
+	}
+
+	reqCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost,
+		a.baseURL+"/api/v1/guidebook/upload-and-extract", &body)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("build upload-and-extract request: %w", err)
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := a.slowClient.Do(req)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("ai sidecar unreachable: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", "", fmt.Errorf("ai sidecar returned status %d", resp.StatusCode)
+	}
+
+	var out struct {
+		Status               string                        `json:"status"`
+		Filename             string                        `json:"filename"`
+		ExtractedTextPreview string                        `json:"extracted_text_preview"`
+		EngineSource         string                        `json:"engine_source"`
+		Rules                models.ExtractedBusinessRules `json:"rules"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, "", "", fmt.Errorf("decode extract-rules response: %w", err)
+	}
+
+	return &out.Rules, out.ExtractedTextPreview, out.EngineSource, nil
+}
+
 // GrievanceTranslation is the structured result of running a customer's free-text complaint
 // through the AI sidecar's /translate-grievance endpoint.
 type GrievanceTranslation struct {
