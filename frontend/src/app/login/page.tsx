@@ -41,12 +41,11 @@ export default function LoginPage() {
             />
           </video>
           
-          <div className="relative z-10 flex w-full max-w-[500px] flex-col items-center">
-            <div className="flex items-center gap-3 text-2xl font-bold text-white">
+          <div className="relative z-10 flex w-full max-w-[500px] flex-col items-center pt-8 justify-start">
+            <div className="text-2xl font-medium text-white mb-1 tracking-wide drop-shadow-md">
               Lanjut.id
             </div>
-
-            <p className="mt-auto max-w-[320px] text-center text-2xl leading-tight text-white drop-shadow-lg font-medium">
+            <p className="text-center text-xl sm:text-2xl leading-snug text-white/95 font-medium drop-shadow-md max-w-[340px]">
               Turning subscription churn into merchant retention & BNI intelligence.
             </p>
           </div>
