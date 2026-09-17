@@ -1,7 +1,7 @@
 import os
 import json
 import time
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter
 from pydantic import BaseModel
 
@@ -72,41 +72,46 @@ async def translate_grievance(payload: GrievanceTranslateRequest):
             model = genai.GenerativeModel("gemini-1.5-flash")
             
             prompt = f"""
-            You are LANJUT AI Engine (Grievance Translator for BNI Merchant Retention).
-            Analyze this member complaint and return ONLY a valid JSON object without markdown formatting.
-            
-            Member Name: {payload.member_name}
-            Current Package: {payload.current_package}
-            Complaint: "{payload.free_text_complaint}"
-            
-            JSON structure:
+            Anda adalah AI Engine penasihat retensi pelanggan untuk platform B2B LANJUT.
+            Analisis teks keluhan pelanggan berikut:
+            Member: {payload.member_name}
+            Paket Saat Ini: {payload.current_package}
+            Teks Keluhan: "{payload.free_text_complaint}"
+
+            Anda WAJIB mengembalikan output murni dalam format JSON tanpa markdown formatting atau teks pengantar:
             {{
-                "intent": "SCHEDULE_CONFLICT" | "PRICE_SENSITIVE" | "MEDICAL_PAUSE" | "LOW_UTILIZATION",
-                "category": "Jadwal Pagi Bentrok WFO / Kantor" | "Paket Terlalu Mahal" | "Jeda Sesi" | "Lainnya",
-                "preferred_time_of_day": "EVENING" | "WEEKEND" | "AFTERNOON" | "MORNING",
-                "preferred_days": ["THURSDAY", "FRIDAY"],
-                "churn_risk_score": 0.88,
-                "sentiment": "NEUTRAL_FRUSTRATED",
-                "root_cause_summary": "Pelanggan sudah mulai WFO jam 08.00 pagi sehingga tidak dapat mengikuti kelas pagi",
-                "recommended_action": "SWITCH_EVENING_CLASS"
+                "intent": "cancellation_request" | "pause_request" | "support_inquiry",
+                "primary_category": "schedule_conflict" | "price_sensitivity" | "feature_mismatch" | "low_usage",
+                "sentiment_score": -0.4,
+                "extracted_entities": {{
+                    "time_preference": "evening" | "morning" | "weekend" | null,
+                    "budget_concern": true | false
+                }},
+                "recommended_action_type": "offer_alternative_schedule" | "offer_discount" | "offer_pause",
+                "root_cause_summary": "Penjelasan inti alasan member ingin cancel"
             }}
             """
-            response = model.generate_content(prompt)
-            clean_text = response.text.strip().replace("```json", "").replace("```", "").strip()
-            data = json.loads(clean_text)
+            response = model.generate_content(
+                prompt,
+                generation_config={"response_mime_type": "application/json"}
+            )
+            data = json.loads(response.text.strip())
             
             elapsed = round((time.time() - start_time) * 1000, 2)
+            entities = data.get("extracted_entities", {})
+            pref_time = entities.get("time_preference") or "EVENING"
+            
             return GrievanceTranslateResponse(
                 member_name=payload.member_name,
-                intent=data.get("intent", "SCHEDULE_CONFLICT"),
-                category=data.get("category", "Jadwal Bentrok WFO"),
-                preferred_time_of_day=data.get("preferred_time_of_day", "EVENING"),
-                preferred_days=data.get("preferred_days", ["THURSDAY", "FRIDAY"]),
-                churn_risk_score=float(data.get("churn_risk_score", 0.85)),
-                sentiment=data.get("sentiment", "FRUSTRATED_TIME"),
+                intent=data.get("intent", "cancellation_request"),
+                category=data.get("primary_category", "schedule_conflict"),
+                preferred_time_of_day=str(pref_time).upper(),
+                preferred_days=["THURSDAY", "FRIDAY"] if "evening" in str(pref_time).lower() else ["SATURDAY"],
+                churn_risk_score=float(abs(data.get("sentiment_score", -0.5)) + 0.4),
+                sentiment="NEGATIVE" if float(data.get("sentiment_score", 0)) < 0 else "NEUTRAL",
                 root_cause_summary=data.get("root_cause_summary", payload.free_text_complaint),
-                recommended_action=data.get("recommended_action", "SWITCH_EVENING_CLASS"),
-                engine_source="Google Gemini 1.5 Flash",
+                recommended_action=data.get("recommended_action_type", "offer_alternative_schedule"),
+                engine_source="Google Gemini 1.5 Flash (Structured JSON)",
                 processing_time_ms=elapsed
             )
         except Exception as e:
@@ -422,7 +427,7 @@ async def predict_churn_batch(payload: BatchPredictChurnRequest):
 # 4. Sektor 1: Capacity-Aware Smart Option Ranking AI
 # ----------------------------------------------------
 class SessionCandidateInput(BaseModel):
-    id: string = ""
+    id: str = ""
     title: str
     day_of_week: str
     time_slot: str
@@ -434,7 +439,7 @@ class SessionCandidateInput(BaseModel):
 class RankSmartOptionsRequest(BaseModel):
     member_id: str
     member_name: str
-    available_sessions: List[SessionCapacityInput]
+    available_sessions: List[SessionCandidateInput]
     remaining_quota: int
     days_to_expiry: int
     tenant_constraint: Optional[TenantConstraint] = None
@@ -659,3 +664,152 @@ async def evaluate_sme_credit_dss(payload: EvaluateSMECreditRequest):
         compliance_disclaimer=disclaimer,
         processing_time_ms=elapsed
     )
+
+# ----------------------------------------------------
+# 8. Outlier.AI Adapted: Behavioral & Payment Risk Scoring + Agentic Report
+# ----------------------------------------------------
+from app.services.risk_engine import PaymentRiskScoringEngine
+from app.services.retention_agent import RetentionAgent
+
+class EvaluateMemberRiskRequest(BaseModel):
+    member_id: str
+    member_name: str
+    days_since_last_visit: int = 0
+    missed_payments_count: int = 0
+    quota_utilization_pct: float = 1.0
+    tenure_months: int = 1
+    contract_type: str = "MONTHLY"
+    monthly_fee_idr: int = 500000
+    tenant_constraint: Optional[TenantConstraint] = None
+
+@router.post("/evaluate-member-risk")
+async def evaluate_member_risk_and_strategy(payload: EvaluateMemberRiskRequest):
+    """
+    End-to-End Pipeline diadaptasi dari Outlier.AI:
+    1. Feature Attribution & Risk Prediction (RF & SHAP-equivalent)
+    2. Archetype Clustering (K-Means equivalent)
+    3. Agentic Retention Assistant Workflow (Analyze -> Retrieve -> Reason -> Report)
+    """
+    profile_dict = {
+        "member_id": payload.member_id,
+        "member_name": payload.member_name,
+        "days_since_last_visit": payload.days_since_last_visit,
+        "missed_payments_count": payload.missed_payments_count,
+        "quota_utilization_pct": payload.quota_utilization_pct,
+        "tenure_months": payload.tenure_months,
+        "contract_type": payload.contract_type,
+        "monthly_fee_idr": payload.monthly_fee_idr
+    }
+
+    # Step 1: Risk Engine Evaluation
+    risk_result = PaymentRiskScoringEngine.evaluate(profile_dict)
+
+    # Step 2: Agentic Retention Strategy Loop
+    agent = RetentionAgent(api_key=GEMINI_API_KEY)
+    merchant_cfg = {
+        "max_discount_pct": payload.tenant_constraint.max_discount_allowed_pct if payload.tenant_constraint else 15.0,
+        "min_margin_idr": payload.tenant_constraint.min_margin_floor_idr if payload.tenant_constraint else 50000
+    }
+    
+    agentic_report = agent.run_agentic_workflow(
+        customer_profile=profile_dict,
+        risk_evaluation=risk_result,
+        merchant_constraint=merchant_cfg
+    )
+
+    return {
+        "status": "SUCCESS",
+        "evaluation": risk_result,
+        "agentic_report": agentic_report
+    }
+
+# ----------------------------------------------------
+# 7. AI-POWERED CHURN PREDICTION & SIMULATOR ENDPOINTS
+# (Diadaptasi dari anshkumar2311/AI-Powered-Churn-Prediction)
+# ----------------------------------------------------
+from app.services.ml_churn_model import MLChurnPredictionEngine
+
+class MLChurnPredictRequest(BaseModel):
+    tenure: Optional[float] = 24.0
+    MonthlyCharges: Optional[float] = 65.0
+    TotalCharges: Optional[float] = 1560.0
+    Contract: Optional[str] = "Month-to-month"
+    InternetService: Optional[str] = "Fiber optic"
+    OnlineSecurity: Optional[bool] = False
+    TechSupport: Optional[bool] = False
+    PaymentMethod: Optional[str] = "Electronic check"
+    SeniorCitizen: Optional[int] = 0
+
+class MLChurnSimulateRequest(BaseModel):
+    price_change_pct: float = 0.0
+    tenure_impact_pct: float = 0.0
+    members: Optional[List[Dict[str, Any]]] = None
+
+class MLChurnAnalyticsRequest(BaseModel):
+    members: Optional[List[Dict[str, Any]]] = None
+
+@router.post("/ml-churn/predict")
+async def ml_churn_predict(payload: MLChurnPredictRequest):
+    result = MLChurnPredictionEngine.predict_churn(payload.model_dump())
+    return {
+        "success": True,
+        "prediction": result
+    }
+
+@router.post("/ml-churn/simulate")
+async def ml_churn_simulate(payload: MLChurnSimulateRequest):
+    # If no member population provided, use representative telco/subscription distribution
+    members = payload.members or []
+    if not members:
+        import numpy as np
+        np.random.seed(42)
+        n = 100
+        for _ in range(n):
+            tenure = float(np.random.randint(1, 72))
+            mc = float(np.random.normal(65, 20))
+            members.append({
+                "tenure": tenure,
+                "MonthlyCharges": max(20.0, min(120.0, mc)),
+                "TotalCharges": tenure * mc,
+                "Contract": np.random.choice(["Month-to-month", "One year", "Two year"], p=[0.55, 0.25, 0.20]),
+                "InternetService": np.random.choice(["Fiber optic", "DSL", "No"], p=[0.45, 0.35, 0.20]),
+                "OnlineSecurity": bool(np.random.choice([True, False], p=[0.3, 0.7])),
+                "TechSupport": bool(np.random.choice([True, False], p=[0.3, 0.7])),
+                "PaymentMethod": np.random.choice(["Electronic check", "BNI VA / Bank transfer"], p=[0.4, 0.6]),
+                "SeniorCitizen": int(np.random.choice([0, 1], p=[0.85, 0.15]))
+            })
+
+    result = MLChurnPredictionEngine.simulate_future_scenario(
+        base_members=members,
+        price_change_pct=payload.price_change_pct,
+        tenure_impact_pct=payload.tenure_impact_pct
+    )
+    return {
+        "success": True,
+        "simulation": result
+    }
+
+@router.post("/ml-churn/analytics")
+async def ml_churn_analytics(payload: MLChurnAnalyticsRequest):
+    members = payload.members or []
+    if not members:
+        import numpy as np
+        np.random.seed(42)
+        n = 100
+        for _ in range(n):
+            tenure = float(np.random.randint(1, 72))
+            mc = float(np.random.normal(65, 20))
+            churn_flag = "HIGH" if (tenure < 12 and mc > 70) or np.random.rand() < 0.26 else "LOW"
+            members.append({
+                "tenure": tenure,
+                "MonthlyCharges": max(20.0, min(120.0, mc)),
+                "TotalCharges": tenure * mc,
+                "churn_risk_flag": churn_flag,
+                "Contract": "Month-to-month" if churn_flag == "HIGH" else "One year"
+            })
+
+    analytics = MLChurnPredictionEngine.get_analytics_overview(members)
+    return {
+        "success": True,
+        "analytics": analytics
+    }

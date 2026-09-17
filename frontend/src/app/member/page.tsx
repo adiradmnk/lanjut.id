@@ -87,6 +87,38 @@ function MemberPortalContent() {
   const [activeAccordion, setActiveAccordion] = useState<string | null>('bni_mbanking');
   const [isSimulatingPayment, setIsSimulatingPayment] = useState(false);
 
+  // End-to-End AI Grievance Translator State
+  const [complaintText, setComplaintText] = useState('');
+  const [isAnalyzingGrievance, setIsAnalyzingGrievance] = useState(false);
+  const [grievanceAnalysis, setGrievanceAnalysis] = useState<any | null>(null);
+
+  const handleAnalyzeGrievance = async () => {
+    if (!complaintText.trim()) return;
+    setIsAnalyzingGrievance(true);
+    try {
+      const res = await fetch('/api/member/translate-grievance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: token || '',
+          member_id: member?.id || memberIdFallback,
+          free_text_complaint: complaintText,
+        }),
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        setGrievanceAnalysis(data.analysis);
+        if (data.smart_options && data.smart_options.length > 0) {
+          setSmartOptions(data.smart_options);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to translate grievance:', e);
+    } finally {
+      setIsAnalyzingGrievance(false);
+    }
+  };
+
   // 1. Frictionless Entry: Resolve Cryptographic Magic Token on Mount
   useEffect(() => {
     async function resolveSession() {
@@ -368,6 +400,86 @@ function MemberPortalContent() {
                     Sistem mendeteksi sisa {member.total_quota - member.used_quota} sesi Anda belum sempat terpakai. <strong>Jangan biarkan kuota hangus—pilih 1 opsi penyesuaian instan di bawah:</strong>
                   </p>
                 </div>
+              </div>
+
+              {/* Grievance Translator Box (End-to-End AI Intent Extractor) */}
+              <div className="p-4 rounded-[22px] bg-gradient-to-br from-indigo-50/70 via-purple-50/40 to-blue-50/50 border border-indigo-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-sm">
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </div>
+                    <h3 className="text-xs font-bold text-neutral-900">
+                      Ada Kendala Jadwal atau Keberatan Biaya?
+                    </h3>
+                  </div>
+                  <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200">
+                    Gemini 1.5 Flash
+                  </span>
+                </div>
+                <p className="text-[11px] text-neutral-600 leading-relaxed">
+                  Ceritakan keluhan Anda dengan kata-kata sendiri. AI LANJUT akan menganalisis alasan Anda dan mencarikan solusi jadwal atau penyesuaian biaya secara instan:
+                </p>
+
+                <div className="space-y-2">
+                  <textarea
+                    value={complaintText}
+                    onChange={(e) => setComplaintText(e.target.value)}
+                    rows={2}
+                    placeholder="Contoh: Jam 8 pagi aku gak bisa karena udah ngantor, harganya juga lumayan pricey..."
+                    className="w-full text-xs p-3 rounded-xl bg-white border border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-neutral-800 placeholder:text-neutral-400 resize-none"
+                  />
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setComplaintText("Jam 8 pagi aku gak bisa karena udah ngantor, harganya juga lumayan pricey")}
+                      className="text-[10px] text-indigo-600 hover:text-indigo-800 font-semibold underline underline-offset-2"
+                    >
+                      Pakai Contoh Kasus Dina
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isAnalyzingGrievance || !complaintText.trim()}
+                      onClick={handleAnalyzeGrievance}
+                      className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      {isAnalyzingGrievance ? (
+                        <>
+                          <RefreshCw className="w-3 h-3 animate-spin" />
+                          <span>Menganalisis...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3 h-3" />
+                          <span>Analisis AI & Solusi</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* AI Extracted Entity Result Card */}
+                {grievanceAnalysis && (
+                  <div className="mt-3 p-3 rounded-xl bg-white/90 border border-indigo-100 space-y-2 animate-in fade-in">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-bold text-neutral-700">Hasil Analisis Structured AI:</span>
+                      <span className="text-[10px] text-neutral-400 font-medium">{grievanceAnalysis.engine_source}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[10px]">
+                      <div className="p-2 rounded-lg bg-neutral-50 border border-neutral-100">
+                        <span className="text-neutral-500 block">Kategori Inti:</span>
+                        <strong className="text-neutral-800 font-bold uppercase">{grievanceAnalysis.category}</strong>
+                      </div>
+                      <div className="p-2 rounded-lg bg-neutral-50 border border-neutral-100">
+                        <span className="text-neutral-500 block">Preferensi Waktu:</span>
+                        <strong className="text-indigo-700 font-bold">{grievanceAnalysis.preferred_time_of_day}</strong>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-neutral-600 italic">
+                      &ldquo;{grievanceAnalysis.root_cause_summary}&rdquo;
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Options Header */}

@@ -137,6 +137,43 @@ type checkoutVARequest struct {
 	Amount    float64 `json:"amount"`
 }
 
+// POST /api/member/translate-grievance
+type translateGrievanceRequest struct {
+	Token             string `json:"token"`
+	MemberID          string `json:"member_id"`
+	FreeTextComplaint string `json:"free_text_complaint"`
+}
+
+func (h *Handlers) TranslateGrievance(c *gin.Context) {
+	ctx := c.Request.Context()
+	var body translateGrievanceRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "invalid request body"})
+		return
+	}
+
+	m, ok := h.resolveMember(c, body.Token, body.MemberID)
+	if !ok {
+		return
+	}
+
+	analysis := h.AIGateway.TranslateGrievance(ctx, m.Name, body.FreeTextComplaint, m.CurrentPackage)
+
+	// Fetch sessions and tenant to produce capacity & margin-aware smart options
+	tenant, _ := h.Store.GetTenant(ctx, m.TenantID)
+	if tenant == nil {
+		tenant, _ = h.Store.GetFirstTenant(ctx)
+	}
+	sessions, _ := h.Store.ListAvailableSessions(ctx, m.TenantID)
+	smartOptions := h.AIGateway.RankSmartOptions(ctx, m, tenant, sessions)
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":        "success",
+		"analysis":      analysis,
+		"smart_options": smartOptions,
+	})
+}
+
 // POST /api/member/checkout-va
 func (h *Handlers) CheckoutVA(c *gin.Context) {
 	ctx := c.Request.Context()

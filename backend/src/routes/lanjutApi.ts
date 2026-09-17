@@ -291,6 +291,41 @@ router.get('/merchant/members-overview', (req: Request, res: Response): void => 
   });
 });
 
+/**
+ * ML Churn Integration Endpoints (anshkumar2311/AI-Powered-Churn-Prediction)
+ */
+router.get('/merchant/churn-analytics', async (req: Request, res: Response): Promise<void> => {
+  const merchantId = (req.query.merchant_id as string) || 'mch-fitbody-01';
+  const analytics = await AiGatewayService.getMlChurnAnalytics(merchantId);
+  res.json({
+    success: true,
+    merchant_id: merchantId,
+    analytics,
+  });
+});
+
+router.post('/merchant/churn-predict', async (req: Request, res: Response): Promise<void> => {
+  const inputs = req.body;
+  const prediction = await AiGatewayService.predictMlChurn(inputs);
+  res.json({
+    success: true,
+    prediction,
+  });
+});
+
+router.post('/merchant/churn-simulate', async (req: Request, res: Response): Promise<void> => {
+  const { price_change_pct, tenure_impact_pct, merchant_id } = req.body;
+  const simulation = await AiGatewayService.simulateChurnScenario({
+    price_change_pct: Number(price_change_pct || 0),
+    tenure_impact_pct: Number(tenure_impact_pct || 0),
+    merchant_id,
+  });
+  res.json({
+    success: true,
+    simulation,
+  });
+});
+
 // ============================================================================
 // 900 FUNCTIONAL VALIDATION DATASET PIPELINE ENDPOINTS
 // ============================================================================
