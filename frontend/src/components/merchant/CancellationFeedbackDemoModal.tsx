@@ -307,7 +307,7 @@ export default function CancellationFeedbackDemoModal({
                           <Check className="w-4 h-4 text-orange-400 shrink-0" />
                         )}
                       </div>
-                    )))}
+                    ))}
                   </div>
                 )}
               </div>
