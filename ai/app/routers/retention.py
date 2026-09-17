@@ -422,7 +422,7 @@ async def predict_churn_batch(payload: BatchPredictChurnRequest):
 # 4. Sektor 1: Capacity-Aware Smart Option Ranking AI
 # ----------------------------------------------------
 class SessionCandidateInput(BaseModel):
-    id: string = ""
+    id: str = ""
     title: str
     day_of_week: str
     time_slot: str
