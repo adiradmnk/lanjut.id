@@ -8,6 +8,9 @@ import AiPredictionTab from '@/components/merchant/AiPredictionTab';
 import FutureScenariosTab from '@/components/merchant/FutureScenariosTab';
 import CancellationFeedbackDemoModal from '@/components/merchant/CancellationFeedbackDemoModal';
 import BusinessLogicTab from '@/components/merchant/BusinessLogicTab';
+import FinanceTab from '@/components/merchant/FinanceTab';
+import RetentionInboxTab from '@/components/merchant/RetentionInboxTab';
+import HomeTab from '@/components/merchant/HomeTab';
 import { 
   SidebarNav, 
   type NavGroupData, 
@@ -294,14 +297,93 @@ export default function MerchantDashboardPage() {
 
         {/* Dynamic Body Content */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#171717]">
-          {activeId === 'business-logic' ? (
+          {activeId === 'home' && (
+            <HomeTab
+              stats={stats}
+              tenantName={selectedTenant.name}
+              tenantCategory={selectedTenant.category}
+              onNavigate={(tab) => setActiveId(tab)}
+            />
+          )}
+
+          {activeId === 'inbox' && (
+            <RetentionInboxTab
+              members={members}
+              tenantId={selectedTenant.id}
+              onOpenFeedbackDemo={() => setIsFeedbackDemoOpen(true)}
+              onRefresh={loadData}
+            />
+          )}
+
+          {activeId === 'analytics' && (
+            <VisualAnalyticsTab
+              analytics={mlAnalytics}
+              revenueInsights={revenueInsights}
+            />
+          )}
+
+          {activeId === 'business-logic' && (
             <BusinessLogicTab 
               tenantId={selectedTenant.id}
               tenantName={selectedTenant.name}
               tenantCategory={selectedTenant.category}
             />
-          ) : (
-            /* Empty clean placeholder for each page */
+          )}
+
+          {activeId === 'finance' && (
+            <FinanceTab
+              tenantId={selectedTenant.id}
+              tenantName={selectedTenant.name}
+            />
+          )}
+
+          {activeId === 'api' && (
+            <div className="bg-[#212121] border border-white/10 rounded-xl p-6 space-y-4">
+              <div className="flex items-center gap-2">
+                <Terminal className="w-5 h-5 text-emerald-400" />
+                <h2 className="text-base font-bold text-white">BNI SNAP API Credentials</h2>
+              </div>
+              <p className="text-xs text-neutral-400">
+                Gunakan kredensial sandbox resmi BNI Open Banking SNAP untuk mengotomatiskan rekonsiliasi dan verifikasi signature.
+              </p>
+              <div className="space-y-3 pt-2">
+                <div>
+                  <label className="text-[11px] font-mono uppercase text-neutral-400">Merchant Client ID</label>
+                  <div className="mt-1 flex items-center justify-between p-2.5 rounded-lg bg-[#171717] border border-white/10 font-mono text-xs text-white">
+                    <span>bni_client_live_fitbody01_99882</span>
+                    <span className="text-[10px] text-neutral-500 uppercase">Active</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] font-mono uppercase text-neutral-400">HMAC Secret Key</label>
+                  <div className="mt-1 flex items-center justify-between p-2.5 rounded-lg bg-[#171717] border border-white/10 font-mono text-xs text-white">
+                    <span>••••••••••••••••••••••••••••••••</span>
+                    <span className="text-[10px] text-emerald-400 uppercase">Configured</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeId === 'webhooks' && (
+            <div className="bg-[#212121] border border-white/10 rounded-xl p-6 space-y-4">
+              <div className="flex items-center gap-2">
+                <Blocks className="w-5 h-5 text-cyan-400" />
+                <h2 className="text-base font-bold text-white">BNI Webhook Endpoints</h2>
+              </div>
+              <p className="text-xs text-neutral-400">
+                Endpoint resmi yang menerima notifikasi pelunasan Virtual Account BNI secara real-time.
+              </p>
+              <div className="p-3 bg-[#171717] border border-white/10 rounded-lg font-mono text-xs text-white flex items-center justify-between">
+                <span>https://api.lanjut.id/webhook/bni-payment</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  HTTP 200 OK
+                </span>
+              </div>
+            </div>
+          )}
+
+          {!['home', 'inbox', 'analytics', 'business-logic', 'finance', 'api', 'webhooks'].includes(activeId) && (
             <div className="flex flex-col items-center justify-center min-h-[60vh] border border-dashed border-white/10 rounded-2xl p-12 text-center">
               <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white mb-4">
                 <Cpu className="w-6 h-6 text-white" />
@@ -310,7 +392,7 @@ export default function MerchantDashboardPage() {
                 {activeId.replace('-', ' ')}
               </h2>
               <p className="text-xs text-neutral-400 mt-1 max-w-sm">
-                Halaman ini telah dikosongkan dan siap untuk implementasi modul berikutnya.
+                Pengaturan dan preferensi merchant untuk {activeId}.
               </p>
             </div>
           )}
