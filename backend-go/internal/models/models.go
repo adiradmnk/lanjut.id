@@ -20,6 +20,10 @@ type Tenant struct {
 	MonthlyInstallmentIDR float64      `json:"monthly_installment_idr"`
 	LoanTenorMonths       int          `json:"loan_tenor_months"`
 	Config                TenantConfig `json:"config"`
+	// PaymentProvider selects which PaymentGatewayAdapter (services/paymentgateway.go)
+	// CheckoutVA uses for this tenant: BNI | MIDTRANS | SIMULATOR. Defaults to BNI.
+	PaymentProvider string  `json:"payment_provider"`
+	BankPartnerID   *string `json:"bank_partner_id,omitempty"`
 }
 
 type Member struct {
@@ -35,6 +39,10 @@ type Member struct {
 	UsedQuota      int    `json:"used_quota"`
 	JoinedAt       string `json:"joined_at"`
 	ChurnRiskFlag  string `json:"churn_risk_flag"`
+	// SubscriptionStatus: ACTIVE | CANCELLED. See migration 0011's ASUMSI note — a member
+	// row itself is treated as the subscription, there's no separate subscriptions table.
+	SubscriptionStatus string `json:"subscription_status"`
+	ContactOptOut      bool   `json:"contact_opt_out"`
 }
 
 type ClassSession struct {
@@ -63,6 +71,10 @@ type Transaction struct {
 	CreatedAt    string  `json:"created_at"`
 	PaidAt       *string `json:"paid_at,omitempty"`
 	AIOfferID    *string `json:"ai_offer_id,omitempty"`
+	// ProviderMetadata is provider-specific extra data (e.g. Midtrans's order_id/token)
+	// that doesn't fit the common columns. Never used for anything security-sensitive —
+	// signatures/API keys are redacted before anything is ever written here.
+	ProviderMetadata json.RawMessage `json:"provider_metadata,omitempty"`
 }
 
 // ProductPackage is a merchant's official catalog entry (the "guidebook"). Generic across
@@ -186,6 +198,56 @@ type Account struct {
 	TenantID     *string `json:"tenant_id,omitempty"`
 	Name         string  `json:"name"`
 	CreatedAt    string  `json:"created_at"`
+}
+
+// PaymentGatewayLog is a raw request/response/webhook audit trail entry (FASE 1b). Never
+// exposes a real signature/API key — those are redacted by the adapter at the point the log
+// payload is built (see bnipayment.go/midtrans.go), not here.
+type PaymentGatewayLog struct {
+	ID            string          `json:"id"`
+	TransactionID *string         `json:"transaction_id,omitempty"`
+	Provider      string          `json:"provider"`
+	Direction     string          `json:"direction"` // REQUEST | RESPONSE | WEBHOOK
+	RawPayload    json.RawMessage `json:"raw_payload"`
+	CreatedAt     string          `json:"created_at"`
+}
+
+// AITransactionFeedItem is the PII-stripped view of a transaction exposed to the AI sidecar
+// (GET /api/ai/tenants/:tenantId/transaction-feed). Deliberately excludes name/email/phone/
+// virtualAccountNo/signature/raw_payload — see store.ListTenantTransactionFeedForAI.
+type AITransactionFeedItem struct {
+	MemberRef       string  `json:"member_ref"`
+	SessionCategory string  `json:"session_category"`
+	Amount          float64 `json:"amount"`
+	Status          string  `json:"status"`
+	BillingType     string  `json:"billing_type"`
+	PaidAt          *string `json:"paid_at"`
+	CreatedAt       string  `json:"created_at"`
+}
+
+// MemberFeedback is free-text feedback tied to a specific context (a cancellation, a failed
+// payment, a periodic pulse check). See migration 0011 for why context_ref_id is never NULL.
+type MemberFeedback struct {
+	ID           string `json:"id"`
+	MemberID     string `json:"member_id"`
+	TenantID     string `json:"tenant_id"`
+	ContextType  string `json:"context_type"` // CANCELLATION | PAYMENT_FAILURE | PULSE_CHECK
+	ContextRefID string `json:"context_ref_id,omitempty"`
+	ReasonCode   string `json:"reason_code,omitempty"`
+	FreeText     string `json:"free_text,omitempty"`
+	CreatedAt    string `json:"created_at"`
+}
+
+// SupportTicket is a customer's escalation to a human. At most one OPEN ticket exists per
+// (member, tenant) at a time — enforced by a partial unique index, not application code.
+type SupportTicket struct {
+	ID         string  `json:"id"`
+	MemberID   string  `json:"member_id"`
+	TenantID   string  `json:"tenant_id"`
+	Issue      string  `json:"issue"`
+	Status     string  `json:"status"` // OPEN | RESOLVED
+	CreatedAt  string  `json:"created_at"`
+	ResolvedAt *string `json:"resolved_at,omitempty"`
 }
 
 // Reservation is a soft hold on a session slot while an offer awaits/holds approval, so two

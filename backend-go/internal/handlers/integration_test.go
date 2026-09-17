@@ -59,9 +59,12 @@ func newTestServer(t *testing.T) *httptest.Server {
 	bni := services.NewBNIPaymentService(config.Config{
 		BNICompanyCode: "8808", BNICorporateID: "TESTCORP", BNIUserID: "TESTUSER",
 	})
+	// No MIDTRANS_SERVER_KEY/CLIENT_KEY configured -> runs the local simulator, same as
+	// BNI without live BNI credentials.
+	midtrans := services.NewMidtransAdapter(config.Config{})
 	// nil storage/mailjet: R2 and Mailjet aren't configured for this test run — guidebook
 	// upload and OTP login aren't part of these tests.
-	h := handlers.New(s, magicToken, aiGateway, bni, nil, nil)
+	h := handlers.New(s, magicToken, aiGateway, bni, nil, nil, midtrans)
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()

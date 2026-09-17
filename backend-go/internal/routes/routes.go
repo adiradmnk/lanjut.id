@@ -30,6 +30,12 @@ func Register(r *gin.Engine, h *handlers.Handlers) {
 		api.POST("/member/feedback", h.SubmitFeedback)
 		api.GET("/member/feedback", h.ListMemberFeedback)
 
+		api.POST("/member/subscription/:id/cancel", h.CancelSubscription)
+		api.POST("/member/subscription/:id/feedback", h.SubmitSubscriptionFeedback)
+		api.GET("/member/receipt/:trxId", h.GetReceipt)
+		api.POST("/member/receipt/:trxId/feedback", h.SubmitReceiptFeedback)
+		api.POST("/member/request-human-help", h.RequestHumanHelp)
+
 		api.GET("/merchant/:tenantId/dashboard", h.MerchantDashboard)
 		api.GET("/merchant/:tenantId/at-risk-members", h.MerchantAtRiskMembers)
 		api.GET("/merchant/:tenantId/insights", h.GetTenantInsights)
@@ -46,11 +52,14 @@ func Register(r *gin.Engine, h *handlers.Handlers) {
 
 		api.GET("/merchant/:tenantId/feedback", h.ListMerchantFeedback)
 
+		api.GET("/merchant/:tenantId/transactions", h.ListMerchantTransactions)
+
 		api.GET("/merchant/:tenantId/pending-offers", h.ListPendingOffers)
 		api.POST("/merchant/:tenantId/offers/:offerId/approve", h.ApproveOffer)
 		api.POST("/merchant/:tenantId/offers/:offerId/reject", h.RejectOffer)
 
 		api.POST("/ai/tenants/:tenantId/members/:memberId/generate-offers", h.GenerateOffers)
+		api.GET("/ai/tenants/:tenantId/transaction-feed", h.ListTenantTransactionFeedForAI)
 
 		api.GET("/bni/dashboard", h.BNIDashboard)
 		api.GET("/bni/tenants/:tenantId/insights", h.GetTenantInsights)
@@ -58,4 +67,5 @@ func Register(r *gin.Engine, h *handlers.Handlers) {
 
 	r.POST("/webhook/bni-payment", h.BNIWebhook)
 	r.POST("/api/bni/va-webhook", h.BNIWebhook)
+	r.POST("/webhook/midtrans", h.MidtransWebhook)
 }

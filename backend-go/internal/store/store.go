@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -21,30 +22,24 @@ func New(pool *pgxpool.Pool) *Store {
 	return &Store{pool: pool}
 }
 
+const tenantSelectColumns = `
+	id, business_name, category, bni_account_number, bni_company_code, bni_va_prefix,
+	loan_plafond_idr, monthly_installment_idr, loan_tenor_months,
+	max_discount_pct, min_margin_floor_idr, min_slot_fill_ratio_target, auto_intervention_threshold_days,
+	payment_provider, bank_partner_id`
+
 func (s *Store) GetTenant(ctx context.Context, id string) (*models.Tenant, error) {
-	row := s.pool.QueryRow(ctx, `
-		SELECT id, business_name, category, bni_account_number, bni_company_code, bni_va_prefix,
-		       loan_plafond_idr, monthly_installment_idr, loan_tenor_months,
-		       max_discount_pct, min_margin_floor_idr, min_slot_fill_ratio_target, auto_intervention_threshold_days
-		FROM tenants WHERE id = $1`, id)
+	row := s.pool.QueryRow(ctx, `SELECT `+tenantSelectColumns+` FROM tenants WHERE id = $1`, id)
 	return scanTenant(row)
 }
 
 func (s *Store) GetFirstTenant(ctx context.Context) (*models.Tenant, error) {
-	row := s.pool.QueryRow(ctx, `
-		SELECT id, business_name, category, bni_account_number, bni_company_code, bni_va_prefix,
-		       loan_plafond_idr, monthly_installment_idr, loan_tenor_months,
-		       max_discount_pct, min_margin_floor_idr, min_slot_fill_ratio_target, auto_intervention_threshold_days
-		FROM tenants ORDER BY id LIMIT 1`)
+	row := s.pool.QueryRow(ctx, `SELECT `+tenantSelectColumns+` FROM tenants ORDER BY id LIMIT 1`)
 	return scanTenant(row)
 }
 
 func (s *Store) ListTenants(ctx context.Context) ([]models.Tenant, error) {
-	rows, err := s.pool.Query(ctx, `
-		SELECT id, business_name, category, bni_account_number, bni_company_code, bni_va_prefix,
-		       loan_plafond_idr, monthly_installment_idr, loan_tenor_months,
-		       max_discount_pct, min_margin_floor_idr, min_slot_fill_ratio_target, auto_intervention_threshold_days
-		FROM tenants ORDER BY id`)
+	rows, err := s.pool.Query(ctx, `SELECT `+tenantSelectColumns+` FROM tenants ORDER BY id`)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +64,8 @@ func scanTenant(row rowScanner) (*models.Tenant, error) {
 	var t models.Tenant
 	err := row.Scan(&t.ID, &t.BusinessName, &t.Category, &t.BNIAccountNumber, &t.BNICompanyCode, &t.BNIVAPrefix,
 		&t.LoanPlafondIDR, &t.MonthlyInstallmentIDR, &t.LoanTenorMonths,
-		&t.Config.MaxDiscountPct, &t.Config.MinMarginFloorIDR, &t.Config.MinSlotFillRatioTarget, &t.Config.AutoInterventionDays)
+		&t.Config.MaxDiscountPct, &t.Config.MinMarginFloorIDR, &t.Config.MinSlotFillRatioTarget, &t.Config.AutoInterventionDays,
+		&t.PaymentProvider, &t.BankPartnerID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -79,27 +75,23 @@ func scanTenant(row rowScanner) (*models.Tenant, error) {
 	return &t, nil
 }
 
+const memberSelectColumns = `
+	id, tenant_id, name, email, phone, current_package, package_tier,
+	COALESCE(active_until::text, ''), total_quota, used_quota, joined_at::text, churn_risk_flag,
+	subscription_status, contact_opt_out`
+
 func (s *Store) GetMember(ctx context.Context, id string) (*models.Member, error) {
-	row := s.pool.QueryRow(ctx, `
-		SELECT id, tenant_id, name, email, phone, current_package, package_tier,
-		       COALESCE(active_until::text, ''), total_quota, used_quota, joined_at::text, churn_risk_flag
-		FROM members WHERE id = $1`, id)
+	row := s.pool.QueryRow(ctx, `SELECT `+memberSelectColumns+` FROM members WHERE id = $1`, id)
 	return scanMember(row)
 }
 
 func (s *Store) GetFirstMember(ctx context.Context) (*models.Member, error) {
-	row := s.pool.QueryRow(ctx, `
-		SELECT id, tenant_id, name, email, phone, current_package, package_tier,
-		       COALESCE(active_until::text, ''), total_quota, used_quota, joined_at::text, churn_risk_flag
-		FROM members ORDER BY id LIMIT 1`)
+	row := s.pool.QueryRow(ctx, `SELECT `+memberSelectColumns+` FROM members ORDER BY id LIMIT 1`)
 	return scanMember(row)
 }
 
 func (s *Store) ListMembersByTenant(ctx context.Context, tenantID string) ([]models.Member, error) {
-	rows, err := s.pool.Query(ctx, `
-		SELECT id, tenant_id, name, email, phone, current_package, package_tier,
-		       COALESCE(active_until::text, ''), total_quota, used_quota, joined_at::text, churn_risk_flag
-		FROM members WHERE tenant_id = $1 ORDER BY id`, tenantID)
+	rows, err := s.pool.Query(ctx, `SELECT `+memberSelectColumns+` FROM members WHERE tenant_id = $1 ORDER BY id`, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +111,8 @@ func (s *Store) ListMembersByTenant(ctx context.Context, tenantID string) ([]mod
 func scanMember(row rowScanner) (*models.Member, error) {
 	var m models.Member
 	err := row.Scan(&m.ID, &m.TenantID, &m.Name, &m.Email, &m.Phone, &m.CurrentPackage, &m.PackageTier,
-		&m.ActiveUntil, &m.TotalQuota, &m.UsedQuota, &m.JoinedAt, &m.ChurnRiskFlag)
+		&m.ActiveUntil, &m.TotalQuota, &m.UsedQuota, &m.JoinedAt, &m.ChurnRiskFlag,
+		&m.SubscriptionStatus, &m.ContactOptOut)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -182,24 +175,23 @@ func (s *Store) IncrementSessionBooking(ctx context.Context, sessionID string) e
 func (s *Store) CreatePendingTransaction(ctx context.Context, trx models.Transaction) error {
 	_, err := s.pool.Exec(ctx, `
 		INSERT INTO transactions (trx_id, tenant_id, member_id, session_id, session_title, amount,
-		                          bni_va_number, bni_signature, status, idempotency_key, ai_offer_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'PENDING', $1, $9)
+		                          bni_va_number, bni_signature, status, idempotency_key, ai_offer_id, provider_metadata)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'PENDING', $1, $9, $10)
 		ON CONFLICT (trx_id) DO NOTHING`,
-		trx.TrxID, trx.TenantID, trx.MemberID, trx.SessionID, trx.SessionTitle, trx.Amount, trx.VANumber, trx.Signature, trx.AIOfferID)
+		trx.TrxID, trx.TenantID, trx.MemberID, trx.SessionID, trx.SessionTitle, trx.Amount, trx.VANumber, trx.Signature,
+		trx.AIOfferID, nullIfEmptyJSON(trx.ProviderMetadata))
 	return err
 }
 
-func (s *Store) GetTransaction(ctx context.Context, trxID string) (*models.Transaction, error) {
-	row := s.pool.QueryRow(ctx, `
-		SELECT trx_id, tenant_id, member_id, session_id, session_title, amount, bni_va_number, bni_signature,
-		       status, created_at::text, paid_at::text, ai_offer_id::text
-		FROM transactions WHERE trx_id = $1`, trxID)
+const transactionSelectColumns = `
+	trx_id, tenant_id, member_id, session_id, session_title, amount, bni_va_number, bni_signature,
+	status, created_at::text, paid_at::text, ai_offer_id::text, provider_metadata::text`
 
+func scanTransaction(row rowScanner) (*models.Transaction, error) {
 	var t models.Transaction
-	var paidAt *string
-	var aiOfferID *string
+	var paidAt, aiOfferID, providerMetadata *string
 	err := row.Scan(&t.TrxID, &t.TenantID, &t.MemberID, &t.SessionID, &t.SessionTitle, &t.Amount, &t.VANumber,
-		&t.Signature, &t.Status, &t.CreatedAt, &paidAt, &aiOfferID)
+		&t.Signature, &t.Status, &t.CreatedAt, &paidAt, &aiOfferID, &providerMetadata)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -208,7 +200,15 @@ func (s *Store) GetTransaction(ctx context.Context, trxID string) (*models.Trans
 	}
 	t.PaidAt = paidAt
 	t.AIOfferID = aiOfferID
+	if providerMetadata != nil {
+		t.ProviderMetadata = json.RawMessage(*providerMetadata)
+	}
 	return &t, nil
+}
+
+func (s *Store) GetTransaction(ctx context.Context, trxID string) (*models.Transaction, error) {
+	row := s.pool.QueryRow(ctx, `SELECT `+transactionSelectColumns+` FROM transactions WHERE trx_id = $1`, trxID)
+	return scanTransaction(row)
 }
 
 // ListTransactionsByMember returns a customer's full transaction history, newest first.
@@ -217,8 +217,7 @@ func (s *Store) GetTransaction(ctx context.Context, trxID string) (*models.Trans
 // once one has actually settled — the two lists diverge for anything not yet paid.
 func (s *Store) ListTransactionsByMember(ctx context.Context, memberID string) ([]models.Transaction, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT trx_id, tenant_id, member_id, session_id, session_title, amount, bni_va_number, bni_signature,
-		       status, created_at::text, paid_at::text, ai_offer_id::text
+		SELECT `+transactionSelectColumns+`
 		FROM transactions WHERE member_id = $1 ORDER BY created_at DESC`, memberID)
 	if err != nil {
 		return nil, err
@@ -227,16 +226,11 @@ func (s *Store) ListTransactionsByMember(ctx context.Context, memberID string) (
 
 	var out []models.Transaction
 	for rows.Next() {
-		var t models.Transaction
-		var paidAt *string
-		var aiOfferID *string
-		if err := rows.Scan(&t.TrxID, &t.TenantID, &t.MemberID, &t.SessionID, &t.SessionTitle, &t.Amount,
-			&t.VANumber, &t.Signature, &t.Status, &t.CreatedAt, &paidAt, &aiOfferID); err != nil {
-			return nil, fmt.Errorf("scan transaction: %w", err)
+		t, err := scanTransaction(rows)
+		if err != nil {
+			return nil, err
 		}
-		t.PaidAt = paidAt
-		t.AIOfferID = aiOfferID
-		out = append(out, t)
+		out = append(out, *t)
 	}
 	return out, rows.Err()
 }

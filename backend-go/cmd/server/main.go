@@ -37,6 +37,10 @@ func main() {
 	magicToken := services.NewMagicTokenService(cfg.MagicTokenSecret, s)
 	aiGateway := services.NewAIGateway(cfg.AIServiceURL)
 	bni := services.NewBNIPaymentService(cfg)
+	midtrans := services.NewMidtransAdapter(cfg)
+	if cfg.MidtransServerKey == "" {
+		slog.Warn("Midtrans credentials not configured; MIDTRANS-provider tenants will use the local simulator")
+	}
 
 	storage, err := services.NewR2Storage(cfg)
 	if err != nil {
@@ -52,7 +56,7 @@ func main() {
 		slog.Warn("Mailjet credentials not configured; OTP login endpoints will return 503")
 	}
 
-	h := handlers.New(s, magicToken, aiGateway, bni, storage, mailjet)
+	h := handlers.New(s, magicToken, aiGateway, bni, storage, mailjet, midtrans)
 
 	r := gin.Default()
 	routes.Register(r, h)

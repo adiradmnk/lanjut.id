@@ -30,11 +30,22 @@ type Handlers struct {
 	Storage *services.R2Storage
 	// Mailjet is nil when Mailjet credentials aren't configured — same nil-safe pattern as
 	// Storage. Without it, OTP login can't send the code and reports a clear 503.
-	Mailjet *services.MailjetService
+	Mailjet  *services.MailjetService
+	Midtrans *services.MidtransAdapter
 }
 
-func New(s *store.Store, mt *services.MagicTokenService, ai *services.AIGateway, bni *services.BNIPaymentService, storage *services.R2Storage, mailjet *services.MailjetService) *Handlers {
-	return &Handlers{Store: s, MagicToken: mt, AIGateway: ai, BNI: bni, Storage: storage, Mailjet: mailjet}
+func New(s *store.Store, mt *services.MagicTokenService, ai *services.AIGateway, bni *services.BNIPaymentService, storage *services.R2Storage, mailjet *services.MailjetService, midtrans *services.MidtransAdapter) *Handlers {
+	return &Handlers{Store: s, MagicToken: mt, AIGateway: ai, BNI: bni, Storage: storage, Mailjet: mailjet, Midtrans: midtrans}
+}
+
+// paymentAdapterFor picks the PaymentGatewayAdapter for a tenant based on
+// tenant.PaymentProvider. Unrecognized/empty values fall back to BNI (the column default),
+// so existing tenants (all seeded as 'BNI') are unaffected.
+func (h *Handlers) paymentAdapterFor(tenant *models.Tenant) services.PaymentGatewayAdapter {
+	if tenant != nil && tenant.PaymentProvider == "MIDTRANS" {
+		return h.Midtrans
+	}
+	return h.BNI
 }
 
 func (h *Handlers) Health(c *gin.Context) {
