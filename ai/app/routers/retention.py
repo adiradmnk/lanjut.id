@@ -72,41 +72,46 @@ async def translate_grievance(payload: GrievanceTranslateRequest):
             model = genai.GenerativeModel("gemini-1.5-flash")
             
             prompt = f"""
-            You are LANJUT AI Engine (Grievance Translator for BNI Merchant Retention).
-            Analyze this member complaint and return ONLY a valid JSON object without markdown formatting.
-            
-            Member Name: {payload.member_name}
-            Current Package: {payload.current_package}
-            Complaint: "{payload.free_text_complaint}"
-            
-            JSON structure:
+            Anda adalah AI Engine penasihat retensi pelanggan untuk platform B2B LANJUT.
+            Analisis teks keluhan pelanggan berikut:
+            Member: {payload.member_name}
+            Paket Saat Ini: {payload.current_package}
+            Teks Keluhan: "{payload.free_text_complaint}"
+
+            Anda WAJIB mengembalikan output murni dalam format JSON tanpa markdown formatting atau teks pengantar:
             {{
-                "intent": "SCHEDULE_CONFLICT" | "PRICE_SENSITIVE" | "MEDICAL_PAUSE" | "LOW_UTILIZATION",
-                "category": "Jadwal Pagi Bentrok WFO / Kantor" | "Paket Terlalu Mahal" | "Jeda Sesi" | "Lainnya",
-                "preferred_time_of_day": "EVENING" | "WEEKEND" | "AFTERNOON" | "MORNING",
-                "preferred_days": ["THURSDAY", "FRIDAY"],
-                "churn_risk_score": 0.88,
-                "sentiment": "NEUTRAL_FRUSTRATED",
-                "root_cause_summary": "Pelanggan sudah mulai WFO jam 08.00 pagi sehingga tidak dapat mengikuti kelas pagi",
-                "recommended_action": "SWITCH_EVENING_CLASS"
+                "intent": "cancellation_request" | "pause_request" | "support_inquiry",
+                "primary_category": "schedule_conflict" | "price_sensitivity" | "feature_mismatch" | "low_usage",
+                "sentiment_score": -0.4,
+                "extracted_entities": {{
+                    "time_preference": "evening" | "morning" | "weekend" | null,
+                    "budget_concern": true | false
+                }},
+                "recommended_action_type": "offer_alternative_schedule" | "offer_discount" | "offer_pause",
+                "root_cause_summary": "Penjelasan inti alasan member ingin cancel"
             }}
             """
-            response = model.generate_content(prompt)
-            clean_text = response.text.strip().replace("```json", "").replace("```", "").strip()
-            data = json.loads(clean_text)
+            response = model.generate_content(
+                prompt,
+                generation_config={"response_mime_type": "application/json"}
+            )
+            data = json.loads(response.text.strip())
             
             elapsed = round((time.time() - start_time) * 1000, 2)
+            entities = data.get("extracted_entities", {})
+            pref_time = entities.get("time_preference") or "EVENING"
+            
             return GrievanceTranslateResponse(
                 member_name=payload.member_name,
-                intent=data.get("intent", "SCHEDULE_CONFLICT"),
-                category=data.get("category", "Jadwal Bentrok WFO"),
-                preferred_time_of_day=data.get("preferred_time_of_day", "EVENING"),
-                preferred_days=data.get("preferred_days", ["THURSDAY", "FRIDAY"]),
-                churn_risk_score=float(data.get("churn_risk_score", 0.85)),
-                sentiment=data.get("sentiment", "FRUSTRATED_TIME"),
+                intent=data.get("intent", "cancellation_request"),
+                category=data.get("primary_category", "schedule_conflict"),
+                preferred_time_of_day=str(pref_time).upper(),
+                preferred_days=["THURSDAY", "FRIDAY"] if "evening" in str(pref_time).lower() else ["SATURDAY"],
+                churn_risk_score=float(abs(data.get("sentiment_score", -0.5)) + 0.4),
+                sentiment="NEGATIVE" if float(data.get("sentiment_score", 0)) < 0 else "NEUTRAL",
                 root_cause_summary=data.get("root_cause_summary", payload.free_text_complaint),
-                recommended_action=data.get("recommended_action", "SWITCH_EVENING_CLASS"),
-                engine_source="Google Gemini 1.5 Flash",
+                recommended_action=data.get("recommended_action_type", "offer_alternative_schedule"),
+                engine_source="Google Gemini 1.5 Flash (Structured JSON)",
                 processing_time_ms=elapsed
             )
         except Exception as e:

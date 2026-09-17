@@ -15,6 +15,7 @@ func Register(r *gin.Engine, h *handlers.Handlers) {
 	api := r.Group("/api")
 	{
 		api.GET("/member/resolve-magic-token", h.ResolveMagicToken)
+		api.POST("/member/translate-grievance", h.TranslateGrievance)
 		api.POST("/member/checkout-va", h.CheckoutVA)
 
 		api.GET("/merchant/:tenantId/dashboard", h.MerchantDashboard)
