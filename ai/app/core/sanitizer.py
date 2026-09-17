@@ -8,7 +8,10 @@ class PIISanitizer:
     Menyamarkan nama, nomor telepon, email, dan nomor akun sebelum dikirim ke eksternal LLM.
     """
     EMAIL_PATTERN = re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b')
-    PHONE_PATTERN = re.compile(r'(\+62|62|08)[0-9]{8,12}')
+    # Non-capturing group so findall() returns the full number, not just the prefix.
+    # Previously the capturing group `(+62|62|08)` caused findall to return only
+    # the matched prefix (e.g. "+62"), leaving the remaining digits unmasked before Gemini.
+    PHONE_PATTERN = re.compile(r'(?:\+62|62|08)[0-9]{8,12}')
     ACCOUNT_PATTERN = re.compile(r'\b[0-9]{10,16}\b') # Nomor VA / Rekening BNI
 
     @classmethod

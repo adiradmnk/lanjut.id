@@ -9,6 +9,7 @@ Mengadopsi pola Vercel AI SDK Structured Object Generation & Advanced RAG:
 
 import time
 import json
+from uuid import uuid4
 from typing import Dict, Any, List, Optional
 from app.core.schemas import ExtractedBusinessRules
 from app.core.sanitizer import PIISanitizer
@@ -72,7 +73,7 @@ class DynamicSurveyGenerator:
             )
             if llm_form and "question_title" in llm_form and "multiple_choice_options" in llm_form:
                 return {
-                    "survey_id": f"srv_{int(time.time())}",
+                    "survey_id": f"srv_{uuid4().hex[:12]}",
                     "question_title": llm_form["question_title"],
                     "instruction": llm_form.get("instruction", "Pilih satu atau beberapa alasan yang menggambarkan situasi Anda:"),
                     "is_multi_select": True,
@@ -86,7 +87,7 @@ class DynamicSurveyGenerator:
 
         # Fallback Dynamic Generator
         return {
-            "survey_id": f"srv_{int(time.time())}",
+            "survey_id": f"srv_{uuid4().hex[:12]}",
             "question_title": f"Halo {member_name}, apa yang sedang menjadi pertimbangan Anda mengenai kelanjutan layanan di {biz_name}?",
             "instruction": "Pilih satu atau beberapa alasan berikut yang paling menggambarkan kendala Anda:",
             "is_multi_select": True,
@@ -183,9 +184,10 @@ class UserFeedbackAnalyzer:
                 root_cause = PIISanitizer.desanitize_text(llm_res.get("root_cause_summary", ""), pii_map)
                 
                 # Enforce Hard Guardrail pada hasil harga LLM
+                # price_idr=0 atau None juga wajib di-floor — bukan hanya price > 0
                 for offer in llm_res["personalized_retention_offers"]:
-                    if offer.get("price_idr", 0) > 0:
-                        offer["price_idr"] = max(min_floor, float(offer["price_idr"]))
+                    raw_price = float(offer.get("price_idr") or 0)
+                    offer["price_idr"] = max(min_floor, raw_price)
 
                 return {
                     "member_name": member_name,
