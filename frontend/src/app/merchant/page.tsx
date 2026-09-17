@@ -370,10 +370,6 @@ export default function MerchantDashboardPage() {
               <span>Audit 900 Dataset</span>
             </button>
             <Link
-<<<<<<< HEAD
-              href="/login"
-              className="px-3.5 py-1.5 rounded-full bg-[#005E6A] hover:bg-teal-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
-=======
               href="/member?member_id=mbr-dina-01"
               target="_blank"
               className="px-3 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200/80 text-neutral-700 text-xs font-semibold flex items-center gap-1.5 transition-colors border border-neutral-200/60"
@@ -384,7 +380,13 @@ export default function MerchantDashboardPage() {
             <Link
               href="/bni"
               className="px-3 py-1.5 rounded-full bg-[#005E6A] hover:bg-teal-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
->>>>>>> 2e227478fd34f9ba299bf0700446c0880bf8e658
+            >
+              <span>BNI Dashboard</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+            <Link
+              href="/login"
+              className="px-3.5 py-1.5 rounded-full bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
             >
               <span>Kembali ke login</span>
               <ArrowRight className="w-3.5 h-3.5" />

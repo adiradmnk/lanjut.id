@@ -52,9 +52,34 @@ jobs:
           go vet ./...
           go build ./...
 
+  test-frontend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install & build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
   deploy:
-    needs: [detect-changes, test-backend]
-    if: always() && needs.detect-changes.result == 'success' && (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped')
+    needs: [detect-changes, test-backend, test-frontend]
+    if: >-
+      always() &&
+      needs.detect-changes.result == 'success' &&
+      (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') &&
+      (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - name: Deploy changed services to VPS

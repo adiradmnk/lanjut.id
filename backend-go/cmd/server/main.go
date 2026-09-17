@@ -37,7 +37,22 @@ func main() {
 	magicToken := services.NewMagicTokenService(cfg.MagicTokenSecret, s)
 	aiGateway := services.NewAIGateway(cfg.AIServiceURL)
 	bni := services.NewBNIPaymentService(cfg)
-	h := handlers.New(s, magicToken, aiGateway, bni)
+
+	storage, err := services.NewR2Storage(cfg)
+	if err != nil {
+		slog.Error("failed to init R2 storage client", "err", err)
+		os.Exit(1)
+	}
+	if storage == nil {
+		slog.Warn("R2 credentials not configured; guidebook upload endpoints will return 503")
+	}
+
+	mailjet := services.NewMailjetService(cfg)
+	if mailjet == nil {
+		slog.Warn("Mailjet credentials not configured; OTP login endpoints will return 503")
+	}
+
+	h := handlers.New(s, magicToken, aiGateway, bni, storage, mailjet)
 
 	r := gin.Default()
 	routes.Register(r, h)

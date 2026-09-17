@@ -569,6 +569,180 @@ async def rank_smart_options(payload: RankSmartOptionsRequest):
 
 
 # ----------------------------------------------------
+# 4.5 Guidebook-Grounded Offer Generation (Human-Approval-Gated)
+# AI proposes candidates only — it NEVER approves or sends anything to a customer. Every
+# candidate still has to pass the Go backend's ValidateOfferConstraint and, beyond that,
+# mandatory merchant approval (see backend-go/internal/handlers/offers.go).
+# ----------------------------------------------------
+class ProductPackageInput(BaseModel):
+    id: str
+    name: str
+    price_idr: float
+    quota_sessions: int = 0
+    duration_days: int = 0
+    billing_type: str = "ONE_TIME"
+
+class GenerateOffersRequest(BaseModel):
+    member_id: str
+    member_name: str
+    tenant_constraint: Optional[TenantConstraint] = None
+    active_packages: List[ProductPackageInput] = []
+    available_sessions: List[SessionCandidateInput] = []
+    guidebook_context: Optional[str] = ""
+
+class OfferCandidateOutput(BaseModel):
+    source: str  # "CATALOG" | "AI_GENERATED"
+    based_on_package_id: Optional[str] = None
+    target_session_id: Optional[str] = None
+    proposed_title: str
+    price_idr: float
+    discount_pct: float
+    projected_margin_idr: float
+
+class GenerateOffersResponse(BaseModel):
+    member_id: str
+    offers: List[OfferCandidateOutput]
+    engine_source: str
+    processing_time_ms: float
+
+
+def _fallback_offer_candidates(payload: "GenerateOffersRequest", max_discount: float, min_floor: float) -> List[OfferCandidateOutput]:
+    """
+    Deterministic fallback: one candidate per active catalog package (source=CATALOG, no
+    discount — the merchant already priced it in their guidebook), plus one AI-style
+    out-of-catalog candidate bounded by the tenant's constraints. Mirrors
+    services.GenerateOfferCandidates on the Go side, so behavior stays consistent regardless
+    of which path (Gemini or this) actually produced the candidates.
+    """
+    offers = [
+        OfferCandidateOutput(
+            source="CATALOG",
+            based_on_package_id=pkg.id,
+            target_session_id=None,
+            proposed_title=pkg.name,
+            price_idr=pkg.price_idr,
+            discount_pct=0,
+            projected_margin_idr=pkg.price_idr,
+        )
+        for pkg in payload.active_packages
+    ]
+
+    evening_sessions = [
+        s for s in payload.available_sessions
+        if s.time_of_day.upper() == "EVENING" and s.booked_slots < s.total_capacity
+    ]
+    candidate_sessions = evening_sessions or [
+        s for s in payload.available_sessions if s.booked_slots < s.total_capacity
+    ]
+    if candidate_sessions:
+        target = candidate_sessions[0]
+        base_price = max(min_floor, target.price_per_session_idr * 0.5)
+        adjusted_price = round(base_price * (1.0 - max_discount / 100.0))
+        offers.append(OfferCandidateOutput(
+            source="AI_GENERATED",
+            based_on_package_id=None,
+            target_session_id=target.id,
+            proposed_title=f"Pindah ke {target.title} ({target.day_of_week}, {target.time_slot})",
+            price_idr=adjusted_price,
+            discount_pct=max_discount,
+            projected_margin_idr=adjusted_price,
+        ))
+
+    return offers
+
+
+@router.post("/generate-offers", response_model=GenerateOffersResponse)
+async def generate_offers(payload: GenerateOffersRequest):
+    """
+    Proposes 1-3 candidate retention offers. When guidebook_context is present (the
+    extracted text of the merchant's uploaded catalog/policy/payment document — see
+    documents.py), Gemini grounds its proposals on it instead of guessing at merchant
+    policy. AI never approves anything here; see the module docstring above.
+    """
+    start_time = time.time()
+    tenant_cfg = payload.tenant_constraint or TenantConstraint()
+    max_discount = tenant_cfg.max_discount_allowed_pct if tenant_cfg.max_discount_allowed_pct is not None else 10.0
+    min_floor = tenant_cfg.min_margin_floor_idr if tenant_cfg.min_margin_floor_idr is not None else 50000.0
+
+    if GEMINI_API_KEY and payload.guidebook_context:
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=GEMINI_API_KEY)
+            model = genai.GenerativeModel("gemini-1.5-flash")
+
+            packages_json = json.dumps([p.model_dump() for p in payload.active_packages])
+            sessions_json = json.dumps([s.model_dump() for s in payload.available_sessions])
+
+            prompt = f"""
+            You are LANJUT AI Offer Engine. You propose retention offer CANDIDATES ONLY — you
+            never approve anything or send anything to a customer; a human merchant staffer
+            must approve every candidate first, through a separate system.
+
+            Ground your proposals STRICTLY on this merchant guidebook document (their actual
+            catalog, packages, policies, and payment system). Do not invent packages,
+            discounts, or policies that aren't supported by the guidebook or the structured
+            data below.
+
+            === MERCHANT GUIDEBOOK (verbatim excerpt) ===
+            {payload.guidebook_context[:12000]}
+            === END GUIDEBOOK ===
+
+            Member: {payload.member_name} (id: {payload.member_id})
+            Active catalog packages (structured): {packages_json}
+            Available sessions (structured): {sessions_json}
+            Tenant constraints: max_discount_allowed_pct={max_discount}, min_margin_floor_idr={min_floor}
+
+            Return ONLY a valid JSON array (no markdown fences) of 1-3 offer candidates, each
+            shaped exactly like:
+            {{
+                "source": "CATALOG" | "AI_GENERATED",
+                "based_on_package_id": "<id from active catalog packages, or null>",
+                "target_session_id": "<id from available sessions, or null>",
+                "proposed_title": "<short customer-facing title>",
+                "price_idr": <number>,
+                "discount_pct": <number, MUST be <= {max_discount}>,
+                "projected_margin_idr": <number, MUST be >= {min_floor}>
+            }}
+            """
+            response = model.generate_content(prompt)
+            clean_text = response.text.strip().replace("```json", "").replace("```", "").strip()
+            data = json.loads(clean_text)
+
+            offers = [
+                OfferCandidateOutput(
+                    source=item.get("source", "AI_GENERATED"),
+                    based_on_package_id=item.get("based_on_package_id"),
+                    target_session_id=item.get("target_session_id"),
+                    proposed_title=item.get("proposed_title", "Penawaran Retensi"),
+                    price_idr=float(item.get("price_idr", 0)),
+                    discount_pct=float(item.get("discount_pct", 0)),
+                    projected_margin_idr=float(item.get("projected_margin_idr", 0)),
+                )
+                for item in data
+            ]
+
+            if offers:
+                elapsed = round((time.time() - start_time) * 1000, 2)
+                return GenerateOffersResponse(
+                    member_id=payload.member_id,
+                    offers=offers,
+                    engine_source="Google Gemini 1.5 Flash (guidebook-grounded)",
+                    processing_time_ms=elapsed,
+                )
+        except Exception as e:
+            print(f"[Gemini generate-offers fallback]: {e}")
+
+    offers = _fallback_offer_candidates(payload, max_discount, min_floor)
+    elapsed = round((time.time() - start_time) * 1000, 2)
+    return GenerateOffersResponse(
+        member_id=payload.member_id,
+        offers=offers,
+        engine_source="LANJUT Deterministic Offer Fallback",
+        processing_time_ms=elapsed,
+    )
+
+
+# ----------------------------------------------------
 # 5. Sektor 3: BNI Decision Support System (EWS & DSCR)
 # ----------------------------------------------------
 class EvaluateSMECreditRequest(BaseModel):

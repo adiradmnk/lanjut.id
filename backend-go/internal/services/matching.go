@@ -97,3 +97,64 @@ func GenerateSmartOptions(member *models.Member, tenant *models.Tenant, sessions
 
 	return options
 }
+
+// GenerateOfferCandidates is the deterministic, capacity-aware local fallback for offer
+// generation. It returns one candidate per active catalog package (source=CATALOG, no
+// discount — the merchant already priced it in the guidebook) plus, capacity permitting,
+// one AI-style out-of-catalog candidate bounded by the tenant's max discount / margin floor
+// (source=AI_GENERATED), using the same evening-session heuristic as GenerateSmartOptions.
+//
+// This never approves anything itself — every returned candidate still has to pass
+// ValidateOfferConstraint and, after that, the mandatory merchant approval gate.
+func GenerateOfferCandidates(member *models.Member, tenant *models.Tenant, packages []models.ProductPackage, sessions []models.ClassSession) []models.OfferCandidate {
+	var candidates []models.OfferCandidate
+
+	for _, pkg := range packages {
+		pkg := pkg
+		candidates = append(candidates, models.OfferCandidate{
+			Source:             "CATALOG",
+			BasedOnPackageID:   &pkg.ID,
+			ProposedTitle:      pkg.Name,
+			PriceIDR:           pkg.PriceIDR,
+			DiscountPct:        0,
+			ProjectedMarginIDR: pkg.PriceIDR,
+		})
+	}
+
+	maxDiscount := 15.0
+	minFloor := 50000.0
+	if tenant != nil {
+		maxDiscount = tenant.Config.MaxDiscountPct
+		minFloor = tenant.Config.MinMarginFloorIDR
+	}
+
+	var evening []models.ClassSession
+	for _, s := range sessions {
+		if s.TimeOfDay == "EVENING" && s.BookedSlots < s.TotalCapacity {
+			evening = append(evening, s)
+		}
+	}
+	var target *models.ClassSession
+	if len(evening) > 0 {
+		target = &evening[0]
+	} else if len(sessions) > 0 {
+		target = &sessions[0]
+	}
+
+	if target != nil && target.BookedSlots < target.TotalCapacity {
+		basePrice := math.Max(minFloor, math.Round(target.PricePerSessionIDR*0.5))
+		adjustedPrice := math.Round(basePrice * (1.0 - maxDiscount/100.0))
+		targetID := target.ID
+
+		candidates = append(candidates, models.OfferCandidate{
+			Source:             "AI_GENERATED",
+			TargetSessionID:    &targetID,
+			ProposedTitle:      "Pindah ke " + target.Title + " (" + target.DayOfWeek + ", " + target.TimeSlot + ")",
+			PriceIDR:           adjustedPrice,
+			DiscountPct:        maxDiscount,
+			ProjectedMarginIDR: adjustedPrice,
+		})
+	}
+
+	return candidates
+}

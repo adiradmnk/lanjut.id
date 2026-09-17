@@ -14,16 +14,46 @@ func Register(r *gin.Engine, h *handlers.Handlers) {
 
 	api := r.Group("/api")
 	{
+		api.POST("/auth/login", h.Login)
+		api.POST("/auth/verify-otp", h.VerifyOTP)
+		api.GET("/auth/me", h.Me)
+
 		api.GET("/member/resolve-magic-token", h.ResolveMagicToken)
 		api.POST("/member/translate-grievance", h.TranslateGrievance)
 		api.POST("/member/checkout-va", h.CheckoutVA)
+		api.POST("/member/checkout/:trxId/cancel", h.CancelCheckout)
+		api.POST("/member/offers/:offerId/decline", h.DeclineOffer)
+		api.GET("/member/invoices/:trxId", h.GetInvoice)
+		api.GET("/member/invoices", h.ListMemberInvoices)
+		api.GET("/member/transactions", h.ListMemberTransactions)
+
+		api.POST("/member/feedback", h.SubmitFeedback)
+		api.GET("/member/feedback", h.ListMemberFeedback)
 
 		api.GET("/merchant/:tenantId/dashboard", h.MerchantDashboard)
 		api.GET("/merchant/:tenantId/at-risk-members", h.MerchantAtRiskMembers)
+		api.GET("/merchant/:tenantId/insights", h.GetTenantInsights)
 		api.GET("/merchant/dashboard-stats", h.MerchantDashboard)
 		api.GET("/merchant/members-overview", h.MerchantAtRiskMembers)
 
+		api.POST("/merchant/:tenantId/packages", h.CreatePackage)
+		api.GET("/merchant/:tenantId/packages", h.ListPackages)
+		api.PATCH("/merchant/:tenantId/packages/:id", h.UpdatePackage)
+
+		api.POST("/merchant/:tenantId/guidebook", h.UploadGuidebook)
+		api.GET("/merchant/:tenantId/guidebook", h.GetGuidebook)
+		api.GET("/merchant/:tenantId/guidebook/history", h.ListGuidebooks)
+
+		api.GET("/merchant/:tenantId/feedback", h.ListMerchantFeedback)
+
+		api.GET("/merchant/:tenantId/pending-offers", h.ListPendingOffers)
+		api.POST("/merchant/:tenantId/offers/:offerId/approve", h.ApproveOffer)
+		api.POST("/merchant/:tenantId/offers/:offerId/reject", h.RejectOffer)
+
+		api.POST("/ai/tenants/:tenantId/members/:memberId/generate-offers", h.GenerateOffers)
+
 		api.GET("/bni/dashboard", h.BNIDashboard)
+		api.GET("/bni/tenants/:tenantId/insights", h.GetTenantInsights)
 	}
 
 	r.POST("/webhook/bni-payment", h.BNIWebhook)

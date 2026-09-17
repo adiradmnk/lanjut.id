@@ -182,23 +182,24 @@ func (s *Store) IncrementSessionBooking(ctx context.Context, sessionID string) e
 func (s *Store) CreatePendingTransaction(ctx context.Context, trx models.Transaction) error {
 	_, err := s.pool.Exec(ctx, `
 		INSERT INTO transactions (trx_id, tenant_id, member_id, session_id, session_title, amount,
-		                          bni_va_number, bni_signature, status, idempotency_key)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'PENDING', $1)
+		                          bni_va_number, bni_signature, status, idempotency_key, ai_offer_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'PENDING', $1, $9)
 		ON CONFLICT (trx_id) DO NOTHING`,
-		trx.TrxID, trx.TenantID, trx.MemberID, trx.SessionID, trx.SessionTitle, trx.Amount, trx.VANumber, trx.Signature)
+		trx.TrxID, trx.TenantID, trx.MemberID, trx.SessionID, trx.SessionTitle, trx.Amount, trx.VANumber, trx.Signature, trx.AIOfferID)
 	return err
 }
 
 func (s *Store) GetTransaction(ctx context.Context, trxID string) (*models.Transaction, error) {
 	row := s.pool.QueryRow(ctx, `
 		SELECT trx_id, tenant_id, member_id, session_id, session_title, amount, bni_va_number, bni_signature,
-		       status, created_at::text, paid_at::text
+		       status, created_at::text, paid_at::text, ai_offer_id::text
 		FROM transactions WHERE trx_id = $1`, trxID)
 
 	var t models.Transaction
 	var paidAt *string
+	var aiOfferID *string
 	err := row.Scan(&t.TrxID, &t.TenantID, &t.MemberID, &t.SessionID, &t.SessionTitle, &t.Amount, &t.VANumber,
-		&t.Signature, &t.Status, &t.CreatedAt, &paidAt)
+		&t.Signature, &t.Status, &t.CreatedAt, &paidAt, &aiOfferID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -206,7 +207,38 @@ func (s *Store) GetTransaction(ctx context.Context, trxID string) (*models.Trans
 		return nil, fmt.Errorf("scan transaction: %w", err)
 	}
 	t.PaidAt = paidAt
+	t.AIOfferID = aiOfferID
 	return &t, nil
+}
+
+// ListTransactionsByMember returns a customer's full transaction history, newest first.
+// Deliberately a separate endpoint/query from invoices (store/invoices.go): a transaction
+// exists the moment a VA is issued (PENDING/PAID/CANCELLED), while an invoice only exists
+// once one has actually settled — the two lists diverge for anything not yet paid.
+func (s *Store) ListTransactionsByMember(ctx context.Context, memberID string) ([]models.Transaction, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT trx_id, tenant_id, member_id, session_id, session_title, amount, bni_va_number, bni_signature,
+		       status, created_at::text, paid_at::text, ai_offer_id::text
+		FROM transactions WHERE member_id = $1 ORDER BY created_at DESC`, memberID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []models.Transaction
+	for rows.Next() {
+		var t models.Transaction
+		var paidAt *string
+		var aiOfferID *string
+		if err := rows.Scan(&t.TrxID, &t.TenantID, &t.MemberID, &t.SessionID, &t.SessionTitle, &t.Amount,
+			&t.VANumber, &t.Signature, &t.Status, &t.CreatedAt, &paidAt, &aiOfferID); err != nil {
+			return nil, fmt.Errorf("scan transaction: %w", err)
+		}
+		t.PaidAt = paidAt
+		t.AIOfferID = aiOfferID
+		out = append(out, t)
+	}
+	return out, rows.Err()
 }
 
 // SettleTransaction marks a PENDING transaction PAID exactly once (idempotent).
@@ -230,6 +262,34 @@ func (s *Store) SettleTransaction(ctx context.Context, trxID string) (*models.Tr
 		_, _ = s.pool.Exec(ctx, `
 			UPDATE members SET used_quota = used_quota + 1, churn_risk_flag = 'LOW'
 			WHERE id = $1`, trx.MemberID)
+		// The reservation only exists to hold the seat before payment; booked_slots (just
+		// incremented above) is the single source of truth for capacity once paid.
+		if trx.AIOfferID != nil {
+			_ = s.ReleaseReservationForOffer(ctx, *trx.AIOfferID)
+		}
+	}
+	return trx, alreadyProcessed, nil
+}
+
+// CancelTransaction marks a PENDING transaction CANCELLED exactly once (idempotent) — the
+// customer changed their mind before paying the VA. Releases any reservation tied to the
+// transaction's ai_offer, same as a settle does, since the seat is no longer being bought.
+func (s *Store) CancelTransaction(ctx context.Context, trxID string) (*models.Transaction, bool, error) {
+	tag, err := s.pool.Exec(ctx, `
+		UPDATE transactions SET status = 'CANCELLED'
+		WHERE trx_id = $1 AND status = 'PENDING'`, trxID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	trx, err := s.GetTransaction(ctx, trxID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	alreadyProcessed := tag.RowsAffected() == 0
+	if !alreadyProcessed && trx.AIOfferID != nil {
+		_ = s.ReleaseReservationForOffer(ctx, *trx.AIOfferID)
 	}
 	return trx, alreadyProcessed, nil
 }
