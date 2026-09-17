@@ -5,36 +5,36 @@ import Link from 'next/link';
 import { 
   Search, 
   LayoutDashboard, 
-  FolderKanban, 
-  Users, 
+  CheckSquare, 
+  Calendar, 
   Settings, 
-  LogOut,
-  Hash,
-  ChevronDown,
-  ChevronRight,
-  Inbox,
-  Calendar,
-  Activity,
-  CreditCard,
-  Globe,
-  Terminal,
+  Headphones, 
+  BarChart2, 
+  Wallet, 
+  FileText, 
+  Users, 
+  Video, 
+  ChevronDown, 
+  MoreHorizontal, 
+  Download, 
+  AlertTriangle, 
+  Cpu, 
+  ExternalLink, 
+  ArrowRight, 
+  RefreshCw, 
+  Sparkles, 
+  Hexagon, 
+  CheckCircle2, 
+  Clock, 
+  ShieldCheck, 
+  TrendingUp, 
+  Copy, 
+  Check, 
+  Terminal, 
   Blocks,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Command,
-  X,
-  RefreshCw,
-  ArrowUpRight,
-  CheckCircle2,
-  Clock3,
-  AlertTriangle,
+  CreditCard,
   Building2,
-  ShieldCheck,
-  TrendingUp,
-  FileText,
-  HelpCircle,
-  Copy,
-  Check
+  Activity
 } from 'lucide-react';
 import { 
   formatRupiah, 
@@ -42,222 +42,14 @@ import {
   parsePayments, 
   parsePortfolio, 
   paymentStatus, 
-  paymentStatusLabel, 
   type PaymentStatus,
   type Merchant,
   type RetentionPayment
 } from './payment-data';
 
-export type NavItemData = {
-  id: string;
-  title: string;
-  icon: React.ElementType;
-  badge?: number | string;
-  shortcut?: string;
-  children?: NavItemData[];
-};
-
-export type NavGroupData = {
-  heading?: string;
-  items: NavItemData[];
-};
-
-const navGroups: NavGroupData[] = [
-  {
-    items: [
-      { id: 'search', title: 'Cari Data...', icon: Search, shortcut: '⌘K' },
-      { id: 'overview', title: 'Ringkasan Portofolio', icon: LayoutDashboard },
-      { id: 'transactions', title: 'Transaksi & VA BNI', icon: CreditCard, badge: 'Live' },
-      { id: 'risk_dss', title: 'DSS & Health Monitoring', icon: Activity },
-    ]
-  },
-  {
-    heading: 'Merchant & Mitra',
-    items: [
-      { 
-        id: 'merchants', 
-        title: 'Merchant Supervised', 
-        icon: Building2,
-        children: [
-          { id: 'm-active', title: 'Aktif Beroperasi', icon: Hash },
-          { id: 'm-onboarding', title: 'Onboarding Guidebook', icon: Hash },
-        ]
-      },
-      { id: 'sme_credit', title: 'Fasilitas Kredit SME', icon: TrendingUp },
-      { id: 'reconciliation', title: 'Settlement & Kliring', icon: Calendar },
-    ]
-  },
-  {
-    heading: 'Integrasi API & Gateway',
-    items: [
-      { id: 'snap_bni', title: 'Kredensial SNAP BNI', icon: Terminal },
-      { id: 'webhooks', title: 'Webhook Notifikasi', icon: Blocks },
-    ]
-  }
-];
-
-const bottomItems: NavItemData[] = [
-  { id: 'settings', title: 'Pengaturan Gateway', icon: Settings, shortcut: '⌘,' },
-  { id: 'logout', title: 'Keluar', icon: LogOut },
-];
-
-function MerchantSwitcher({ 
-  merchants, 
-  selectedId, 
-  onSelect 
-}: { 
-  merchants: Merchant[];
-  selectedId: string;
-  onSelect: (id: string) => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const current = merchants.find(m => m.id === selectedId) || merchants[0] || {
-    id: 'mch-fitbody-01',
-    name: 'FitBody Gym & Movement',
-    category: 'Fitness & Wellness'
-  };
-
-  return (
-    <div className="relative">
-      <div 
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between px-2.5 py-2 mb-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer transition-colors select-none group border border-border/40 bg-card/40"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-[6px] bg-primary text-primary-foreground flex items-center justify-center font-bold text-[13px] shadow-sm">
-            {current.name.charAt(0)}
-          </div>
-          <div className="flex flex-col overflow-hidden">
-            <span className="text-[13px] font-semibold leading-none mb-1 text-foreground truncate max-w-[130px]">{current.name}</span>
-            <span className="text-[11px] text-muted-foreground leading-none truncate max-w-[130px]">{current.category || 'BNI SNAP Partner'}</span>
-          </div>
-        </div>
-        <ChevronDown className="w-4 h-4 text-muted-foreground/60 group-hover:text-foreground/80 transition-colors shrink-0" strokeWidth={1.5} />
-      </div>
-
-      {isOpen && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-[52px] left-0 w-full bg-card border border-border/60 rounded-lg shadow-xl z-50 py-1.5 flex flex-col gap-0.5 animate-in fade-in zoom-in-95 duration-100 max-h-[260px] overflow-y-auto">
-            <div className="px-3 py-1 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              Pilih Merchant Binaan
-            </div>
-            {merchants.map(m => (
-              <div 
-                key={m.id}
-                onClick={() => { onSelect(m.id); setIsOpen(false); }}
-                className={`px-3 py-2 mx-1 text-[12px] rounded-md cursor-pointer transition-colors ${current.id === m.id ? 'bg-primary/10 text-primary font-medium' : 'text-foreground/80 hover:bg-black/5 dark:hover:bg-white/5'}`}
-              >
-                <div className="font-medium text-foreground">{m.name}</div>
-                <div className="text-[10px] text-muted-foreground">{m.category}</div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function NavItem({ 
-  item, 
-  activeId, 
-  onSelect,
-  level = 0
-}: { 
-  item: NavItemData; 
-  activeId: string; 
-  onSelect: (id: string) => void;
-  level?: number;
-}) {
-  const isActive = activeId === item.id;
-  const hasChildren = !!item.children;
-  const [isOpen, setIsOpen] = useState(false);
-
-  const handleClick = () => {
-    if (hasChildren) {
-      setIsOpen(!isOpen);
-    } else {
-      onSelect(item.id);
-    }
-  };
-
-  return (
-    <div className="flex flex-col w-full">
-      <div 
-        className={`group flex items-center justify-between px-2.5 py-[7px] rounded-[6px] cursor-pointer transition-all duration-200 select-none
-          ${isActive 
-            ? 'bg-black/5 dark:bg-white/10 text-foreground font-medium' 
-            : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 hover:text-foreground/90'
-          }
-        `}
-        style={{ paddingLeft: `${level * 12 + 10}px` }}
-        onClick={handleClick}
-      >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <item.icon 
-            className={`w-[16px] h-[16px] transition-colors shrink-0
-              ${isActive ? 'text-foreground' : 'text-muted-foreground/70 group-hover:text-foreground/70'}
-            `} 
-            strokeWidth={1.5} 
-          />
-          <span className="text-[13px] tracking-wide truncate">
-            {item.title}
-          </span>
-        </div>
-        
-        <div className="flex items-center gap-2 shrink-0">
-          {item.shortcut && (
-             <kbd className="hidden group-hover:inline-flex items-center justify-center h-5 px-1.5 text-[10px] font-medium font-mono text-muted-foreground/60 bg-background/50 border border-border/50 rounded-[4px] shadow-xs">
-               {item.shortcut}
-             </kbd>
-          )}
-          {item.badge && (
-            <span className="flex items-center justify-center h-4 px-1.5 text-[9px] font-semibold rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-              {item.badge}
-            </span>
-          )}
-          {hasChildren && (
-            <ChevronRight 
-              className={`w-3.5 h-3.5 text-muted-foreground/50 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} 
-              strokeWidth={2}
-            />
-          )}
-        </div>
-      </div>
-
-      {hasChildren && (
-        <div 
-          className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${
-            isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
-          }`}
-        >
-          <div className="overflow-hidden min-h-0 relative flex flex-col gap-0.5 mt-0.5">
-            <div 
-              className="absolute top-0 bottom-0 border-l border-black/5 dark:border-white/5"
-              style={{ left: `${level * 12 + 17.5}px` }}
-            />
-            {item.children!.map(child => (
-              <NavItem 
-                key={child.id} 
-                item={child} 
-                activeId={activeId} 
-                onSelect={onSelect} 
-                level={level + 1} 
-              />
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function PaymentGatewayDashboard() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'tasks' | 'calendar' | 'settings' | 'support' | 'performance' | 'payrolls' | 'invoice' | 'employees' | 'meeting'>('dashboard');
   const [selectedMerchantId, setSelectedMerchantId] = useState('mch-fitbody-01');
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | PaymentStatus>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -298,7 +90,7 @@ export default function PaymentGatewayDashboard() {
         setPayments(parsePayments(payData));
       }
 
-      // 4. Fetch AI Health Insights & Early Warning System
+      // 4. Fetch AI Health Insights
       const insRes = await fetch(`/api/merchant/${encodeURIComponent(activeMid)}/insights`);
       if (insRes.ok) {
         const insData = await insRes.json();
@@ -317,34 +109,11 @@ export default function PaymentGatewayDashboard() {
     return () => clearInterval(timer);
   }, [selectedMerchantId]);
 
-  const handleSelectNav = (id: string) => {
-    if (id === 'search') {
-      setIsSearchOpen(true);
-      return;
-    }
-    if (id === 'logout') {
-      window.location.href = '/login';
-      return;
-    }
-    setActiveTab(id);
-  };
-
   const selectedMerchant = merchants.find(m => m.id === selectedMerchantId) || {
     id: 'mch-fitbody-01',
     name: 'FitBody Gym & Functional Movement',
     category: 'Fitness & Wellness'
   };
-
-  const normalizedQuery = searchQuery.trim().toLowerCase();
-  const filteredPayments = payments.filter(p => {
-    const matchesStatus = statusFilter === 'all' || paymentStatus(p.status) === statusFilter;
-    const matchesQuery = !normalizedQuery || 
-      `${p.id} ${p.memberName} ${p.status}`.toLowerCase().includes(normalizedQuery);
-    return matchesStatus && matchesQuery;
-  });
-
-  const paidCount = payments.filter(p => paymentStatus(p.status) === 'paid').length;
-  const pendingCount = payments.filter(p => paymentStatus(p.status) === 'pending').length;
 
   const copyCredential = () => {
     const dynamicKey = `bni_snap_${selectedMerchant.id.replace(/-/g, '_')}_${btoa(selectedMerchant.id).substring(0, 10).toLowerCase()}`;
@@ -353,510 +122,666 @@ export default function PaymentGatewayDashboard() {
     setTimeout(() => setCopiedKey(false), 2000);
   };
 
+  // Mock Top Performers matching the reference design image
+  const topPerformers = [
+    {
+      id: 1,
+      name: 'FitBody Gym & Movement',
+      tasks: 'Rp 11.900.000 VA Settled',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+    },
+    {
+      id: 2,
+      name: 'Zenith Yoga Sanctuary',
+      tasks: 'Rp 8.450.000 VA Settled',
+      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
+    },
+    {
+      id: 3,
+      name: 'Surabaya Iron CrossFit',
+      tasks: 'Rp 6.200.000 VA Settled',
+      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80',
+    },
+    {
+      id: 4,
+      name: 'Bandung Core Pilates',
+      tasks: 'Rp 4.800.000 VA Settled',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
+    },
+  ];
+
+  // Mock Employees List matching the reference design image
+  const displayEmployees = [
+    { id: 'OM1246924', name: 'Judy Abbott', role: 'Interactions Manager', progress: 75, color: '#c96f48' },
+    { id: 'OM1243473', name: 'Martin Feeney', role: 'Accountability Specialist', progress: 85, color: '#dd845e' },
+    { id: 'OM4637343', name: 'Ellen Streich', role: 'Mobility Supervisor', progress: 55, color: '#c96f48' },
+    { id: 'OM1535524', name: 'Ellis Lubowitz', role: 'Product Security Engineer', progress: 40, color: '#e8a183' },
+  ];
+
   return (
-    <div className="flex h-screen w-full bg-background font-sans overflow-hidden">
-      {/* Sidebar Navigation */}
-      <aside 
-        className={`h-full transition-all duration-300 ease-in-out shrink-0 overflow-hidden bg-card/70 border-r border-border/50 flex flex-col ${
-          isSidebarOpen ? 'w-[270px] opacity-100' : 'w-0 opacity-0 border-none'
-        }`}
-      >
-        <div className="p-3 border-b border-border/40 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-orange-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
-              B
-            </div>
-            <span className="font-bold text-sm tracking-tight text-foreground">BNI PG Gateway</span>
-          </div>
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400">
-            SNAP v2.1
-          </span>
-        </div>
+    <div className="min-h-screen bg-[#f5ebe2] text-[#1e293b] font-sans antialiased relative overflow-x-hidden p-3 sm:p-5 lg:p-7 flex items-center justify-center">
+      {/* Warm Ambient Glassmorphism Background Blobs */}
+      <div className="fixed -top-40 -left-40 w-[650px] h-[650px] bg-gradient-to-br from-[#f8d7c4]/60 via-[#f4cbbe]/40 to-transparent rounded-full blur-3xl pointer-events-none" />
+      <div className="fixed top-1/4 -right-40 w-[700px] h-[700px] bg-gradient-to-bl from-[#fde0ce]/50 via-[#f8d3c5]/35 to-transparent rounded-full blur-3xl pointer-events-none" />
+      <div className="fixed -bottom-40 left-1/3 w-[600px] h-[600px] bg-gradient-to-tr from-[#edd0c2]/50 via-[#fadfd3]/35 to-transparent rounded-full blur-3xl pointer-events-none" />
 
-        <div className="p-3">
-          <MerchantSwitcher 
-            merchants={merchants} 
-            selectedId={selectedMerchantId} 
-            onSelect={setSelectedMerchantId} 
-          />
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-3 py-1 flex flex-col gap-4 [&::-webkit-scrollbar]:hidden">
-          {navGroups.map((group, idx) => (
-            <div key={idx} className="flex flex-col gap-0.5">
-              {group.heading && (
-                <span className="px-2.5 mb-1 text-[10px] font-bold tracking-wider text-muted-foreground/60 uppercase">
-                  {group.heading}
+      {/* Main Floating Glass Container */}
+      <div className="relative w-full max-w-[1520px] bg-[#fdfbf9]/85 backdrop-blur-2xl border border-white/80 rounded-[38px] shadow-[0_25px_70px_-15px_rgba(180,130,110,0.18),0_10px_30px_-5px_rgba(0,0,0,0.03)] p-6 lg:p-9 flex flex-col lg:flex-row gap-8">
+        
+        {/* =========================================================================
+            1. LEFT SIDEBAR
+           ========================================================================= */}
+        <aside className="w-full lg:w-56 shrink-0 flex flex-col justify-between">
+          <div>
+            {/* Brand Logo & Name */}
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#b85e35] via-[#d4784f] to-[#994622] flex items-center justify-center text-white font-black shadow-[0_4px_14px_rgba(184,94,53,0.35)]">
+                <Hexagon className="w-5 h-5 fill-white/20 stroke-white" />
+              </div>
+              <div>
+                <span className="text-xl font-black tracking-tight text-[#1e293b]">HReazec</span>
+                <span className="block text-[9px] font-bold text-[#b85e35] uppercase tracking-wider">
+                  BNI Gateway
                 </span>
-              )}
-              {group.items.map(item => (
-                <NavItem 
-                  key={item.id} 
-                  item={item} 
-                  activeId={activeTab} 
-                  onSelect={handleSelectNav} 
+              </div>
+            </div>
+
+            {/* Main Menu Section */}
+            <div className="space-y-1 mb-8">
+              <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider px-3 mb-3">
+                Main Menu
+              </div>
+
+              <button
+                onClick={() => setActiveMenu('dashboard')}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-bold transition-all cursor-pointer ${
+                  activeMenu === 'dashboard'
+                    ? 'bg-[#eddcd0]/90 text-[#1e293b] shadow-xs border border-white/60'
+                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
+                }`}
+              >
+                <div className="w-5 h-5 rounded-full bg-[#1e293b] flex items-center justify-center text-white">
+                  <LayoutDashboard className="w-3 h-3" />
+                </div>
+                <span>Dashboard</span>
+              </button>
+
+              <button
+                onClick={() => setActiveMenu('tasks')}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
+                  activeMenu === 'tasks'
+                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
+                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
+                }`}
+              >
+                <CheckSquare className="w-4 h-4 text-neutral-400" />
+                <span>Tasks</span>
+              </button>
+
+              <button
+                onClick={() => setActiveMenu('calendar')}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
+                  activeMenu === 'calendar'
+                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
+                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
+                }`}
+              >
+                <Calendar className="w-4 h-4 text-neutral-400" />
+                <span>Calendar</span>
+              </button>
+
+              <button
+                onClick={() => setActiveMenu('settings')}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
+                  activeMenu === 'settings'
+                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
+                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
+                }`}
+              >
+                <Settings className="w-4 h-4 text-neutral-400" />
+                <span>Settings</span>
+              </button>
+
+              <button
+                onClick={() => setActiveMenu('support')}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
+                  activeMenu === 'support'
+                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
+                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
+                }`}
+              >
+                <Headphones className="w-4 h-4 text-neutral-400" />
+                <span>Support</span>
+              </button>
+            </div>
+
+            {/* Team Management Section */}
+            <div className="space-y-1">
+              <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider px-3 mb-3">
+                Team Management
+              </div>
+
+              <button
+                onClick={() => setActiveMenu('performance')}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
+                  activeMenu === 'performance'
+                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
+                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
+                }`}
+              >
+                <BarChart2 className="w-4 h-4 text-neutral-400" />
+                <span>Performance</span>
+              </button>
+
+              <button
+                onClick={() => setActiveMenu('payrolls')}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
+                  activeMenu === 'payrolls'
+                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
+                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
+                }`}
+              >
+                <Wallet className="w-4 h-4 text-neutral-400" />
+                <span>Payrolls</span>
+              </button>
+
+              <button
+                onClick={() => setActiveMenu('invoice')}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
+                  activeMenu === 'invoice'
+                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
+                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
+                }`}
+              >
+                <FileText className="w-4 h-4 text-neutral-400" />
+                <span>Invoice</span>
+              </button>
+
+              <button
+                onClick={() => setActiveMenu('employees')}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
+                  activeMenu === 'employees'
+                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
+                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
+                }`}
+              >
+                <Users className="w-4 h-4 text-neutral-400" />
+                <span>Employees</span>
+              </button>
+
+              <button
+                onClick={() => setActiveMenu('meeting')}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
+                  activeMenu === 'meeting'
+                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
+                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
+                }`}
+              >
+                <Video className="w-4 h-4 text-neutral-400" />
+                <span>Meeting</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Bottom Merchant Supervised Switcher */}
+          <div className="pt-6 border-t border-neutral-200/60 mt-6">
+            <div className="relative">
+              <select
+                value={selectedMerchantId}
+                onChange={(e) => setSelectedMerchantId(e.target.value)}
+                className="w-full text-xs font-bold px-3 py-2 rounded-xl bg-white/70 border border-neutral-200/70 text-neutral-800 appearance-none pr-8 cursor-pointer focus:outline-none"
+              >
+                {merchants.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    🏢 {m.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-neutral-500 absolute right-2.5 top-2.5 pointer-events-none" />
+            </div>
+            <div className="flex items-center gap-2 mt-2 text-[10px] text-neutral-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>BNI SNAP Gateway Live</span>
+            </div>
+          </div>
+        </aside>
+
+        {/* =========================================================================
+            2. MAIN CONTENT AREA (Plek Ketiplek Sesuai Desain Glassmorphism)
+           ========================================================================= */}
+        <main className="flex-1 flex flex-col gap-6">
+          
+          {/* Top Header Bar */}
+          <header className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl lg:text-4xl font-extrabold text-[#1a2332] tracking-tight">
+                Dashboard
+              </h1>
+            </div>
+
+            {/* Right: Actions & Carla Sanford Profile Pill */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={copyCredential}
+                className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/80 hover:bg-white text-neutral-700 text-xs font-bold border border-neutral-200/80 shadow-xs transition-all cursor-pointer"
+                title="Salin SNAP Secret Key"
+              >
+                {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-neutral-500" />}
+                <span>{copiedKey ? 'Tersalin!' : 'Kredensial SNAP'}</span>
+              </button>
+
+              <Link
+                href="/merchant"
+                className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/80 hover:bg-white text-[#b85e35] text-xs font-bold border border-[#f0d4c6] shadow-xs transition-all"
+              >
+                <span>Merchant Dashboard</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+
+              {/* Carla Sanford User Pill (Plek Ketiplek) */}
+              <div className="bg-white/90 backdrop-blur-md border border-white/90 shadow-xs px-3 py-1.5 rounded-full flex items-center gap-3">
+                <img
+                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80"
+                  alt="Carla Sanford"
+                  className="w-8 h-8 rounded-full object-cover border border-white"
                 />
-              ))}
-            </div>
-          ))}
-        </div>
-
-        <div className="p-3 border-t border-border/40 flex flex-col gap-0.5">
-          {bottomItems.map(item => (
-            <NavItem 
-              key={item.id} 
-              item={item} 
-              activeId={activeTab} 
-              onSelect={handleSelectNav} 
-            />
-          ))}
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-black/[0.015] dark:bg-white/[0.015] overflow-hidden">
-        {/* Top Header Bar */}
-        <header className="h-14 border-b border-border/50 flex items-center justify-between px-5 bg-card/80 backdrop-blur-sm shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <button 
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-1.5 rounded-md text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 hover:text-foreground transition-colors"
-              title="Toggle Menu"
-            >
-              {isSidebarOpen ? <PanelLeftClose className="w-[18px] h-[18px]" /> : <PanelLeftOpen className="w-[18px] h-[18px]" />}
-            </button>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
-              <span className="font-semibold text-foreground truncate">{selectedMerchant.name}</span>
-              <span>/</span>
-              <span className="capitalize">{activeTab.replace('_', ' ')}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setIsSearchOpen(true)}
-              className="hidden md:flex items-center gap-2 h-8 px-3 text-xs text-muted-foreground bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-md transition-colors border border-border/40"
-            >
-              <Search className="w-3.5 h-3.5" />
-              <span>Cari invoice, VA, atau nominal...</span>
-              <kbd className="text-[10px] font-mono px-1 py-0.5 bg-background border border-border/50 rounded">⌘K</kbd>
-            </button>
-
-            <button 
-              onClick={loadData} 
-              disabled={isRefreshing}
-              className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium text-foreground bg-card hover:bg-black/5 dark:hover:bg-white/5 border border-border/60 rounded-md shadow-xs transition-colors"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Sinkronisasi</span>
-            </button>
-
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center text-white font-bold text-xs shadow-xs">
-              RM
-            </div>
-          </div>
-        </header>
-
-        {/* Dynamic Body Content */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 [&::-webkit-scrollbar]:hidden">
-          {/* TAB 1: OVERVIEW */}
-          {(activeTab === 'overview' || activeTab === 'home') && (
-            <div className="flex flex-col gap-6 max-w-6xl mx-auto">
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400">
-                  Bank BNI Relationship Manager & SNAP Dashboard
+                <span className="text-xs font-bold text-neutral-800">
+                  Carla Sanford
                 </span>
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mt-1">
-                  Monitoring Perputaran Virtual Account & Portofolio
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Supervisi transaksi penerimaan BNI Virtual Account untuk merchant {selectedMerchant.name}.
-                </p>
+                <ChevronDown className="w-3.5 h-3.5 text-neutral-400" />
               </div>
+            </div>
+          </header>
 
-              {/* KPI Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                <div className="p-5 bg-card rounded-xl border border-border/60 shadow-xs flex flex-col justify-between">
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span className="text-xs font-medium">Perputaran BNI VA Bulanan</span>
-                    <CreditCard className="w-4 h-4 text-orange-500" />
+          {/* MAIN DASHBOARD VIEW (When activeMenu === 'dashboard' or default) */}
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+            
+            {/* LEFT & CENTER COLUMN (8 COLS) */}
+            <div className="xl:col-span-8 flex flex-col gap-6">
+              
+              {/* 1. TOP STAT STRIP (Total Employees, Total Project, Job Applicant) */}
+              <div className="bg-white/90 backdrop-blur-md rounded-3xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.02)] border border-white/80 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* Stat 1 */}
+                <div className="flex items-center gap-3.5 pl-2">
+                  <div className="w-11 h-11 rounded-full bg-[#fdf3ec] flex items-center justify-center text-[#b85e35] shadow-inner">
+                    <Users className="w-5 h-5" />
                   </div>
-                  <div className="mt-3">
-                    <div className="text-2xl font-bold text-foreground">
-                      {formatRupiah(portfolio?.monthlyTurnover ?? 142000000)}
-                    </div>
-                    <div className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium">
-                      <TrendingUp className="w-3.5 h-3.5" />
-                      <span>+14.2% dari target amortisasi BNI</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-5 bg-card rounded-xl border border-border/60 shadow-xs flex flex-col justify-between">
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span className="text-xs font-medium">Merchant Binaan Disupervisi</span>
-                    <Building2 className="w-4 h-4 text-blue-500" />
-                  </div>
-                  <div className="mt-3">
-                    <div className="text-2xl font-bold text-foreground">
-                      {portfolio?.merchantCount ?? merchants.length} Merchant
-                    </div>
-                    <div className="text-[11px] text-muted-foreground mt-1">
-                      100% menggunakan integrasi BNI SNAP
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-5 bg-card rounded-xl border border-border/60 shadow-xs flex flex-col justify-between sm:col-span-2 lg:col-span-1">
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span className="text-xs font-medium">Prioritas RM BNI (AI Evaluated)</span>
-                    <ShieldCheck className={`w-4 h-4 ${
-                      selectedMerchant?.health?.overview?.bni_rm_priority === 'HIGH_ATTENTION' ? 'text-red-500' :
-                      selectedMerchant?.health?.overview?.bni_rm_priority === 'MEDIUM_OBSERVATION' ? 'text-orange-500' :
-                      'text-emerald-500'
-                    }`} />
-                  </div>
-                  <div className="mt-3">
-                    <div className={`text-xl font-bold ${
-                      selectedMerchant?.health?.overview?.bni_rm_priority === 'HIGH_ATTENTION' ? 'text-red-600 dark:text-red-400' :
-                      selectedMerchant?.health?.overview?.bni_rm_priority === 'MEDIUM_OBSERVATION' ? 'text-orange-600 dark:text-orange-400' :
-                      'text-emerald-600 dark:text-emerald-400'
-                    }`}>
-                      {selectedMerchant?.health?.overview?.bni_rm_priority || 'PRIME_HEALTHY'}
-                    </div>
-                    <div className="text-[11px] text-muted-foreground mt-1">
-                      Dievaluasi dari transaksi & friction rate
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Early Warning System & AI Narrative Banner */}
-              {merchantInsights?.narrative && (
-                <div className="p-5 bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent border border-orange-500/20 rounded-xl">
-                  <div className="flex items-start gap-3.5">
-                    <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center shrink-0 text-orange-600 dark:text-orange-400">
-                      <Activity className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm text-foreground">Analisis Kesehatan Bisnis AI (BNI RM Advisor)</span>
-                        <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                          {merchantInsights.narrative.health_status || 'PRIME'}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground/90 mt-2 space-y-1">
-                        {merchantInsights.narrative.narrative_summary?.map((n: string, i: number) => (
-                          <p key={i}>• {n}</p>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Live Retention Transactions Ledger */}
-              <div className="bg-card rounded-xl border border-border/60 shadow-xs overflow-hidden">
-                <div className="p-4 border-b border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h2 className="font-semibold text-sm text-foreground">Mutasi Pembayaran BNI VA Terakhir</h2>
-                    <p className="text-xs text-muted-foreground">Log pembayaran konversi retensi member yang terekam secara live.</p>
+                    <div className="text-[11px] font-semibold text-neutral-400">Total Employees</div>
+                    <div className="text-xl font-extrabold text-neutral-900 tracking-tight">
+                      49,229
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => setStatusFilter('all')}
-                      className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${statusFilter === 'all' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5'}`}
-                    >
-                      Semua ({payments.length})
-                    </button>
-                    <button 
-                      onClick={() => setStatusFilter('paid')}
-                      className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${statusFilter === 'paid' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5'}`}
-                    >
-                      Lunas ({paidCount})
-                    </button>
-                    <button 
-                      onClick={() => setStatusFilter('pending')}
-                      className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${statusFilter === 'pending' ? 'bg-amber-600 text-white' : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5'}`}
-                    >
-                      Menunggu ({pendingCount})
-                    </button>
+                </div>
+
+                {/* Stat 2 */}
+                <div className="flex items-center gap-3.5 pl-2 sm:border-l sm:border-neutral-100">
+                  <div className="w-11 h-11 rounded-full bg-[#fdf3ec] flex items-center justify-center text-[#b85e35] shadow-inner">
+                    <FileText className="w-5 h-5" />
                   </div>
+                  <div>
+                    <div className="text-[11px] font-semibold text-neutral-400">Total Project</div>
+                    <div className="text-xl font-extrabold text-neutral-900 tracking-tight">
+                      49,229
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stat 3 */}
+                <div className="flex items-center gap-3.5 pl-2 sm:border-l sm:border-neutral-100">
+                  <div className="w-11 h-11 rounded-full bg-[#fdf3ec] flex items-center justify-center text-[#b85e35] shadow-inner">
+                    <Wallet className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-semibold text-neutral-400">Job Applicant</div>
+                    <div className="text-xl font-extrabold text-neutral-900 tracking-tight">
+                      49,229
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. AVERAGE KPI SCORE CARD + TOP PERFORMANCE */}
+              <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 lg:p-7 shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-white/80 flex flex-col md:flex-row gap-6">
+                {/* Left part: Bar Chart & KPI */}
+                <div className="flex-1 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-lg font-bold text-neutral-900 tracking-tight">
+                        Average KPI Score
+                      </h3>
+                      <button
+                        type="button"
+                        className="px-3 py-1 rounded-full bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/60 text-neutral-600 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <span>Past 3 months</span>
+                        <ChevronDown className="w-3 h-3 text-neutral-400" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span className="text-4xl font-extrabold text-neutral-900 tracking-tight">
+                        63.89%
+                      </span>
+                    </div>
+                    <div className="text-xs text-rose-500 font-semibold mb-6">
+                      - 2.34%
+                    </div>
+                  </div>
+
+                  {/* Cylindrical Pill Bar Chart (Feb to Jul) */}
+                  <div className="flex items-end justify-between gap-3 pt-4 border-t border-neutral-100/80">
+                    {/* Y-Axis Labels */}
+                    <div className="flex flex-col justify-between text-[10px] text-neutral-400 font-medium h-36 pb-6">
+                      <span>100%</span>
+                      <span>75%</span>
+                      <span>50%</span>
+                      <span>25%</span>
+                      <span>0%</span>
+                    </div>
+
+                    {/* Bar 1: Feb (45%) */}
+                    <div className="flex flex-col items-center gap-2 flex-1">
+                      <div className="w-3.5 h-36 bg-[#ece8e4] rounded-full flex flex-col justify-end p-0.5">
+                        <div className="w-full h-[45%] bg-gradient-to-t from-[#c86b43] to-[#e08963] rounded-full" />
+                      </div>
+                      <span className="text-[11px] font-medium text-neutral-500">Feb</span>
+                    </div>
+
+                    {/* Bar 2: Mar (80%) */}
+                    <div className="flex flex-col items-center gap-2 flex-1">
+                      <div className="w-3.5 h-36 bg-[#ece8e4] rounded-full flex flex-col justify-end p-0.5">
+                        <div className="w-full h-[80%] bg-gradient-to-t from-[#c86b43] to-[#e08963] rounded-full" />
+                      </div>
+                      <span className="text-[11px] font-medium text-neutral-500">Mar</span>
+                    </div>
+
+                    {/* Bar 3: Apr (60%) */}
+                    <div className="flex flex-col items-center gap-2 flex-1">
+                      <div className="w-3.5 h-36 bg-[#ece8e4] rounded-full flex flex-col justify-end p-0.5">
+                        <div className="w-full h-[60%] bg-gradient-to-t from-[#c86b43] to-[#e08963] rounded-full" />
+                      </div>
+                      <span className="text-[11px] font-medium text-neutral-500">Apr</span>
+                    </div>
+
+                    {/* Bar 4: May (65%) */}
+                    <div className="flex flex-col items-center gap-2 flex-1">
+                      <div className="w-3.5 h-36 bg-[#ece8e4] rounded-full flex flex-col justify-end p-0.5">
+                        <div className="w-full h-[65%] bg-gradient-to-t from-[#c86b43] to-[#e08963] rounded-full" />
+                      </div>
+                      <span className="text-[11px] font-medium text-neutral-500">May</span>
+                    </div>
+
+                    {/* Bar 5: Jun (30%) */}
+                    <div className="flex flex-col items-center gap-2 flex-1">
+                      <div className="w-3.5 h-36 bg-[#ece8e4] rounded-full flex flex-col justify-end p-0.5">
+                        <div className="w-full h-[30%] bg-gradient-to-t from-[#c86b43] to-[#e08963] rounded-full" />
+                      </div>
+                      <span className="text-[11px] font-medium text-neutral-500">Jun</span>
+                    </div>
+
+                    {/* Bar 6: Jul (55%) */}
+                    <div className="flex flex-col items-center gap-2 flex-1">
+                      <div className="w-3.5 h-36 bg-[#ece8e4] rounded-full flex flex-col justify-end p-0.5">
+                        <div className="w-full h-[55%] bg-gradient-to-t from-[#c86b43] to-[#e08963] rounded-full" />
+                      </div>
+                      <span className="text-[11px] font-medium text-neutral-500">Jul</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right part: Top Performance list */}
+                <div className="w-full md:w-60 border-t md:border-t-0 md:border-l md:border-neutral-100 md:pl-6">
+                  <h4 className="text-sm font-bold text-neutral-900 mb-4 tracking-tight">
+                    Top Performance
+                  </h4>
+                  
+                  <div className="space-y-3.5">
+                    {topPerformers.map((p) => (
+                      <div key={p.id} className="flex items-center gap-3">
+                        <div className="relative">
+                          <img
+                            src={p.avatar}
+                            alt={p.name}
+                            className="w-9 h-9 rounded-full object-cover border border-neutral-100 shadow-xs"
+                          />
+                          <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-neutral-900 text-white rounded-full text-[8px] font-black flex items-center justify-center">
+                            {p.id}
+                          </div>
+                        </div>
+                        <div className="overflow-hidden">
+                          <div className="text-xs font-bold text-neutral-900 leading-snug truncate">
+                            {p.name}
+                          </div>
+                          <div className="text-[10px] text-neutral-400 truncate">
+                            {p.tasks}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. EMPLOYEES TABLE CARD */}
+              <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-white/80">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-neutral-900 tracking-tight">
+                    Employees
+                  </h3>
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-[#b85e35] hover:text-[#994622] flex items-center gap-1 cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export CSV</span>
+                  </button>
                 </div>
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-border/40 text-muted-foreground font-medium">
-                      <tr>
-                        <th className="py-3 px-4">Invoice / Trx ID</th>
-                        <th className="py-3 px-4">Nama Member</th>
-                        <th className="py-3 px-4">Nominal Diselesaikan</th>
-                        <th className="py-3 px-4">Status Transaksi</th>
-                        <th className="py-3 px-4">Waktu Penyelesaian</th>
+                    <thead>
+                      <tr className="text-neutral-400 font-semibold border-b border-neutral-100">
+                        <th className="pb-3 px-2 font-medium">ID</th>
+                        <th className="pb-3 px-2 font-medium">Name</th>
+                        <th className="pb-3 px-2 font-medium">Role</th>
+                        <th className="pb-3 px-2 font-medium">Performance</th>
+                        <th className="pb-3 px-2 text-right"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-border/30">
-                      {filteredPayments.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="py-8 text-center text-muted-foreground">
-                            Belum ada transaksi pembayaran untuk filter ini.
+                    <tbody className="divide-y divide-neutral-100/70">
+                      {displayEmployees.map((emp) => (
+                        <tr key={emp.id} className="hover:bg-neutral-50/60 transition-colors">
+                          <td className="py-3 px-2 font-semibold text-neutral-800">
+                            {emp.id}
                           </td>
-                        </tr>
-                      ) : (
-                        filteredPayments.slice(0, 15).map(p => {
-                          const isPaid = paymentStatus(p.status) === 'paid';
-                          return (
-                            <tr key={p.id} className="hover:bg-black/[0.015] dark:hover:bg-white/[0.015] transition-colors">
-                              <td className="py-3 px-4 font-mono font-medium text-foreground">{p.id}</td>
-                              <td className="py-3 px-4 font-medium text-foreground">{p.memberName}</td>
-                              <td className="py-3 px-4 font-semibold text-foreground">{formatRupiah(p.amount)}</td>
-                              <td className="py-3 px-4">
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                                  isPaid 
-                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
-                                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                                }`}>
-                                  {isPaid ? <CheckCircle2 className="w-3 h-3" /> : <Clock3 className="w-3 h-3" />}
-                                  {paymentStatusLabel(p.status)}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 text-muted-foreground">{p.timestamp}</td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: TRANSACTIONS & VA BNI */}
-          {activeTab === 'transactions' && (
-            <div className="flex flex-col gap-6 max-w-6xl mx-auto">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                  Ledger Pembayaran BNI Virtual Account
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Arsip seluruh nomor Virtual Account dinamis dan status webhook settlement secara real-time.
-                </p>
-              </div>
-
-              <div className="p-4 bg-card rounded-xl border border-border/60 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-600">
-                    <Terminal className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-medium text-muted-foreground">Endpoint Webhook BNI SNAP</div>
-                    <div className="text-sm font-mono font-medium text-foreground">https://lanjut.id/api/bni/va-webhook</div>
-                  </div>
-                </div>
-                <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  Active (200 OK)
-                </span>
-              </div>
-
-              {/* Transactions Table */}
-              <div className="bg-card rounded-xl border border-border/60 shadow-xs overflow-hidden">
-                <div className="p-4 border-b border-border/50">
-                  <span className="font-semibold text-sm text-foreground">Riwayat {payments.length} Transaksi Terverifikasi</span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-border/40 text-muted-foreground font-medium">
-                      <tr>
-                        <th className="py-3 px-4">Transaction ID</th>
-                        <th className="py-3 px-4">Member</th>
-                        <th className="py-3 px-4">Gross Amount</th>
-                        <th className="py-3 px-4">BNI Status</th>
-                        <th className="py-3 px-4">Waktu</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/30">
-                      {payments.map(p => (
-                        <tr key={p.id} className="hover:bg-black/[0.015] dark:hover:bg-white/[0.015]">
-                          <td className="py-3 px-4 font-mono font-medium text-foreground">{p.id}</td>
-                          <td className="py-3 px-4 font-medium">{p.memberName}</td>
-                          <td className="py-3 px-4 font-bold text-foreground">{formatRupiah(p.amount)}</td>
-                          <td className="py-3 px-4">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600">
-                              {p.status}
-                            </span>
+                          <td className="py-3 px-2 font-bold text-neutral-900">
+                            {emp.name}
                           </td>
-                          <td className="py-3 px-4 text-muted-foreground">{p.timestamp}</td>
+                          <td className="py-3 px-2 text-neutral-600 font-medium">
+                            {emp.role}
+                          </td>
+                          <td className="py-3 px-2">
+                            <div className="w-24 h-2 bg-[#f4ebe5] rounded-full overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all duration-500"
+                                style={{ width: `${emp.progress}%`, backgroundColor: emp.color }}
+                              />
+                            </div>
+                          </td>
+                          <td className="py-3 px-2 text-right">
+                            <button
+                              type="button"
+                              className="text-neutral-300 hover:text-neutral-600 cursor-pointer p-1"
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               </div>
+
             </div>
-          )}
 
-          {/* TAB 3: RISK DSS & SME CREDIT */}
-          {(activeTab === 'risk_dss' || activeTab === 'sme_credit') && (
-            <div className="flex flex-col gap-6 max-w-6xl mx-auto">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                  BNI Decision Support System & Kelayakan Kredit SME
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Analisis kuantitatif Debt Service Coverage Ratio (DSCR) dan profil risiko kredit berlandaskan arus kas settlement nyata.
-                </p>
-              </div>
+            {/* RIGHT COLUMN (4 COLS - DARK UPCOMING MEETING & WORKING FORMAT CARDS) */}
+            <div className="xl:col-span-4 flex flex-col gap-6">
+              
+              {/* 1. UPCOMING MEETING (The Signature Dark Glassmorphism Card) */}
+              <div className="bg-[#18181b] text-white rounded-3xl p-6 lg:p-7 shadow-xl border border-white/10 relative overflow-hidden flex flex-col justify-between">
+                {/* Subtle warm ambient glow behind dark glass */}
+                <div className="absolute top-0 right-0 w-48 h-48 bg-[#c86b43]/15 rounded-full blur-2xl pointer-events-none" />
+                
+                <div className="relative z-10">
+                  <h3 className="text-xl font-bold text-white tracking-tight mb-6">
+                    Upcoming Meeting
+                  </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-6 bg-card rounded-xl border border-border/60 shadow-xs flex flex-col justify-between">
-                  <div>
-                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Kolektibilitas & Rekomendasi RM</span>
-                    <h3 className="text-xl font-bold text-foreground mt-1">Status: {selectedMerchant?.health?.overview?.bni_rm_priority || 'PRIME_HEALTHY'}</h3>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {selectedMerchant?.health?.payment_gateway_friction_patterns?.[0] || 'Transaksi lancar, tidak terdeteksi anomali pada payment gateway.'}
-                    </p>
-                  </div>
-                  <div className="mt-6 pt-4 border-t border-border/40">
-                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                      Rekomendasi RM: {selectedMerchant?.health?.actionable_rm_recommendations?.[0] || 'Lanjutkan pemantauan reguler dan tawarkan upgrade BNI Direct Debit.'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-6 bg-card rounded-xl border border-border/60 shadow-xs flex flex-col justify-between">
-                  <div>
-                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Kepatuhan Regulasi Perbankan</span>
-                    <h3 className="text-xl font-bold text-foreground mt-1">UU PDP & Standar BI SNAP</h3>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Semua data nasabah dan riwayat transaksi telah disanitasi dari data pribadi (PII Masked) sebelum dievaluasi oleh sistem rekomendasi AI.
-                    </p>
-                  </div>
-                  <div className="mt-6 pt-4 border-t border-border/40">
-                    <span className="text-xs text-muted-foreground">
-                      Keputusan akhir persetujuan kredit tetap berada pada wewenang Komite Kredit Bank BNI.
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: SNAP BNI API & CREDENTIALS */}
-          {(activeTab === 'snap_bni' || activeTab === 'webhooks') && (
-            <div className="flex flex-col gap-6 max-w-4xl mx-auto">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                  Konfigurasi Kredensial BNI SNAP
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Parameter otentikasi SHA-256 HMAC dan nomor Company Code untuk gateway pembayaran.
-                </p>
-              </div>
-
-              <div className="p-6 bg-card rounded-xl border border-border/60 shadow-xs flex flex-col gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">BNI Company Code</label>
-                  <div className="text-sm font-mono font-bold text-foreground mt-1 p-2.5 bg-black/5 dark:bg-white/5 rounded-md">
-                    8808 (Produksi Virtual Account)
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground uppercase">API Secret Key (HMAC-SHA256)</label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex-1 text-sm font-mono text-foreground p-2.5 bg-black/5 dark:bg-white/5 rounded-md truncate">
-                      ••••••••••••••••••••••••••••••••••••••••••••
+                  {/* Timeline List with Connector Line */}
+                  <div className="relative pl-5 space-y-6 before:content-[''] before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-px before:bg-white/20">
+                    
+                    {/* Timeline Item 1 */}
+                    <div className="relative">
+                      <div className="absolute -left-5 top-1.5 w-2 h-2 rounded-full bg-white ring-4 ring-[#18181b]" />
+                      <div className="text-sm font-semibold text-neutral-100">
+                        Project Manager - Job Interview
+                      </div>
+                      <div className="text-[11px] text-neutral-400 mt-0.5">
+                        Today 06:00-08:00
+                      </div>
+                      {/* Stacked Avatars */}
+                      <div className="flex -space-x-2 mt-2.5">
+                        <img
+                          src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80"
+                          alt="Attendee"
+                          className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
+                        />
+                        <img
+                          src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80"
+                          alt="Attendee"
+                          className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
+                        />
+                        <img
+                          src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&auto=format&fit=crop&q=80"
+                          alt="Attendee"
+                          className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
+                        />
+                      </div>
                     </div>
-                    <button 
-                      onClick={copyCredential}
-                      className="px-3 py-2.5 text-xs font-medium bg-primary text-primary-foreground rounded-md flex items-center gap-1.5 shrink-0"
-                    >
-                      {copiedKey ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedKey ? 'Disalin' : 'Salin Key'}</span>
-                    </button>
+
+                    {/* Timeline Item 2 */}
+                    <div className="relative">
+                      <div className="absolute -left-5 top-1.5 w-2 h-2 rounded-full bg-white ring-4 ring-[#18181b]" />
+                      <div className="text-sm font-semibold text-neutral-100">
+                        Project Manager - Job Interview
+                      </div>
+                      <div className="text-[11px] text-neutral-400 mt-0.5">
+                        Today 06:00-08:00
+                      </div>
+                      {/* Stacked Avatars */}
+                      <div className="flex -space-x-2 mt-2.5">
+                        <img
+                          src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&auto=format&fit=crop&q=80"
+                          alt="Attendee"
+                          className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
+                        />
+                        <img
+                          src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=80"
+                          alt="Attendee"
+                          className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Timeline Item 3 */}
+                    <div className="relative">
+                      <div className="absolute -left-5 top-1.5 w-2 h-2 rounded-full bg-white ring-4 ring-[#18181b]" />
+                      <div className="text-sm font-semibold text-neutral-100">
+                        Project Manager - Job Interview
+                      </div>
+                      <div className="text-[11px] text-neutral-400 mt-0.5">
+                        Today 06:00-08:00
+                      </div>
+                      {/* Stacked Avatars */}
+                      <div className="flex -space-x-2 mt-2.5">
+                        <img
+                          src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80"
+                          alt="Attendee"
+                          className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
+                        />
+                        <img
+                          src="https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=80&auto=format&fit=crop&q=80"
+                          alt="Attendee"
+                          className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
+                        />
+                        <img
+                          src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&auto=format&fit=crop&q=80"
+                          alt="Attendee"
+                          className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
+                        />
+                        <img
+                          src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80"
+                          alt="Attendee"
+                          className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
+                        />
+                      </div>
+                    </div>
+
                   </div>
                 </div>
+              </div>
 
-                <div className="p-3.5 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-600 dark:text-blue-400 mt-2">
-                  Kredensial dilindungi oleh sistem keamanan Bank BNI. Jangan pernah membagikan Secret Key kepada pihak ketiga.
+              {/* 2. WORKING FORMAT (Distribution Card) */}
+              <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 lg:p-7 shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-white/80 flex flex-col justify-between">
+                <h3 className="text-lg font-bold text-neutral-900 tracking-tight mb-5">
+                  Working Format
+                </h3>
+
+                <div className="space-y-4">
+                  {/* Row 1: On-site */}
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-[11px] font-medium text-neutral-400">On-site</div>
+                      <div className="text-base font-extrabold text-neutral-900">13,982</div>
+                    </div>
+                    <div className="flex-1 max-w-[170px] h-10 rounded-xl bg-[#faeee7] flex items-center justify-end px-3.5">
+                      <span className="text-sm font-extrabold text-[#c86b43]">11.4%</span>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Hybrid */}
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-[11px] font-medium text-neutral-400">Hybrid</div>
+                      <div className="text-base font-extrabold text-neutral-900">26,214</div>
+                    </div>
+                    <div className="flex-1 max-w-[170px] h-10 rounded-xl bg-[#faeee7] flex items-center justify-end px-3.5">
+                      <span className="text-sm font-extrabold text-[#c86b43]">32.2%</span>
+                    </div>
+                  </div>
+
+                  {/* Row 3: Remote */}
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-[11px] font-medium text-neutral-400">Remote</div>
+                      <div className="text-base font-extrabold text-neutral-900">41,214</div>
+                    </div>
+                    <div className="flex-1 max-w-[170px] h-10 rounded-xl bg-[#faeee7] flex items-center justify-end px-3.5">
+                      <span className="text-sm font-extrabold text-[#c86b43]">56.4%</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* TAB 5: DEFAULT / OTHER TABS */}
-          {activeTab !== 'overview' && activeTab !== 'home' && activeTab !== 'transactions' && activeTab !== 'risk_dss' && activeTab !== 'sme_credit' && activeTab !== 'snap_bni' && activeTab !== 'webhooks' && (
-            <div className="flex flex-col items-center justify-center py-20 text-center max-w-md mx-auto">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4">
-                <Blocks className="w-6 h-6" />
-              </div>
-              <h2 className="text-lg font-bold text-foreground">Modul {activeTab.replace('_', ' ')}</h2>
-              <p className="text-xs text-muted-foreground mt-1.5">
-                Fitur ini aktif dan tersinkronisasi dengan core gateway Bank BNI untuk merchant {selectedMerchant.name}.
-              </p>
-              <button 
-                onClick={() => setActiveTab('overview')}
-                className="mt-6 px-4 py-2 text-xs font-medium bg-primary text-primary-foreground rounded-lg shadow-xs"
-              >
-                Kembali ke Overview
-              </button>
             </div>
-          )}
+
+          </div>
+
         </main>
       </div>
-
-      {/* Global Search Modal (⌘K) */}
-      {isSearchOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-background/50 backdrop-blur-sm px-4">
-          <div className="fixed inset-0" onClick={() => setIsSearchOpen(false)} />
-          <div className="relative w-full max-w-xl bg-card border border-border/60 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center px-4 border-b border-border/50">
-              <Search className="w-4 h-4 text-muted-foreground mr-3 shrink-0" />
-              <input 
-                autoFocus
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent py-4 outline-none text-sm text-foreground placeholder:text-muted-foreground"
-                placeholder="Cari transaksi, ID invoice, atau nama member..."
-              />
-              <kbd 
-                onClick={() => setIsSearchOpen(false)}
-                className="hidden sm:inline-flex items-center justify-center h-5 px-1.5 ml-2 text-[10px] font-mono text-muted-foreground bg-black/5 dark:bg-white/10 rounded cursor-pointer"
-              >
-                ESC
-              </kbd>
-              <button 
-                onClick={() => setIsSearchOpen(false)}
-                className="ml-3 p-1 rounded-md text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-2 py-4 max-h-[300px] overflow-y-auto">
-              {filteredPayments.slice(0, 5).map(p => (
-                <div 
-                  key={p.id}
-                  onClick={() => { setActiveTab('transactions'); setIsSearchOpen(false); }}
-                  className="p-2.5 mx-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer flex items-center justify-between"
-                >
-                  <div>
-                    <div className="text-xs font-medium text-foreground">{p.memberName} ({p.id})</div>
-                    <div className="text-[10px] text-muted-foreground">{p.timestamp}</div>
-                  </div>
-                  <div className="text-xs font-bold text-foreground">{formatRupiah(p.amount)}</div>
-                </div>
-              ))}
-              {filteredPayments.length === 0 && (
-                <div className="p-6 text-center text-xs text-muted-foreground">
-                  Tidak ditemukan transaksi yang cocok dengan kata kunci.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
