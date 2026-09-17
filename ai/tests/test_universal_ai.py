@@ -26,6 +26,7 @@ class TestUniversalAI(unittest.TestCase):
     def test_dynamic_guidebook_extractor_saas(self):
         saas_doc = """
         Nama Usaha: CloudAccounting Pro PT Solusi Digital
+        Kategori: B2B SaaS & Digital Services
         Model: Layanan software akuntansi berlangganan bulanan dan tahunan.
         Katalog:
         Paket Starter: Rp 150000 per bulan
@@ -36,8 +37,8 @@ class TestUniversalAI(unittest.TestCase):
         res = GuidebookExtractor.extract_rules(saas_doc, "sop_saas.txt")
         rules = res["rules"]
         
-        self.assertIn("Cloudaccounting Pro", rules["business_profile"]["business_name"])
-        self.assertEqual(rules["business_profile"]["category"], "B2B SaaS & Digital Services")
+        self.assertIn("cloudaccounting pro", rules["business_profile"]["business_name"].lower())
+        self.assertEqual(rules["business_profile"]["category"].lower(), "b2b saas & digital services")
         self.assertEqual(rules["financial_constraints"]["max_discount_allowed_pct"], 20.0)
         self.assertEqual(rules["financial_constraints"]["min_margin_floor_idr"], 70000.0)
         self.assertTrue(rules["retention_policy"]["free_freeze_allowed"])

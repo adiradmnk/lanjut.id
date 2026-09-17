@@ -85,6 +85,7 @@ export default function CancellationFeedbackDemoModal({
 
   // Dynamic Survey state from real backend API
   const [survey, setSurvey] = useState<SurveyQuestion | null>(null);
+  const [lastTransactionContext, setLastTransactionContext] = useState<any | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [freeTextFeedback, setFreeTextFeedback] = useState<string>('');
 
@@ -131,14 +132,17 @@ export default function CancellationFeedbackDemoModal({
     setApiError(null);
 
     try {
-      const res = await fetch(`/api/member/subscription/${selectedMember.id}/cancel`, {
+      // Panggilan nyata ke endpoint yang di-provide untuk frontend merchant
+      const res = await fetch(`/api/merchant/${tenantId}/cancellation-survey`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ member_id: selectedMember.id })
       });
       const data = await res.json();
 
       if (data.survey) {
         setSurvey(data.survey);
+        setLastTransactionContext(data.last_transaction || null);
         // Pre-select first option for pleasant UX
         if (data.survey.multiple_choice_options?.length > 0) {
           setSelectedOptions([data.survey.multiple_choice_options[0].id]);
@@ -347,15 +351,28 @@ export default function CancellationFeedbackDemoModal({
             <div className="space-y-4 animate-in fade-in duration-200">
               {/* Dynamic Question Title */}
               <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80">
-                <div className="flex items-center gap-1.5 text-amber-900 text-xs font-bold mb-1">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                  <span>{survey.engine_source || 'Gemini 1.5 Dynamic Generator'}</span>
+                <div className="flex items-center justify-between text-xs font-bold mb-1">
+                  <div className="flex items-center gap-1.5 text-amber-900">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                    <span>{survey.engine_source || 'Gemini 1.5 Dynamic Generator'}</span>
+                  </div>
+                  {lastTransactionContext && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-900 text-white font-mono">
+                      Konteks: {lastTransactionContext.session_title || 'Sesi Member'} ({lastTransactionContext.status})
+                    </span>
+                  )}
                 </div>
                 <h4 className="text-sm font-bold text-neutral-900 leading-snug">
                   {survey.question_title}
                 </h4>
                 {survey.instruction && (
                   <p className="text-xs text-neutral-600 mt-1">{survey.instruction}</p>
+                )}
+                {lastTransactionContext && (
+                  <div className="mt-2.5 pt-2 border-t border-amber-200/60 flex items-center justify-between text-[11px] text-amber-900">
+                    <span>Transaksi Terakhir: <strong>Rp {Number(lastTransactionContext.amount_idr || 0).toLocaleString('id-ID')}</strong></span>
+                    <span>Pola: <strong>{lastTransactionContext.detected_pattern || 'CANCELED'}</strong></span>
+                  </div>
                 )}
               </div>
 

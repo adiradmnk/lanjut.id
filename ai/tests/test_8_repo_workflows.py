@@ -98,7 +98,7 @@ class Test8RepoWorkflows(unittest.TestCase):
             {"trx_id": "1", "status": "PAID", "amount": 200000},
             {"trx_id": "2", "status": "EXPIRED", "amount": 200000}
         ]
-        report = RMPaymentHealthEngine.evaluate_gateway_health("Mitra BNI 01", trx_history, [])
+        report = RMPaymentHealthEngine.evaluate_gateway_health("mch-01", "Mitra BNI 01", trx_history, [])
         self.assertEqual(report["overview"]["success_rate_pct"], 50.0)
         self.assertEqual(report["overview"]["bni_rm_priority"], "HIGH_ATTENTION")
         self.assertIn("actionable_rm_recommendations", report)

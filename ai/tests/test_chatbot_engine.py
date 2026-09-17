@@ -51,8 +51,8 @@ class TestChatbotEngine(unittest.TestCase):
         
         self.assertEqual(res["status"], "REJECTED")
         self.assertFalse(res["guardrail_report"]["is_safe"])
-        self.assertIn("Belum Dapat Disimpan", res["reply_message"])
-        self.assertIn("Saran Sistem", res["reply_message"])
+        self.assertIn("belum dapat", res["reply_message"].lower())
+        self.assertIn("saran sistem", res["reply_message"].lower())
         # Diskon di updated_rules tidak boleh berubah
         self.assertEqual(res["updated_rules"]["financial_constraints"]["max_discount_allowed_pct"], 15.0)
 

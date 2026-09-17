@@ -33,23 +33,33 @@ class DynamicSurveyGenerator:
         trx_pattern = last_transaction_context.get("detected_pattern", "EXPIRED_UNPAID_INVOICE")
         days_to_expiry = last_transaction_context.get("days_to_expiry", 7)
         unused_quota = last_transaction_context.get("unused_quota", 0)
+        session_title = last_transaction_context.get("session_title", "Paket Layanan")
+        amount_idr = last_transaction_context.get("amount_idr", 0)
+        trx_date = last_transaction_context.get("created_at") or last_transaction_context.get("paid_at") or "Baru-baru ini"
+        trx_status = last_transaction_context.get("status", "PENDING")
 
         # 1. Structured Object Generation via Gemini API (Pola Vercel AI SDK)
         if GeminiEngine.is_available():
             prompt = f"""
-            Buatkan skema form kuesioner retensi interaktif untuk nasabah yang berniat membatalkan atau tidak melanjutkan subscription.
+            Buatkan skema form kuesioner retensi interaktif yang dipersonalisasi untuk nasabah yang berniat membatalkan atau tidak melanjutkan subscription/keanggotaan.
             
-            Konteks Bisnis:
+            Konteks Bisnis Merchant:
             - Nama Merchant: {biz_name}
             - Kategori Industri: {category}
-            - Skenario Transaksi Terakhir Nasabah: {trx_pattern} (Sisa hari: {days_to_expiry}, Sisa kuota belum dipakai: {unused_quota})
+            
+            Riwayat & Konteks Transaksi Terakhir Nasabah:
             - Nama Nasabah: {member_name}
+            - Layanan / Sesi Terakhir: {session_title}
+            - Tanggal Transaksi: {trx_date}
+            - Nominal Transaksi: Rp {amount_idr:,.0f}
+            - Status Transaksi Terakhir: {trx_status}
+            - Pola Siklus: {trx_pattern} (Sisa hari aktif: {days_to_expiry} hari, Sisa kuota belum terpakai: {unused_quota} sesi)
 
             Instruksi Desain Form:
-            1. question_title: Buat 1 judul pertanyaan yang empatik, santun, dan relevan dengan industri {category} serta status transaksi terakhir.
-            2. instruction: 1 kalimat petunjuk pengisian yang ramah.
-            3. multiple_choice_options: Buat 4 pilihan checkbox alasan kendala yang sangat spesifik dan realistis untuk bisnis {category}.
-            4. free_text_field: Buat label dan placeholder isian bebas di bagian akhir untuk mendengar suara nasabah.
+            1. question_title: Buat 1 judul pertanyaan yang empatik, santun, menyebutkan nama nasabah ({member_name}), dan secara halus menyinggung konteks layanannya ({session_title} di {biz_name}) serta pertimbangannya membatalkan.
+            2. instruction: 1 kalimat petunjuk pengisian yang ramah dan solutif.
+            3. multiple_choice_options: Buat 4 pilihan checkbox alasan kendala yang sangat spesifik, realistis, dan kontekstual dengan industri {category} (misalnya terkait jadwal sesi {session_title}, beban biaya/anggaran, kendala pembayaran BNI Virtual Account, atau kebutuhan jeda sementara).
+            4. free_text_field: Buat label dan placeholder isian bebas di bagian akhir untuk mendengar masukan nasabah secara mendalam.
 
             Kembalikan HANYA JSON murni dengan format:
             {{
@@ -86,9 +96,10 @@ class DynamicSurveyGenerator:
                 }
 
         # Fallback Dynamic Generator
+        title_suffix = f" mengenai sesi {session_title}" if session_title and session_title != "Paket Layanan" else ""
         return {
             "survey_id": f"srv_{uuid4().hex[:12]}",
-            "question_title": f"Halo {member_name}, apa yang sedang menjadi pertimbangan Anda mengenai kelanjutan layanan di {biz_name}?",
+            "question_title": f"Halo {member_name}, apa yang sedang menjadi pertimbangan Anda mengenai kelanjutan layanan{title_suffix} di {biz_name}?",
             "instruction": "Pilih satu atau beberapa alasan berikut yang paling menggambarkan kendala Anda:",
             "is_multi_select": True,
             "multiple_choice_options": [

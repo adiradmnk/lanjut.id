@@ -36,28 +36,61 @@ func (h *Handlers) CancelSubscription(c *gin.Context) {
 	tenant, _ := h.Store.GetTenant(ctx, member.TenantID)
 
 	// Ambil nilai transaksi riil terakhir member dari database
-	var lastTrxAmount float64
-	var lastTrxStatus string
+	var lastTrxContext map[string]any
 	trxs, errTrx := h.Store.ListTransactionsByMember(ctx, member.ID)
 	if errTrx == nil && len(trxs) > 0 {
-		lastTrxAmount = trxs[0].Amount
-		lastTrxStatus = trxs[0].Status
+		latest := trxs[0]
+		pattern := "RECENT_ORDER_CANCELED"
+		if latest.Status == "PENDING" {
+			pattern = "UNPAID_PENDING_VA"
+		} else if latest.Status == "PAID" {
+			pattern = "ACTIVE_MEMBER_TERMINATION"
+		} else if latest.Status == "CANCELLED" || latest.Status == "EXPIRED" {
+			pattern = "EXPIRED_UNPAID_INVOICE"
+		}
+
+		lastTrxContext = map[string]any{
+			"trx_id":            latest.TrxID,
+			"session_id":        latest.SessionID,
+			"session_title":     latest.SessionTitle,
+			"amount_idr":        latest.Amount,
+			"status":            latest.Status,
+			"created_at":        latest.CreatedAt,
+			"paid_at":           latest.PaidAt,
+			"detected_pattern":  pattern,
+			"days_to_expiry":    7,
+			"unused_quota":      member.TotalQuota - member.UsedQuota,
+		}
 	} else if tenant != nil {
-		// Jika belum ada transaksi, cari harga paket dari katalog aktif merchant
+		// Jika belum ada riwayat transaksi, gunakan data paket katalog aktif merchant
+		var defaultAmount float64 = tenant.Config.MinMarginFloorIDR
+		var defaultTitle string = "Membership " + tenant.BusinessName
 		pkgs, errPkg := h.Store.ListActiveProductPackages(ctx, tenant.ID)
 		if errPkg == nil && len(pkgs) > 0 {
-			lastTrxAmount = pkgs[0].PriceIDR
-		} else {
-			lastTrxAmount = tenant.Config.MinMarginFloorIDR
+			defaultAmount = pkgs[0].PriceIDR
+			defaultTitle = pkgs[0].Name
 		}
-		lastTrxStatus = "CATALOG_ACTIVE"
+		lastTrxContext = map[string]any{
+			"trx_id":            "TRX-CATALOG-ACTIVE",
+			"session_title":     defaultTitle,
+			"amount_idr":        defaultAmount,
+			"status":            "CATALOG_ACTIVE",
+			"detected_pattern":  "NON_RENEWAL_EXPIRY",
+			"days_to_expiry":    7,
+			"unused_quota":      member.TotalQuota - member.UsedQuota,
+		}
+	} else {
+		lastTrxContext = map[string]any{
+			"amount_idr":       150000.0,
+			"status":           "EXPIRED",
+			"detected_pattern": "EXPIRED_UNPAID_INVOICE",
+			"days_to_expiry":   7,
+			"unused_quota":     0,
+		}
 	}
 
 	// Trigger AI Dynamic Cancellation Survey (Empati pertanyaan + Checkbox + Free Text)
-	survey, _ := h.AIGateway.GenerateCancellationSurvey(ctx, member, tenant, map[string]any{
-		"amount_idr": lastTrxAmount,
-		"status":     lastTrxStatus,
-	})
+	survey, _ := h.AIGateway.GenerateCancellationSurvey(ctx, member, tenant, lastTrxContext)
 
 	if alreadyProcessed {
 		c.JSON(http.StatusOK, gin.H{

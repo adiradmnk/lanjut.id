@@ -117,7 +117,7 @@ class DocumentProcessor:
         category = category_match.group(1).strip().title() if category_match else "Layanan Berlangganan & Keanggotaan"
 
         max_disc = 15.0
-        disc_match = re.search(r"(?:diskon|potongan|discount)\s*(?:maks|maksimal|up to|hingga)?\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)\s*%", text, re.IGNORECASE)
+        disc_match = re.search(r"(?:diskon|potongan|discount).*?([0-9]+(?:\.[0-9]+)?)\s*%", text, re.IGNORECASE)
         if disc_match:
             try:
                 max_disc = float(disc_match.group(1))

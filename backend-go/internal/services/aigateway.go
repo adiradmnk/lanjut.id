@@ -728,6 +728,12 @@ func (a *AIGateway) GenerateCancellationSurvey(ctx context.Context, member *mode
 	// Deterministic fallback — always returns a valid survey using tenant context
 	bizName := "Merchant"
 	category := "Layanan Berlangganan"
+	sessionTitle := ""
+	if lastTrx != nil {
+		if st, ok := lastTrx["session_title"].(string); ok && st != "" && st != "Paket Layanan" {
+			sessionTitle = " mengenai sesi " + st
+		}
+	}
 	if tenant != nil {
 		if tenant.BusinessName != "" {
 			bizName = tenant.BusinessName
@@ -738,7 +744,7 @@ func (a *AIGateway) GenerateCancellationSurvey(ctx context.Context, member *mode
 	}
 	return map[string]any{
 		"survey_id":    fmt.Sprintf("srv_fallback_%d", time.Now().UnixMilli()),
-		"question_title": fmt.Sprintf("Halo %s, apa yang sedang menjadi pertimbangan Anda mengenai kelanjutan layanan di %s?", member.Name, bizName),
+		"question_title": fmt.Sprintf("Halo %s, apa yang sedang menjadi pertimbangan Anda mengenai kelanjutan layanan%s di %s?", member.Name, sessionTitle, bizName),
 		"instruction":  "Pilih satu atau beberapa alasan yang paling menggambarkan situasi Anda:",
 		"is_multi_select": true,
 		"multiple_choice_options": []map[string]any{

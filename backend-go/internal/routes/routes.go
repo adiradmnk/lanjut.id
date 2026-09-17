@@ -55,6 +55,7 @@ func Register(r *gin.Engine, h *handlers.Handlers) {
 		api.GET("/merchant/:tenantId/business-rules", h.GetBusinessRules)
 
 		api.GET("/merchant/:tenantId/feedback", h.ListMerchantFeedback)
+		api.POST("/merchant/:tenantId/cancellation-survey", h.TriggerCancellationSurvey)
 
 		api.GET("/merchant/:tenantId/transactions", h.ListMerchantTransactions)
 

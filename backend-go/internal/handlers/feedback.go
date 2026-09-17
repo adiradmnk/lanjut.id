@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -195,4 +196,105 @@ func (h *Handlers) ListMemberTransactions(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "success", "transactions": transactions})
+}
+
+type merchantTriggerCancellationRequest struct {
+	MemberID string `json:"member_id" binding:"required"`
+}
+
+// TriggerCancellationSurvey handles POST /api/merchant/:tenantId/cancellation-survey
+// Endpoint yang di-provide untuk sistem frontend merchant ketika terjadi pembatalan / penolakan lanjut langganan.
+// Mengambil data member, tenant, dan konteks transaksi riil terakhir member sebagai tumpuan prompt AI Gemini 1.5.
+func (h *Handlers) TriggerCancellationSurvey(c *gin.Context) {
+	ctx := c.Request.Context()
+	tenantID := c.Param("tenantId")
+
+	var body merchantTriggerCancellationRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "member_id is required"})
+		return
+	}
+
+	member, err := h.Store.GetMember(ctx, body.MemberID)
+	if errors.Is(err, store.ErrNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "member not found"})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "failed to lookup member"})
+		return
+	}
+
+	tenant, _ := h.Store.GetTenant(ctx, tenantID)
+	if tenant == nil {
+		tenant, _ = h.Store.GetTenant(ctx, member.TenantID)
+	}
+
+	// Ambil konteks transaksi terakhir member
+	var lastTrxContext map[string]any
+	trxs, errTrx := h.Store.ListTransactionsByMember(ctx, member.ID)
+	if errTrx == nil && len(trxs) > 0 {
+		latest := trxs[0]
+		pattern := "RECENT_ORDER_CANCELED"
+		if latest.Status == "PENDING" {
+			pattern = "UNPAID_PENDING_VA"
+		} else if latest.Status == "PAID" {
+			pattern = "ACTIVE_MEMBER_TERMINATION"
+		} else if latest.Status == "CANCELLED" || latest.Status == "EXPIRED" {
+			pattern = "EXPIRED_UNPAID_INVOICE"
+		}
+
+		lastTrxContext = map[string]any{
+			"trx_id":           latest.TrxID,
+			"session_id":       latest.SessionID,
+			"session_title":    latest.SessionTitle,
+			"amount_idr":       latest.Amount,
+			"status":           latest.Status,
+			"created_at":       latest.CreatedAt,
+			"paid_at":          latest.PaidAt,
+			"detected_pattern": pattern,
+			"days_to_expiry":   7,
+			"unused_quota":     member.TotalQuota - member.UsedQuota,
+		}
+	} else if tenant != nil {
+		var defaultAmount float64 = tenant.Config.MinMarginFloorIDR
+		var defaultTitle string = "Membership " + tenant.BusinessName
+		pkgs, errPkg := h.Store.ListActiveProductPackages(ctx, tenant.ID)
+		if errPkg == nil && len(pkgs) > 0 {
+			defaultAmount = pkgs[0].PriceIDR
+			defaultTitle = pkgs[0].Name
+		}
+		lastTrxContext = map[string]any{
+			"trx_id":           "TRX-CATALOG-ACTIVE",
+			"session_title":    defaultTitle,
+			"amount_idr":       defaultAmount,
+			"status":           "CATALOG_ACTIVE",
+			"detected_pattern": "NON_RENEWAL_EXPIRY",
+			"days_to_expiry":   7,
+			"unused_quota":     member.TotalQuota - member.UsedQuota,
+		}
+	} else {
+		lastTrxContext = map[string]any{
+			"amount_idr":       150000.0,
+			"status":           "EXPIRED",
+			"detected_pattern": "EXPIRED_UNPAID_INVOICE",
+			"days_to_expiry":   7,
+			"unused_quota":     0,
+		}
+	}
+
+	survey, err := h.AIGateway.GenerateCancellationSurvey(ctx, member, tenant, lastTrxContext)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "failed to generate survey"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":                 "success",
+		"member_id":              member.ID,
+		"member_name":            member.Name,
+		"last_transaction":       lastTrxContext,
+		"survey":                 survey,
+		"feedback_submission_url": fmt.Sprintf("/api/member/subscription/%s/feedback", member.ID),
+	})
 }
