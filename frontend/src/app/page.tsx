@@ -447,39 +447,7 @@ export default function MeridianBentoLandingPage() {
         </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════
-          2. THE DUAL DILEMMA (Problem: Merchant Churn vs Bank NPL)
-          ════════════════════════════════════════════════════════════════ */}
-      <DualDilemmaSection />
 
-      {/* ════════════════════════════════════════════════════════════════
-          3. 4-STEP END-TO-END WORKFLOW (Alur Dina dari WA hingga BNI VA)
-          ════════════════════════════════════════════════════════════════ */}
-      <WorkflowStepsSection />
-
-      {/* ════════════════════════════════════════════════════════════════
-          4. AI VS DETERMINISTIC ENGINE (Precision Architecture)
-          ════════════════════════════════════════════════════════════════ */}
-      <AiPrecisionSection />
-
-      {/* ════════════════════════════════════════════════════════════════
-          5. PRECISION PILLARS (Staircase Architecture)
-          ════════════════════════════════════════════════════════════════ */}
-      <PrecisionSection />
-
-      {/* ════════════════════════════════════════════════════════════════
-          6. B2B2B VALUE MATRIX (Keuntungan Member, Merchant, Bank BNI)
-          ════════════════════════════════════════════════════════════════ */}
-      <ValueMatrixSection />
-
-      {/* ════════════════════════════════════════════════════════════════
-          7. FINAL INTERACTIVE CTA -> /demo
-          ════════════════════════════════════════════════════════════════ */}
-      <InteractiveCtaSection onOpenDemoModal={() => setDemoModalOpen(true)} />
-
-      {/* ════════════════════════════════════════════════════════════════
-          8. FOOTER
-          ════════════════════════════════════════════════════════════════ */}
       <footer style={{ backgroundColor: '#071624', borderTop: '1px solid rgba(255,255,255,0.06)', padding: '36px var(--pad-x)' }}>
         <div style={{ maxWidth: '1240px', margin: '0 auto' }} className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left text-xs sm:text-sm text-white/40">
           <p>© 2026 LANJUT × Bank BNI Ecosystem. All rights reserved.</p>
