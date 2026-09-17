@@ -300,8 +300,8 @@ export default function MerchantDashboardPage() {
       {/* 2. MAIN CONTENT AREA (FIT TO PAGE) */}
       <div className="flex-1 bg-[#09090b] flex flex-col min-w-0 h-full overflow-hidden">
         
-        {/* Top Header Bar */}
-        <header className="h-14 border-b border-white/10 flex items-center px-4 sm:px-6 justify-between bg-[#121215] shrink-0 z-10">
+        {/* Top Header Bar (Breadcrumb Only) */}
+        <header className="h-12 border-b border-white/10 flex items-center px-4 sm:px-6 bg-[#121215] shrink-0 z-10">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsOpen(!isOpen)}
@@ -314,44 +314,6 @@ export default function MerchantDashboardPage() {
               <span className="truncate max-w-[140px] sm:max-w-[200px]">{activeWorkspace}</span>
               <span>/</span>
               <span className="font-medium text-white truncate capitalize">{activeId}</span>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setIsFeedbackDemoOpen(true)}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-md bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-medium border border-rose-500/20 transition-all cursor-pointer"
-            >
-              <AlertTriangle className="w-3.5 h-3.5" />
-              <span>Demo Survey</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsDataset900Open(true)}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-xs font-medium border border-amber-500/20 transition-all cursor-pointer"
-            >
-              <Cpu className="w-3.5 h-3.5" />
-              <span>Audit 900</span>
-            </button>
-
-            <Link
-              href="/payment-gateway"
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#007979]/20 hover:bg-[#007979]/30 text-[#24B1B1] text-xs font-medium border border-[#24B1B1]/30 transition-all"
-            >
-              <span>BNI Gateway</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-
-            {/* User Pill */}
-            <div className="flex items-center gap-2.5 pl-2 border-l border-white/10">
-              <img
-                src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80"
-                alt="Carla Sanford"
-                className="w-7 h-7 rounded-full object-cover border border-white/20"
-              />
-              <span className="text-xs font-medium text-neutral-300 hidden md:inline-block">Carla Sanford</span>
             </div>
           </div>
         </header>

@@ -253,8 +253,8 @@ export default function PaymentGatewayDashboard() {
       {/* 2. MAIN VIEWPORT */}
       <main className="flex-1 flex flex-col h-full overflow-hidden bg-[#09090b] border-l border-white/5 relative z-10">
         
-        {/* TOP BAR */}
-        <header className="h-14 border-b border-white/10 px-6 flex items-center justify-between shrink-0 bg-[#0c0c0e]/80 backdrop-blur-md">
+        {/* TOP BAR (Breadcrumb Only) */}
+        <header className="h-12 border-b border-white/10 px-6 flex items-center shrink-0 bg-[#0c0c0e]/80 backdrop-blur-md">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -268,55 +268,6 @@ export default function PaymentGatewayDashboard() {
               <span>/</span>
               <span className="capitalize text-[#24B1B1] font-semibold">{activeNav.replace('-', ' ')}</span>
             </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Merchant Supervised Switcher */}
-            <div className="relative hidden md:block">
-              <select
-                value={selectedMerchantId}
-                onChange={(e) => setSelectedMerchantId(e.target.value)}
-                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#18181b] border border-white/10 text-neutral-200 appearance-none pr-8 cursor-pointer focus:outline-none focus:border-[#007979]"
-              >
-                {merchants.map((m) => (
-                  <option key={m.id} value={m.id} className="bg-[#18181b] text-neutral-200">
-                    🏢 {m.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2.5 top-2.5 pointer-events-none" />
-            </div>
-
-            {/* SNAP Key Copy */}
-            <button
-              type="button"
-              onClick={copyCredential}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#18181b] hover:bg-white/10 text-neutral-300 text-xs font-medium border border-white/10 transition-colors cursor-pointer"
-              title="Salin SNAP Secret Key"
-            >
-              {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-neutral-400" />}
-              <span className="hidden sm:inline">{copiedKey ? 'Tersalin!' : 'SNAP Key'}</span>
-            </button>
-
-            {/* Switch to Merchant Dashboard */}
-            <Link
-              href="/merchant"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#007979]/20 hover:bg-[#007979]/30 text-[#24B1B1] text-xs font-semibold border border-[#007979]/40 transition-colors"
-            >
-              <span>Merchant View</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-
-            {/* Refresh Live Data */}
-            <button
-              type="button"
-              onClick={loadData}
-              disabled={isRefreshing}
-              className="p-1.5 rounded-lg bg-[#18181b] hover:bg-white/10 border border-white/10 text-neutral-400 hover:text-neutral-200 transition-colors cursor-pointer"
-              title="Refresh Data"
-            >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#24B1B1]' : ''}`} />
-            </button>
           </div>
         </header>
 
