@@ -79,3 +79,57 @@ func (h *Handlers) GetTenantInsights(c *gin.Context) {
 		"narrative": summary,
 	})
 }
+
+// GetTenantCreditDSS handles GET /api/bni/tenants/:tenantId/credit-dss. It feeds the
+// tenant's real loan terms and BNI VA turnover into the sidecar's DSCR calculator
+// (services.AIGateway.EvaluateSMECreditDSS) so the BNI RM dashboard can show an actual
+// credit-health rating instead of a hardcoded figure.
+func (h *Handlers) GetTenantCreditDSS(c *gin.Context) {
+	ctx := c.Request.Context()
+	tenantID := c.Param("tenantId")
+
+	tenant, err := h.Store.GetTenant(ctx, tenantID)
+	if errors.Is(err, store.ErrNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "tenant not found"})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "tenant lookup failed"})
+		return
+	}
+
+	stats, err := h.Store.GetTenantInsightStats(ctx, tenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "failed to aggregate insight stats"})
+		return
+	}
+
+	dss, err := h.AIGateway.EvaluateSMECreditDSS(ctx, services.SMECreditDSSInput{
+		MerchantID:            tenant.ID,
+		MerchantName:          tenant.BusinessName,
+		MonthlyInstallmentIDR: int64(tenant.MonthlyInstallmentIDR),
+		MonthlyVATurnoverIDR:  int64(stats.TotalRevenuePaidIDR),
+		RetentionRatePct:      stats.RetentionRatePct,
+		ActiveMemberCount:     stats.TotalMembers,
+	})
+	if err != nil {
+		slog.Warn("sme credit dss evaluation failed", "tenant_id", tenantID, "err", err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"status": "success",
+			"tenant": gin.H{"id": tenant.ID, "business_name": tenant.BusinessName},
+			"dss":    nil,
+			"inputs": gin.H{
+				"monthly_installment_idr": tenant.MonthlyInstallmentIDR,
+				"monthly_va_turnover_idr": stats.TotalRevenuePaidIDR,
+				"retention_rate_pct":      stats.RetentionRatePct,
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"tenant": gin.H{"id": tenant.ID, "business_name": tenant.BusinessName},
+		"dss":    dss,
+	})
+}

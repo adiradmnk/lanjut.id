@@ -78,6 +78,7 @@ func Register(r *gin.Engine, h *handlers.Handlers) {
 		api.GET("/bni/portfolio-health", h.GetBNIPortfolioHealth)
 		api.GET("/bni/merchant-list", h.GetBNIMerchantList)
 		api.GET("/bni/tenants/:tenantId/insights", h.GetTenantInsights)
+		api.GET("/bni/tenants/:tenantId/credit-dss", h.GetTenantCreditDSS)
 	}
 
 	r.POST("/webhook/bni-payment", h.BNIWebhook)

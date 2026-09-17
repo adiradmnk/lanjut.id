@@ -43,10 +43,72 @@
   --btn-icon: 36px;
   --btn-pad-y: 12px;
   --btn-pad-x: 22px;
+
+  /* Dashboard shell tokens (merchant + BNI RM dashboards) — brand palette above, mapped to
+     the shadcn-style semantic names (bg-card, text-foreground, ...) those dashboards use. */
+  --dash-background: #f3f5f5;
+  --dash-foreground: #12241f;
+  --dash-card: #ffffff;
+  --dash-card-foreground: #12241f;
+  --dash-primary: #007979;
+  --dash-primary-foreground: #ffffff;
+  --dash-secondary: #fff4df;
+  --dash-secondary-foreground: #7a5a12;
+  --dash-muted: #eef2f0;
+  --dash-muted-foreground: #5f7367;
+  --dash-accent: #ffe2af;
+  --dash-accent-foreground: #7a4b12;
+  --dash-destructive: #d9534f;
+  --dash-destructive-foreground: #ffffff;
+  --dash-border: #e1e8e6;
+  --dash-input: #dbe7e0;
+  --dash-ring: #24b1b1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --dash-background: #0e1a17;
+    --dash-foreground: #ecf3f0;
+    --dash-card: #142722;
+    --dash-card-foreground: #ecf3f0;
+    --dash-primary: #24b1b1;
+    --dash-primary-foreground: #05201f;
+    --dash-secondary: #2a2213;
+    --dash-secondary-foreground: #ffe2af;
+    --dash-muted: #1a2b27;
+    --dash-muted-foreground: #93a8a1;
+    --dash-accent: #2a2213;
+    --dash-accent-foreground: #ffe2af;
+    --dash-destructive: #e5827e;
+    --dash-destructive-foreground: #200404;
+    --dash-border: #24382f;
+    --dash-input: #24382f;
+    --dash-ring: #24b1b1;
+  }
 }
 
 @theme {
   --font-sans: var(--font);
+
+  /* Registers the --dash-* tokens above as Tailwind color utilities: bg-background,
+     text-foreground, bg-card, bg-primary, border-border, text-muted-foreground, etc. */
+  --color-background: var(--dash-background);
+  --color-foreground: var(--dash-foreground);
+  --color-card: var(--dash-card);
+  --color-card-foreground: var(--dash-card-foreground);
+  --color-primary: var(--dash-primary);
+  --color-primary-foreground: var(--dash-primary-foreground);
+  --color-secondary: var(--dash-secondary);
+  --color-secondary-foreground: var(--dash-secondary-foreground);
+  --color-muted: var(--dash-muted);
+  --color-muted-foreground: var(--dash-muted-foreground);
+  --color-accent: var(--dash-accent);
+  --color-accent-foreground: var(--dash-accent-foreground);
+  --color-destructive: var(--dash-destructive);
+  --color-destructive-foreground: var(--dash-destructive-foreground);
+  --color-border: var(--dash-border);
+  --color-input: var(--dash-input);
+  --color-ring: var(--dash-ring);
 }
 
 *, *::before, *::after {
@@ -77,7 +139,6 @@ button {
   font-family: inherit;
   border: none;
   cursor: pointer;
-  background: none;
 }
 
 /* Page shell */

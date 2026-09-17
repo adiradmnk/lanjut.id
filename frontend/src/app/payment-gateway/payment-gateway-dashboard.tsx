@@ -2,65 +2,46 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { 
-  Search, 
-  LayoutDashboard, 
-  FolderKanban, 
-  Users, 
-  Settings, 
+import {
+  Search,
+  Settings,
   LogOut,
   Hash,
-  ChevronDown,
-  ChevronRight,
-  Inbox,
+  LayoutDashboard,
   Calendar,
   Activity,
   CreditCard,
-  Globe,
   Terminal,
   Blocks,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Command,
   X,
-  RefreshCw,
-  ArrowUpRight,
   CheckCircle2,
   Clock3,
-  AlertTriangle,
   Building2,
   ShieldCheck,
   TrendingUp,
-  FileText,
-  HelpCircle,
   Copy,
   Check
 } from 'lucide-react';
-import { 
-  formatRupiah, 
-  parseMerchants, 
-  parsePayments, 
-  parsePortfolio, 
-  paymentStatus, 
-  paymentStatusLabel, 
+import {
+  formatRupiah,
+  parseMerchants,
+  parsePayments,
+  parsePortfolio,
+  parseCreditDSS,
+  priorityTierLabel,
+  paymentStatus,
+  paymentStatusLabel,
   type PaymentStatus,
   type Merchant,
-  type RetentionPayment
+  type RetentionPayment,
+  type CreditDSS
 } from './payment-data';
-
-export type NavItemData = {
-  id: string;
-  title: string;
-  icon: React.ElementType;
-  badge?: number | string;
-  shortcut?: string;
-  children?: NavItemData[];
-};
-
-export type NavGroupData = {
-  heading?: string;
-  items: NavItemData[];
-};
+import { DashboardShell, DashboardHeader, EntitySwitcher, type NavGroupData, type NavItemData } from '@/components/dashboard/DashboardShell';
+import { StatCard } from '@/components/dashboard/StatCard';
+import { Leaderboard, type LeaderboardEntry } from '@/components/dashboard/Leaderboard';
+import { ActionPanel, type ActionPanelItem } from '@/components/dashboard/ActionPanel';
+import { AvatarProgressTable, type AvatarProgressRow } from '@/components/dashboard/AvatarProgressTable';
+import { BreakdownCard, type BreakdownSegment } from '@/components/dashboard/BreakdownCard';
 
 const navGroups: NavGroupData[] = [
   {
@@ -101,158 +82,6 @@ const bottomItems: NavItemData[] = [
   { id: 'logout', title: 'Keluar', icon: LogOut },
 ];
 
-function MerchantSwitcher({ 
-  merchants, 
-  selectedId, 
-  onSelect 
-}: { 
-  merchants: Merchant[];
-  selectedId: string;
-  onSelect: (id: string) => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const current = merchants.find(m => m.id === selectedId) || merchants[0] || {
-    id: 'mch-fitbody-01',
-    name: 'FitBody Gym & Movement',
-    category: 'Fitness & Wellness'
-  };
-
-  return (
-    <div className="relative">
-      <div 
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between px-2.5 py-2 mb-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer transition-colors select-none group border border-border/40 bg-card/40"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-[6px] bg-primary text-primary-foreground flex items-center justify-center font-bold text-[13px] shadow-sm">
-            {current.name.charAt(0)}
-          </div>
-          <div className="flex flex-col overflow-hidden">
-            <span className="text-[13px] font-semibold leading-none mb-1 text-foreground truncate max-w-[130px]">{current.name}</span>
-            <span className="text-[11px] text-muted-foreground leading-none truncate max-w-[130px]">{current.category || 'BNI SNAP Partner'}</span>
-          </div>
-        </div>
-        <ChevronDown className="w-4 h-4 text-muted-foreground/60 group-hover:text-foreground/80 transition-colors shrink-0" strokeWidth={1.5} />
-      </div>
-
-      {isOpen && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-[52px] left-0 w-full bg-card border border-border/60 rounded-lg shadow-xl z-50 py-1.5 flex flex-col gap-0.5 animate-in fade-in zoom-in-95 duration-100 max-h-[260px] overflow-y-auto">
-            <div className="px-3 py-1 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              Pilih Merchant Binaan
-            </div>
-            {merchants.map(m => (
-              <div 
-                key={m.id}
-                onClick={() => { onSelect(m.id); setIsOpen(false); }}
-                className={`px-3 py-2 mx-1 text-[12px] rounded-md cursor-pointer transition-colors ${current.id === m.id ? 'bg-primary/10 text-primary font-medium' : 'text-foreground/80 hover:bg-black/5 dark:hover:bg-white/5'}`}
-              >
-                <div className="font-medium text-foreground">{m.name}</div>
-                <div className="text-[10px] text-muted-foreground">{m.category}</div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function NavItem({ 
-  item, 
-  activeId, 
-  onSelect,
-  level = 0
-}: { 
-  item: NavItemData; 
-  activeId: string; 
-  onSelect: (id: string) => void;
-  level?: number;
-}) {
-  const isActive = activeId === item.id;
-  const hasChildren = !!item.children;
-  const [isOpen, setIsOpen] = useState(false);
-
-  const handleClick = () => {
-    if (hasChildren) {
-      setIsOpen(!isOpen);
-    } else {
-      onSelect(item.id);
-    }
-  };
-
-  return (
-    <div className="flex flex-col w-full">
-      <div 
-        className={`group flex items-center justify-between px-2.5 py-[7px] rounded-[6px] cursor-pointer transition-all duration-200 select-none
-          ${isActive 
-            ? 'bg-black/5 dark:bg-white/10 text-foreground font-medium' 
-            : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 hover:text-foreground/90'
-          }
-        `}
-        style={{ paddingLeft: `${level * 12 + 10}px` }}
-        onClick={handleClick}
-      >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <item.icon 
-            className={`w-[16px] h-[16px] transition-colors shrink-0
-              ${isActive ? 'text-foreground' : 'text-muted-foreground/70 group-hover:text-foreground/70'}
-            `} 
-            strokeWidth={1.5} 
-          />
-          <span className="text-[13px] tracking-wide truncate">
-            {item.title}
-          </span>
-        </div>
-        
-        <div className="flex items-center gap-2 shrink-0">
-          {item.shortcut && (
-             <kbd className="hidden group-hover:inline-flex items-center justify-center h-5 px-1.5 text-[10px] font-medium font-mono text-muted-foreground/60 bg-background/50 border border-border/50 rounded-[4px] shadow-xs">
-               {item.shortcut}
-             </kbd>
-          )}
-          {item.badge && (
-            <span className="flex items-center justify-center h-4 px-1.5 text-[9px] font-semibold rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-              {item.badge}
-            </span>
-          )}
-          {hasChildren && (
-            <ChevronRight 
-              className={`w-3.5 h-3.5 text-muted-foreground/50 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} 
-              strokeWidth={2}
-            />
-          )}
-        </div>
-      </div>
-
-      {hasChildren && (
-        <div 
-          className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${
-            isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
-          }`}
-        >
-          <div className="overflow-hidden min-h-0 relative flex flex-col gap-0.5 mt-0.5">
-            <div 
-              className="absolute top-0 bottom-0 border-l border-black/5 dark:border-white/5"
-              style={{ left: `${level * 12 + 17.5}px` }}
-            />
-            {item.children!.map(child => (
-              <NavItem 
-                key={child.id} 
-                item={child} 
-                activeId={activeId} 
-                onSelect={onSelect} 
-                level={level + 1} 
-              />
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function PaymentGatewayDashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -268,6 +97,7 @@ export default function PaymentGatewayDashboard() {
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [payments, setPayments] = useState<RetentionPayment[]>([]);
   const [merchantInsights, setMerchantInsights] = useState<any>(null);
+  const [creditDss, setCreditDss] = useState<CreditDSS | null>(null);
 
   const loadData = async () => {
     setIsRefreshing(true);
@@ -303,6 +133,15 @@ export default function PaymentGatewayDashboard() {
       if (insRes.ok) {
         const insData = await insRes.json();
         setMerchantInsights(insData);
+      }
+
+      // 5. Fetch real DSCR / SME credit decision support for the selected merchant
+      const dssRes = await fetch(`/api/bni/tenants/${encodeURIComponent(activeMid)}/credit-dss`);
+      if (dssRes.ok) {
+        const dssData = await dssRes.json();
+        setCreditDss(parseCreditDSS(dssData));
+      } else {
+        setCreditDss(null);
       }
     } catch (e) {
       console.warn('Gagal memuat data gateway:', e);
@@ -352,113 +191,92 @@ export default function PaymentGatewayDashboard() {
     setTimeout(() => setCopiedKey(false), 2000);
   };
 
+  // Portfolio-wide widgets derived from the real per-merchant stats in `merchants`
+  // (GET /api/bni/merchant-list) — no fabricated numbers.
+  const topRetentionEntries: LeaderboardEntry[] = [...merchants]
+    .filter(m => m.retentionRatePct !== null)
+    .sort((a, b) => (b.retentionRatePct ?? 0) - (a.retentionRatePct ?? 0))
+    .slice(0, 5)
+    .map(m => ({
+      id: m.id,
+      name: m.name,
+      metricLabel: `Retensi ${(m.retentionRatePct ?? 0).toFixed(1)}% · ${m.totalMembers ?? 0} member`,
+    }));
+
+  const attentionItems: ActionPanelItem[] = merchants
+    .filter(m => m.priorityTier === 'HIGH_ATTENTION' || m.priorityTier === 'PROBATION_NEW_MERCHANT')
+    .map(m => ({
+      id: m.id,
+      title: m.name,
+      subtitle: m.priorityTier === 'PROBATION_NEW_MERCHANT'
+        ? 'Merchant baru, belum ada volume settlement BNI VA.'
+        : `${m.membersAtRisk ?? 0} dari ${m.totalMembers ?? 0} member berisiko churn.`,
+      tags: [priorityTierLabel(m.priorityTier), m.category].filter(Boolean),
+    }));
+
+  const merchantAvatarRows: AvatarProgressRow[] = merchants.map(m => ({
+    id: m.id,
+    name: m.name,
+    subtitle: m.category || 'Merchant BNI SNAP',
+    progressPct: m.retentionRatePct ?? 0,
+    progressLabel: m.retentionRatePct !== null ? `${m.retentionRatePct.toFixed(0)}%` : 'N/A',
+  }));
+
+  const priorityCounts = merchants.reduce<Record<string, number>>((acc, m) => {
+    const key = m.priorityTier ?? 'UNKNOWN';
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
+  const priorityBreakdown: BreakdownSegment[] = (['PRIME_HEALTHY', 'MEDIUM_OBSERVATION', 'HIGH_ATTENTION', 'PROBATION_NEW_MERCHANT'] as const)
+    .filter(tier => priorityCounts[tier])
+    .map(tier => ({
+      id: tier,
+      label: priorityTierLabel(tier),
+      value: priorityCounts[tier],
+      pct: merchants.length > 0 ? (priorityCounts[tier] / merchants.length) * 100 : 0,
+      colorClass: tier === 'HIGH_ATTENTION' ? 'bg-red-500/10 text-red-600' : tier === 'MEDIUM_OBSERVATION' ? 'bg-amber-500/10 text-amber-600' : 'bg-emerald-500/10 text-emerald-600',
+    }));
+
   return (
-    <div className="flex h-screen w-full bg-background font-sans overflow-hidden">
-      {/* Sidebar Navigation */}
-      <aside 
-        className={`h-full transition-all duration-300 ease-in-out shrink-0 overflow-hidden bg-card/70 border-r border-border/50 flex flex-col ${
-          isSidebarOpen ? 'w-[270px] opacity-100' : 'w-0 opacity-0 border-none'
-        }`}
-      >
-        <div className="p-3 border-b border-border/40 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-orange-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
-              B
-            </div>
-            <span className="font-bold text-sm tracking-tight text-foreground">BNI PG Gateway</span>
-          </div>
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400">
-            SNAP v2.1
-          </span>
-        </div>
-
-        <div className="p-3">
-          <MerchantSwitcher 
-            merchants={merchants} 
-            selectedId={selectedMerchantId} 
-            onSelect={setSelectedMerchantId} 
+    <>
+    <DashboardShell
+      isSidebarOpen={isSidebarOpen}
+      sidebarProps={{
+        brandMark: 'B',
+        brandName: 'BNI PG Gateway',
+        brandBadge: 'SNAP v2.1',
+        brandMarkColorClass: 'bg-orange-600',
+        brandBadgeColorClass: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
+        switcher: (
+          <EntitySwitcher
+            entities={merchants}
+            selectedId={selectedMerchantId}
+            onSelect={setSelectedMerchantId}
+            pickerLabel="Pilih Merchant Binaan"
+            fallback={{ id: 'mch-fitbody-01', name: 'FitBody Gym & Movement', category: 'Fitness & Wellness' }}
           />
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-3 py-1 flex flex-col gap-4 [&::-webkit-scrollbar]:hidden">
-          {navGroups.map((group, idx) => (
-            <div key={idx} className="flex flex-col gap-0.5">
-              {group.heading && (
-                <span className="px-2.5 mb-1 text-[10px] font-bold tracking-wider text-muted-foreground/60 uppercase">
-                  {group.heading}
-                </span>
-              )}
-              {group.items.map(item => (
-                <NavItem 
-                  key={item.id} 
-                  item={item} 
-                  activeId={activeTab} 
-                  onSelect={handleSelectNav} 
-                />
-              ))}
-            </div>
-          ))}
-        </div>
-
-        <div className="p-3 border-t border-border/40 flex flex-col gap-0.5">
-          {bottomItems.map(item => (
-            <NavItem 
-              key={item.id} 
-              item={item} 
-              activeId={activeTab} 
-              onSelect={handleSelectNav} 
-            />
-          ))}
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-black/[0.015] dark:bg-white/[0.015] overflow-hidden">
-        {/* Top Header Bar */}
-        <header className="h-14 border-b border-border/50 flex items-center justify-between px-5 bg-card/80 backdrop-blur-sm shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <button 
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-1.5 rounded-md text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 hover:text-foreground transition-colors"
-              title="Toggle Menu"
-            >
-              {isSidebarOpen ? <PanelLeftClose className="w-[18px] h-[18px]" /> : <PanelLeftOpen className="w-[18px] h-[18px]" />}
-            </button>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
-              <span className="font-semibold text-foreground truncate">{selectedMerchant.name}</span>
-              <span>/</span>
-              <span className="capitalize">{activeTab.replace('_', ' ')}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setIsSearchOpen(true)}
-              className="hidden md:flex items-center gap-2 h-8 px-3 text-xs text-muted-foreground bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-md transition-colors border border-border/40"
-            >
-              <Search className="w-3.5 h-3.5" />
-              <span>Cari invoice, VA, atau nominal...</span>
-              <kbd className="text-[10px] font-mono px-1 py-0.5 bg-background border border-border/50 rounded">⌘K</kbd>
-            </button>
-
-            <button 
-              onClick={loadData} 
-              disabled={isRefreshing}
-              className="flex items-center gap-1.5 h-8 px-3 text-xs font-medium text-foreground bg-card hover:bg-black/5 dark:hover:bg-white/5 border border-border/60 rounded-md shadow-xs transition-colors"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Sinkronisasi</span>
-            </button>
-
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center text-white font-bold text-xs shadow-xs">
-              RM
-            </div>
-          </div>
-        </header>
-
-        {/* Dynamic Body Content */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 [&::-webkit-scrollbar]:hidden">
-          {/* TAB 1: OVERVIEW */}
+        ),
+        navGroups,
+        bottomItems,
+        activeId: activeTab,
+        onSelect: handleSelectNav,
+      }}
+      header={
+        <DashboardHeader
+          isSidebarOpen={isSidebarOpen}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          breadcrumbPrimary={selectedMerchant.name}
+          breadcrumbSecondary={activeTab.replace('_', ' ')}
+          onSearchClick={() => setIsSearchOpen(true)}
+          searchPlaceholder="Cari invoice, VA, atau nominal..."
+          onRefresh={loadData}
+          isRefreshing={isRefreshing}
+          avatarLabel="RM"
+          avatarGradientClass="from-orange-500 to-amber-400"
+        />
+      }
+    >
+      {/* TAB 1: OVERVIEW */}
           {(activeTab === 'overview' || activeTab === 'home') && (
             <div className="flex flex-col gap-6 max-w-6xl mx-auto">
               <div>
@@ -475,52 +293,47 @@ export default function PaymentGatewayDashboard() {
 
               {/* KPI Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                <div className="p-5 bg-card rounded-xl border border-border/60 shadow-xs flex flex-col justify-between">
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span className="text-xs font-medium">Perputaran BNI VA Bulanan</span>
-                    <CreditCard className="w-4 h-4 text-orange-500" />
-                  </div>
-                  <div className="mt-3">
-                    <div className="text-2xl font-bold text-foreground">
-                      {formatRupiah(portfolio?.monthlyTurnover ?? 142000000)}
-                    </div>
-                    <div className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium">
-                      <TrendingUp className="w-3.5 h-3.5" />
-                      <span>+14.2% dari target amortisasi BNI</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-5 bg-card rounded-xl border border-border/60 shadow-xs flex flex-col justify-between">
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span className="text-xs font-medium">Merchant Binaan Disupervisi</span>
-                    <Building2 className="w-4 h-4 text-blue-500" />
-                  </div>
-                  <div className="mt-3">
-                    <div className="text-2xl font-bold text-foreground">
-                      {portfolio?.merchantCount ?? merchants.length} Merchant
-                    </div>
-                    <div className="text-[11px] text-muted-foreground mt-1">
-                      100% menggunakan integrasi BNI SNAP
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-5 bg-card rounded-xl border border-border/60 shadow-xs flex flex-col justify-between sm:col-span-2 lg:col-span-1">
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span className="text-xs font-medium">Debt Service Coverage (DSCR)</span>
-                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                  </div>
-                  <div className="mt-3">
-                    <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                      2.45x (PRIME)
-                    </div>
-                    <div className="text-[11px] text-muted-foreground mt-1">
-                      Ambang aman BNI: &ge; 1.25x angsuran bulanan
-                    </div>
-                  </div>
-                </div>
+                <StatCard
+                  label="Perputaran BNI VA Bulanan"
+                  value={portfolio?.monthlyTurnover != null ? formatRupiah(portfolio.monthlyTurnover) : 'Memuat...'}
+                  hint="Estimasi dari angsuran bulanan merchant binaan × 3.5"
+                  icon={CreditCard}
+                  iconColorClass="text-orange-500"
+                />
+                <StatCard
+                  label="Merchant Binaan Disupervisi"
+                  value={`${portfolio?.merchantCount ?? merchants.length} Merchant`}
+                  hint="100% menggunakan integrasi BNI SNAP"
+                  icon={Building2}
+                  iconColorClass="text-blue-500"
+                />
+                <StatCard
+                  label="Debt Service Coverage (DSCR)"
+                  value={creditDss?.dscrRatio !== null && creditDss?.dscrRatio !== undefined ? `${creditDss.dscrRatio.toFixed(2)}x` : 'Menghitung...'}
+                  hint={creditDss?.creditHealthRating ? `Status: ${creditDss.creditHealthRating} · ambang aman ≥ 1.25x` : 'Ambang aman BNI: ≥ 1.25x angsuran bulanan'}
+                  icon={ShieldCheck}
+                  iconColorClass="text-emerald-500"
+                  featured
+                />
               </div>
+
+              {/* Portfolio Widgets: leaderboard, attention list, merchant table, priority breakdown */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <Leaderboard title="Top Merchant Berdasarkan Retensi" entries={topRetentionEntries} />
+                <ActionPanel
+                  title="Prioritas Pendampingan RM"
+                  items={attentionItems}
+                  emptyLabel="Semua merchant binaan dalam kondisi sehat, tidak ada yang butuh perhatian segera."
+                />
+                <BreakdownCard title="Distribusi Kesehatan Portofolio" segments={priorityBreakdown} />
+              </div>
+
+              <AvatarProgressTable
+                title="Retensi per Merchant Binaan"
+                columnLabel="Retention Rate"
+                rows={merchantAvatarRows}
+                emptyLabel="Belum ada merchant yang tersinkronisasi."
+              />
 
               {/* Early Warning System & AI Narrative Banner */}
               {merchantInsights?.narrative && (
@@ -703,14 +516,23 @@ export default function PaymentGatewayDashboard() {
                 <div className="p-6 bg-card rounded-xl border border-border/60 shadow-xs flex flex-col justify-between">
                   <div>
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Kolektibilitas & DSCR</span>
-                    <h3 className="text-xl font-bold text-foreground mt-1">Status: PRIME_LOW_RISK</h3>
+                    <h3 className="text-xl font-bold text-foreground mt-1">
+                      {creditDss ? `Status: ${creditDss.creditHealthRating}` : `Menghitung DSCR untuk ${selectedMerchant.name}...`}
+                    </h3>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Rasio perputaran dana Virtual Account terhadap kewajiban angsuran bulanan BNI Wirausaha mencapai 2.45x (jauh di atas batas minimum 1.25x).
+                      {creditDss?.dscrRatio !== null && creditDss?.dscrRatio !== undefined
+                        ? `Rasio perputaran dana Virtual Account terhadap kewajiban angsuran bulanan BNI mencapai ${creditDss.dscrRatio.toFixed(2)}x terhadap batas minimum 1.25x.`
+                        : 'Sidecar AI DSS sedang dihubungi, atau belum ada volume settlement BNI VA yang cukup untuk merchant ini.'}
                     </p>
+                    {creditDss && creditDss.aiRiskRationale.length > 0 && (
+                      <ul className="text-xs text-muted-foreground mt-3 space-y-1 list-disc list-inside">
+                        {creditDss.aiRiskRationale.map((r, i) => <li key={i}>{r}</li>)}
+                      </ul>
+                    )}
                   </div>
                   <div className="mt-6 pt-4 border-t border-border/40">
                     <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                      Rekomendasi RM: Layak untuk penambahan limit kredit modal kerja.
+                      {creditDss?.recommendedRMAction || 'Menunggu hasil evaluasi DSS untuk rekomendasi RM.'}
                     </span>
                   </div>
                 </div>
@@ -794,8 +616,7 @@ export default function PaymentGatewayDashboard() {
               </button>
             </div>
           )}
-        </main>
-      </div>
+    </DashboardShell>
 
       {/* Global Search Modal (⌘K) */}
       {isSearchOpen && (
@@ -848,6 +669,6 @@ export default function PaymentGatewayDashboard() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

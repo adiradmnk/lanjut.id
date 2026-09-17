@@ -5,10 +5,31 @@ export interface Portfolio {
   monthlyTurnover: number | null;
 }
 
+export type PriorityTier = 'PRIME_HEALTHY' | 'MEDIUM_OBSERVATION' | 'HIGH_ATTENTION' | 'PROBATION_NEW_MERCHANT';
+
 export interface Merchant {
   id: string;
   name: string;
   category: string;
+  totalMembers: number | null;
+  membersAtRisk: number | null;
+  retentionRatePct: number | null;
+  paymentSuccessRatePct: number | null;
+  totalRevenuePaidIdr: number | null;
+  loanPlafondIdr: number | null;
+  monthlyInstallmentIdr: number | null;
+  priorityTier: PriorityTier | null;
+}
+
+export interface CreditDSS {
+  merchantId: string;
+  merchantName: string;
+  creditHealthRating: string;
+  dscrRatio: number | null;
+  smeCreditReadinessIndex: string;
+  recommendedRMAction: string;
+  aiRiskRationale: string[];
+  complianceDisclaimer: string;
 }
 
 export interface RetentionPayment {
@@ -52,12 +73,48 @@ export function parseMerchants(value: unknown): Merchant[] {
       throw new Error('Data merchant belum dapat ditampilkan.');
     }
 
+    const priority = typeof item.priority_tier === 'string' ? item.priority_tier : null;
     return {
       id: item.id,
       name: item.name,
       category: typeof item.category === 'string' ? item.category : '',
+      totalMembers: nonNegativeNumber(item.total_members),
+      membersAtRisk: nonNegativeNumber(item.members_at_risk),
+      retentionRatePct: nonNegativeNumber(item.retention_rate_pct),
+      paymentSuccessRatePct: nonNegativeNumber(item.payment_success_rate_pct),
+      totalRevenuePaidIdr: nonNegativeNumber(item.total_revenue_paid_idr),
+      loanPlafondIdr: nonNegativeNumber(item.loan_plafond_idr),
+      monthlyInstallmentIdr: nonNegativeNumber(item.monthly_installment_idr),
+      priorityTier: (priority as PriorityTier) ?? null,
     };
   });
+}
+
+export function parseCreditDSS(value: unknown): CreditDSS | null {
+  if (!isRecord(value) || !isRecord(value.dss)) return null;
+  const dss = value.dss;
+  if (typeof dss.merchant_id !== 'string' || typeof dss.merchant_name !== 'string') return null;
+
+  return {
+    merchantId: dss.merchant_id,
+    merchantName: dss.merchant_name,
+    creditHealthRating: typeof dss.credit_health_rating === 'string' ? dss.credit_health_rating : 'UNKNOWN',
+    dscrRatio: nonNegativeNumber(dss.bni_dscr_ratio),
+    smeCreditReadinessIndex: typeof dss.sme_credit_readiness_index === 'string' ? dss.sme_credit_readiness_index : '—',
+    recommendedRMAction: typeof dss.recommended_rm_action === 'string' ? dss.recommended_rm_action : '',
+    aiRiskRationale: Array.isArray(dss.ai_risk_rationale) ? dss.ai_risk_rationale.filter((r): r is string => typeof r === 'string') : [],
+    complianceDisclaimer: typeof dss.compliance_disclaimer === 'string' ? dss.compliance_disclaimer : '',
+  };
+}
+
+export function priorityTierLabel(tier: PriorityTier | null): string {
+  switch (tier) {
+    case 'PRIME_HEALTHY': return 'Sehat / Prima';
+    case 'MEDIUM_OBSERVATION': return 'Perlu Pemantauan';
+    case 'HIGH_ATTENTION': return 'Perlu Perhatian RM';
+    case 'PROBATION_NEW_MERCHANT': return 'Onboarding Baru';
+    default: return 'Belum diketahui';
+  }
 }
 
 export function parsePayments(value: unknown): RetentionPayment[] {

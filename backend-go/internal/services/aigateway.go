@@ -419,6 +419,83 @@ func (a *AIGateway) GenerateRMSummary(ctx context.Context, in RMSummaryInput) (*
 	return &out, nil
 }
 
+// SMECreditDSSInput is the pre-aggregated tenant data (loan terms + real VA turnover from
+// store.GetTenantInsightStats) sent to the sidecar's DSCR-based credit decision support
+// endpoint. This is the same /evaluate-sme-credit-dss logic the old Express prototype
+// (backend/src/services/aiGatewayService.ts) called — wired here so backend-go's BNI RM
+// dashboard gets a real DSCR figure instead of a hardcoded placeholder.
+type SMECreditDSSInput struct {
+	MerchantID            string
+	MerchantName          string
+	MonthlyInstallmentIDR int64
+	MonthlyVATurnoverIDR  int64
+	RetentionRatePct      float64
+	ActiveMemberCount     int
+}
+
+type SMECreditDSS struct {
+	MerchantID              string   `json:"merchant_id"`
+	MerchantName            string   `json:"merchant_name"`
+	CreditHealthRating      string   `json:"credit_health_rating"`
+	BNIDSCRRatio            float64  `json:"bni_dscr_ratio"`
+	SMECreditReadinessIndex string   `json:"sme_credit_readiness_index"`
+	RecommendedRMAction     string   `json:"recommended_rm_action"`
+	AIRiskRationale         []string `json:"ai_risk_rationale"`
+	ComplianceDisclaimer    string   `json:"compliance_disclaimer"`
+}
+
+type evaluateSMECreditRequest struct {
+	MerchantID            string  `json:"merchant_id"`
+	MerchantName          string  `json:"merchant_name"`
+	MonthlyInstallmentIDR int64   `json:"monthly_installment_idr"`
+	MonthlyVATurnoverIDR  int64   `json:"monthly_bni_va_turnover_idr"`
+	RetentionRatePct      float64 `json:"retention_rate_pct"`
+	ActiveMemberCount     int     `json:"active_member_count"`
+}
+
+// EvaluateSMECreditDSS calls the sidecar's deterministic DSCR calculator (turnover /
+// installment, no LLM involved) so BNI RM sees a real credit-health figure per merchant
+// instead of a static placeholder. No local fallback: if the sidecar is unreachable, the
+// caller still has the raw loan/turnover numbers and can render without a rating.
+func (a *AIGateway) EvaluateSMECreditDSS(ctx context.Context, in SMECreditDSSInput) (*SMECreditDSS, error) {
+	reqBody := evaluateSMECreditRequest{
+		MerchantID: in.MerchantID, MerchantName: in.MerchantName,
+		MonthlyInstallmentIDR: in.MonthlyInstallmentIDR, MonthlyVATurnoverIDR: in.MonthlyVATurnoverIDR,
+		RetentionRatePct: in.RetentionRatePct, ActiveMemberCount: in.ActiveMemberCount,
+	}
+
+	bodyJSON, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("marshal request: %w", err)
+	}
+
+	reqCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost,
+		a.baseURL+"/api/v1/retention/evaluate-sme-credit-dss", bytes.NewReader(bodyJSON))
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := a.slowClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ai sidecar unreachable: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("ai sidecar returned status %d", resp.StatusCode)
+	}
+
+	var out SMECreditDSS
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, fmt.Errorf("decode evaluate-sme-credit-dss response: %w", err)
+	}
+	return &out, nil
+}
+
 type GuidebookExtractResponse struct {
 	Status               string                        `json:"status"`
 	Filename             string                        `json:"filename"`
