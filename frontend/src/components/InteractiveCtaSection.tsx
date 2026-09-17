@@ -121,7 +121,7 @@ export default function InteractiveCtaSection({ onOpenDemoModal }: InteractiveCt
           {/* Call to action button */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <Link
-              href="/demo"
+              href="/login"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -137,8 +137,27 @@ export default function InteractiveCtaSection({ onOpenDemoModal }: InteractiveCt
                 transition: 'transform 0.2s, background 0.2s',
               }}
             >
-              <span>Buka Live Demo Console</span>
+              <span>Mulai Masuk Akun</span>
               <ArrowRight size={18} />
+            </Link>
+            <Link
+              href="/demo"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '16px 32px',
+                borderRadius: '40px',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: '#FFFFFF',
+                fontSize: '15px',
+                fontWeight: 600,
+                textDecoration: 'none',
+                transition: 'transform 0.2s, background 0.2s',
+              }}
+            >
+              <span>Buka Demo Console</span>
             </Link>
           </div>
 

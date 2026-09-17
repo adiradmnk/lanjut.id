@@ -238,14 +238,13 @@ export default function MeridianBentoLandingPage() {
 
           {/* Actions */}
           <div className="hero__actions">
-            {/* Tombol Utama: Start Now */}
-            <button
-              type="button"
-              onClick={() => setDemoModalOpen(true)}
+            {/* Tombol Utama: Get Started / Login */}
+            <Link
+              href="/login"
               className="btn btn--light wipe cursor-pointer"
               style={{ '--d': '0.56s' } as React.CSSProperties}
             >
-              <span>Start Now</span>
+              <span>Get Started</span>
               <span className="btn__icon">
                 <svg viewBox="0 0 20 20" fill="none">
                   <path
@@ -257,7 +256,7 @@ export default function MeridianBentoLandingPage() {
                   />
                 </svg>
               </span>
-            </button>
+            </Link>
 
             {/* Tombol Kedua: Pelajari Cara Kerja */}
             <button
@@ -437,11 +436,11 @@ export default function MeridianBentoLandingPage() {
                 Didukung oleh Protokol SNAP BNI e-Collection
               </span>
               <Link
-                href="/merchant"
+                href="/login"
                 onClick={() => setDemoModalOpen(false)}
                 className="inline-flex items-center gap-1.5 font-medium text-[#FFE2AF] hover:underline"
               >
-                Langsung Masuk Merchant Dashboard →
+                Masuk ke Portal Resmi →
               </Link>
             </div>
           </div>

@@ -17,7 +17,9 @@ export default function LoginPage() {
       </div>
 
       <header className={styles.header}>
-        <span className={styles.brand}>Lanjut.id</span>
+        <a href="/" className={styles.brand} title="Kembali ke Beranda">
+          Lanjut.id
+        </a>
       </header>
 
       <main className={styles.content}>

@@ -28,21 +28,21 @@ const otpValidity = 5 * time.Minute
 const sessionValidity = 7 * 24 * time.Hour
 
 type loginRequest struct {
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
-	Role     string `json:"role" binding:"required,oneof=merchant partner"`
+	Email    string  `json:"email" binding:"required"`
+	Password string  `json:"password" binding:"required"`
+	Role     *string `json:"role"` // optional: auto-detected from account in database if omitted
 }
 
-// Login handles POST /api/auth/login — step 1 of 2FA: verify email+password+role, then
-// email a one-time code and stop there. No session is issued yet; that only happens after
-// VerifyOTP succeeds. Password and OTP failures are reported identically ("invalid
-// credentials") so a client can't distinguish "wrong password" from "unknown email".
+// Login handles POST /api/auth/login — step 1 of 2FA: verify email+password, auto-detecting
+// or validating role, then email a one-time code and stop there. No session is issued yet;
+// that only happens after VerifyOTP succeeds. Password and OTP failures are reported identically
+// ("invalid credentials") so a client can't distinguish "wrong password" from "unknown email".
 func (h *Handlers) Login(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var body loginRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "email, password, and role are required"})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "email and password are required"})
 		return
 	}
 
@@ -56,7 +56,7 @@ func (h *Handlers) Login(c *gin.Context) {
 		return
 	}
 
-	if account.Role != body.Role {
+	if body.Role != nil && *body.Role != "" && account.Role != *body.Role {
 		c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "message": "Email atau kata sandi salah."})
 		return
 	}
@@ -88,6 +88,7 @@ func (h *Handlers) Login(c *gin.Context) {
 		"status":  "OTP_REQUIRED",
 		"message": "Kode OTP sudah dikirim ke email kamu, berlaku 5 menit.",
 		"email":   account.Email,
+		"role":    account.Role,
 	}
 	if !sentViaEmail {
 		// Lingkungan demo / fallback saat Mailjet tidak ada kredensial aktif

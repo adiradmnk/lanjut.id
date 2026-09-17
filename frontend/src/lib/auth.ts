@@ -32,22 +32,30 @@ export function clearSession() {
 
 interface CredentialsPayload {
   email: string;
-  password: string;
-  role: UserRole;
+  password?: string;
+  role?: UserRole;
+}
+
+export interface RequestOtpResponse {
+  status?: string;
+  message?: string;
+  email?: string;
+  role?: UserRole;
+  demo_otp?: string;
 }
 
 /**
- * Step 1 of 2FA login: POST /api/auth/login with email+password+role.
- * On success the backend emails a 6-digit OTP (via Mailjet) and responds
- * { status: "OTP_REQUIRED" } — no session yet. Throws on invalid credentials
- * or if the backend/Mailjet isn't reachable, so the caller can show a real
- * error instead of silently falling back to a demo session.
+ * Step 1 of 2FA login: POST /api/auth/login with email + password (and optional role).
+ * Backend auto-detects if the email belongs to merchant or partner (payment gateway).
  */
-export async function requestOtp({ email, password, role }: CredentialsPayload): Promise<{ message?: string; demo_otp?: string }> {
+export async function requestOtp({ email, password = 'demo1234', role }: CredentialsPayload): Promise<RequestOtpResponse> {
+  const body: Record<string, string> = { email, password };
+  if (role) body.role = role;
+
   const res = await fetch('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, role }),
+    body: JSON.stringify(body),
   });
 
   const data = await res.json().catch(() => null);
@@ -60,13 +68,13 @@ export async function requestOtp({ email, password, role }: CredentialsPayload):
 interface VerifyOtpPayload {
   email: string;
   otp: string;
-  role: UserRole;
+  role?: UserRole;
 }
 
 /**
  * Step 2 of 2FA login: POST /api/auth/verify-otp with the code from email.
- * On success the backend issues a session token; this saves it locally and
- * returns the Session for the caller to redirect with.
+ * On success the backend issues a session token; saves it locally and
+ * returns the Session with role from backend for the caller to redirect with.
  */
 export async function verifyOtp({ email, otp, role }: VerifyOtpPayload): Promise<Session> {
   const res = await fetch('/api/auth/verify-otp', {
@@ -81,8 +89,9 @@ export async function verifyOtp({ email, otp, role }: VerifyOtpPayload): Promise
   }
 
   const data = await res.json();
+  const assignedRole: UserRole = (data.role as UserRole) || role || 'merchant';
   const session: Session = {
-    role,
+    role: assignedRole,
     email,
     name: data.name || email.split('@')[0],
     token: data.token,
