@@ -659,3 +659,61 @@ async def evaluate_sme_credit_dss(payload: EvaluateSMECreditRequest):
         compliance_disclaimer=disclaimer,
         processing_time_ms=elapsed
     )
+
+# ----------------------------------------------------
+# 8. Outlier.AI Adapted: Behavioral & Payment Risk Scoring + Agentic Report
+# ----------------------------------------------------
+from app.services.risk_engine import PaymentRiskScoringEngine
+from app.services.retention_agent import RetentionAgent
+
+class EvaluateMemberRiskRequest(BaseModel):
+    member_id: str
+    member_name: str
+    days_since_last_visit: int = 0
+    missed_payments_count: int = 0
+    quota_utilization_pct: float = 1.0
+    tenure_months: int = 1
+    contract_type: str = "MONTHLY"
+    monthly_fee_idr: int = 500000
+    tenant_constraint: Optional[TenantConstraint] = None
+
+@router.post("/evaluate-member-risk")
+async def evaluate_member_risk_and_strategy(payload: EvaluateMemberRiskRequest):
+    """
+    End-to-End Pipeline diadaptasi dari Outlier.AI:
+    1. Feature Attribution & Risk Prediction (RF & SHAP-equivalent)
+    2. Archetype Clustering (K-Means equivalent)
+    3. Agentic Retention Assistant Workflow (Analyze -> Retrieve -> Reason -> Report)
+    """
+    profile_dict = {
+        "member_id": payload.member_id,
+        "member_name": payload.member_name,
+        "days_since_last_visit": payload.days_since_last_visit,
+        "missed_payments_count": payload.missed_payments_count,
+        "quota_utilization_pct": payload.quota_utilization_pct,
+        "tenure_months": payload.tenure_months,
+        "contract_type": payload.contract_type,
+        "monthly_fee_idr": payload.monthly_fee_idr
+    }
+
+    # Step 1: Risk Engine Evaluation
+    risk_result = PaymentRiskScoringEngine.evaluate(profile_dict)
+
+    # Step 2: Agentic Retention Strategy Loop
+    agent = RetentionAgent(api_key=GEMINI_API_KEY)
+    merchant_cfg = {
+        "max_discount_pct": payload.tenant_constraint.max_discount_allowed_pct if payload.tenant_constraint else 15.0,
+        "min_margin_idr": payload.tenant_constraint.min_margin_floor_idr if payload.tenant_constraint else 50000
+    }
+    
+    agentic_report = agent.run_agentic_workflow(
+        customer_profile=profile_dict,
+        risk_evaluation=risk_result,
+        merchant_constraint=merchant_cfg
+    )
+
+    return {
+        "status": "SUCCESS",
+        "evaluation": risk_result,
+        "agentic_report": agentic_report
+    }
