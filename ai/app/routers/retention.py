@@ -1,7 +1,7 @@
 import os
 import json
 import time
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter
 from pydantic import BaseModel
 
@@ -721,4 +721,95 @@ async def evaluate_member_risk_and_strategy(payload: EvaluateMemberRiskRequest):
         "status": "SUCCESS",
         "evaluation": risk_result,
         "agentic_report": agentic_report
+    }
+
+# ----------------------------------------------------
+# 7. AI-POWERED CHURN PREDICTION & SIMULATOR ENDPOINTS
+# (Diadaptasi dari anshkumar2311/AI-Powered-Churn-Prediction)
+# ----------------------------------------------------
+from app.services.ml_churn_model import MLChurnPredictionEngine
+
+class MLChurnPredictRequest(BaseModel):
+    tenure: Optional[float] = 24.0
+    MonthlyCharges: Optional[float] = 65.0
+    TotalCharges: Optional[float] = 1560.0
+    Contract: Optional[str] = "Month-to-month"
+    InternetService: Optional[str] = "Fiber optic"
+    OnlineSecurity: Optional[bool] = False
+    TechSupport: Optional[bool] = False
+    PaymentMethod: Optional[str] = "Electronic check"
+    SeniorCitizen: Optional[int] = 0
+
+class MLChurnSimulateRequest(BaseModel):
+    price_change_pct: float = 0.0
+    tenure_impact_pct: float = 0.0
+    members: Optional[List[Dict[str, Any]]] = None
+
+class MLChurnAnalyticsRequest(BaseModel):
+    members: Optional[List[Dict[str, Any]]] = None
+
+@router.post("/ml-churn/predict")
+async def ml_churn_predict(payload: MLChurnPredictRequest):
+    result = MLChurnPredictionEngine.predict_churn(payload.model_dump())
+    return {
+        "success": True,
+        "prediction": result
+    }
+
+@router.post("/ml-churn/simulate")
+async def ml_churn_simulate(payload: MLChurnSimulateRequest):
+    # If no member population provided, use representative telco/subscription distribution
+    members = payload.members or []
+    if not members:
+        import numpy as np
+        np.random.seed(42)
+        n = 100
+        for _ in range(n):
+            tenure = float(np.random.randint(1, 72))
+            mc = float(np.random.normal(65, 20))
+            members.append({
+                "tenure": tenure,
+                "MonthlyCharges": max(20.0, min(120.0, mc)),
+                "TotalCharges": tenure * mc,
+                "Contract": np.random.choice(["Month-to-month", "One year", "Two year"], p=[0.55, 0.25, 0.20]),
+                "InternetService": np.random.choice(["Fiber optic", "DSL", "No"], p=[0.45, 0.35, 0.20]),
+                "OnlineSecurity": bool(np.random.choice([True, False], p=[0.3, 0.7])),
+                "TechSupport": bool(np.random.choice([True, False], p=[0.3, 0.7])),
+                "PaymentMethod": np.random.choice(["Electronic check", "BNI VA / Bank transfer"], p=[0.4, 0.6]),
+                "SeniorCitizen": int(np.random.choice([0, 1], p=[0.85, 0.15]))
+            })
+
+    result = MLChurnPredictionEngine.simulate_future_scenario(
+        base_members=members,
+        price_change_pct=payload.price_change_pct,
+        tenure_impact_pct=payload.tenure_impact_pct
+    )
+    return {
+        "success": True,
+        "simulation": result
+    }
+
+@router.post("/ml-churn/analytics")
+async def ml_churn_analytics(payload: MLChurnAnalyticsRequest):
+    members = payload.members or []
+    if not members:
+        import numpy as np
+        np.random.seed(42)
+        n = 100
+        for _ in range(n):
+            tenure = float(np.random.randint(1, 72))
+            mc = float(np.random.normal(65, 20))
+            churn_flag = "HIGH" if (tenure < 12 and mc > 70) or np.random.rand() < 0.26 else "LOW"
+            members.append({
+                "tenure": tenure,
+                "MonthlyCharges": max(20.0, min(120.0, mc)),
+                "TotalCharges": tenure * mc,
+                "churn_risk_flag": churn_flag,
+                "Contract": "Month-to-month" if churn_flag == "HIGH" else "One year"
+            })
+
+    analytics = MLChurnPredictionEngine.get_analytics_overview(members)
+    return {
+        "success": True,
+        "analytics": analytics
     }
