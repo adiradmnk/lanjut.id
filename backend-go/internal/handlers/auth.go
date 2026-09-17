@@ -29,8 +29,8 @@ const sessionValidity = 7 * 24 * time.Hour
 
 type loginRequest struct {
 	Email    string  `json:"email" binding:"required"`
-	Password string  `json:"password" binding:"required"`
-	Role     *string `json:"role"` // optional: auto-detected from account in database if omitted
+	Password *string `json:"password"` // optional: if omitted, defaults to demo flow
+	Role     *string `json:"role"`     // optional: auto-detected from account in database if omitted
 }
 
 // Login handles POST /api/auth/login — step 1 of 2FA: verify email+password, auto-detecting
@@ -42,11 +42,31 @@ func (h *Handlers) Login(c *gin.Context) {
 
 	var body loginRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "email and password are required"})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "email is required"})
 		return
 	}
 
 	account, err := h.Store.GetAccountByEmail(ctx, body.Email)
+	if errors.Is(err, store.ErrNotFound) {
+		// Auto-provision standard demo accounts if not yet in database
+		if body.Email == "merchant@lanjut.id" || body.Email == "partner@lanjut.id" {
+			role := "merchant"
+			name := "FitBody Merchant Staff"
+			var tenantID *string
+			tid := "mch-fitbody-01"
+			tenantID = &tid
+			if body.Email == "partner@lanjut.id" {
+				role = "partner"
+				name = "BNI Payment Partner"
+				tenantID = nil
+			}
+
+			hashed, _ := bcrypt.GenerateFromPassword([]byte("demo1234"), bcrypt.DefaultCost)
+			_, _ = h.Store.UpsertAccount(ctx, body.Email, string(hashed), role, tenantID, name)
+			account, err = h.Store.GetAccountByEmail(ctx, body.Email)
+		}
+	}
+
 	if errors.Is(err, store.ErrNotFound) {
 		c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "message": "Email atau kata sandi salah."})
 		return
@@ -61,9 +81,12 @@ func (h *Handlers) Login(c *gin.Context) {
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(account.PasswordHash), []byte(body.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "message": "Email atau kata sandi salah."})
-		return
+	// If password was provided and not empty, check bcrypt hash
+	if body.Password != nil && *body.Password != "" {
+		if err := bcrypt.CompareHashAndPassword([]byte(account.PasswordHash), []byte(*body.Password)); err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "message": "Email atau kata sandi salah."})
+			return
+		}
 	}
 
 	otp, err := generateNumericOTP(6)
@@ -84,11 +107,17 @@ func (h *Handlers) Login(c *gin.Context) {
 		}
 	}
 
+	redirectURL := "/merchant"
+	if account.Role == "partner" {
+		redirectURL = "/payment-gateway"
+	}
+
 	resp := gin.H{
-		"status":  "OTP_REQUIRED",
-		"message": "Kode OTP sudah dikirim ke email kamu, berlaku 5 menit.",
-		"email":   account.Email,
-		"role":    account.Role,
+		"status":       "OTP_REQUIRED",
+		"message":      "Kode OTP sudah dikirim ke email kamu, berlaku 5 menit.",
+		"email":        account.Email,
+		"role":         account.Role,
+		"redirect_url": redirectURL,
 	}
 	if !sentViaEmail {
 		// Lingkungan demo / fallback saat Mailjet tidak ada kredensial aktif
@@ -143,12 +172,18 @@ func (h *Handlers) VerifyOTP(c *gin.Context) {
 		return
 	}
 
+	redirectURL := "/merchant"
+	if account.Role == "partner" {
+		redirectURL = "/payment-gateway"
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"status":    "success",
-		"token":     rawToken,
-		"name":      account.Name,
-		"role":      account.Role,
-		"tenant_id": account.TenantID,
+		"status":       "success",
+		"token":        rawToken,
+		"name":         account.Name,
+		"role":         account.Role,
+		"tenant_id":    account.TenantID,
+		"redirect_url": redirectURL,
 	})
 }
 

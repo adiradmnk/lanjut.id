@@ -20,6 +20,21 @@ var ErrOTPInvalid = errors.New("otp invalid or expired")
 // still within its time window.
 const maxOTPAttempts = 5
 
+// UpsertAccount inserts or updates an account by email.
+func (s *Store) UpsertAccount(ctx context.Context, email, passwordHash, role string, tenantID *string, name string) (*models.Account, error) {
+	row := s.pool.QueryRow(ctx, `
+		INSERT INTO accounts (email, password_hash, role, tenant_id, name)
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (email) DO UPDATE
+		SET password_hash = EXCLUDED.password_hash,
+		    role = EXCLUDED.role,
+		    tenant_id = EXCLUDED.tenant_id,
+		    name = EXCLUDED.name
+		RETURNING id::text, email, password_hash, role, tenant_id, name, created_at::text`,
+		email, passwordHash, role, tenantID, name)
+	return scanAccount(row)
+}
+
 // GetAccountByEmail looks up a login account by email.
 func (s *Store) GetAccountByEmail(ctx context.Context, email string) (*models.Account, error) {
 	row := s.pool.QueryRow(ctx, `
