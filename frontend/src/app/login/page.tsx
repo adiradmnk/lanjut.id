@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const termsText = (
@@ -9,14 +8,14 @@ const termsText = (
     By creating an account, you agree to our{" "}
     <a
       href="#"
-      className="font-medium text-black/45 underline underline-offset-2 dark:text-white/45"
+      className="font-medium text-white/50 hover:text-white/80 underline underline-offset-2 transition-colors"
     >
       Terms and Services
     </a>{" "}
     and{" "}
     <a
       href="#"
-      className="font-medium text-black/45 underline underline-offset-2 dark:text-white/45"
+      className="font-medium text-white/50 hover:text-white/80 underline underline-offset-2 transition-colors"
     >
       Privacy Policy
     </a>
@@ -25,11 +24,12 @@ const termsText = (
 
 export default function LoginPage() {
   return (
-    <section className="min-h-screen bg-white p-3 text-black antialiased [font-synthesis:none] dark:bg-[#050505] dark:text-white">
-      <div className="grid min-h-[calc(100vh-1.5rem)] gap-6 lg:grid-cols-[0.94fr_1.06fr]">
-        <div className="relative flex min-h-[760px] justify-center overflow-hidden rounded-md bg-black px-7 py-12 text-white sm:px-10 lg:min-h-0 lg:py-20 xl:py-24">
+    <section className="min-h-screen bg-black p-4 lg:p-6 text-white antialiased [font-synthesis:none]">
+      <div className="grid min-h-[calc(100vh-3rem)] gap-6 lg:grid-cols-2 max-w-[1600px] mx-auto">
+        {/* Left Section - Video Box with rounded corners and padding */}
+        <div className="relative flex min-h-[600px] justify-center overflow-hidden rounded-[32px] bg-[#0a0a0a]">
           <video
-            className="absolute inset-0 h-full w-full object-cover opacity-60"
+            className="absolute inset-0 h-full w-full object-cover opacity-80"
             autoPlay
             muted
             loop
@@ -41,17 +41,18 @@ export default function LoginPage() {
             />
           </video>
           
-          <div className="relative z-10 flex w-full max-w-[500px] flex-col items-center pt-8 justify-start">
-            <div className="text-2xl font-medium text-white mb-1 tracking-wide drop-shadow-md">
+          <div className="relative z-10 flex w-full flex-col items-center pt-16 px-8 justify-start">
+            <h2 className="text-3xl font-semibold mb-3 tracking-wide bg-gradient-to-br from-orange-200 via-orange-300 to-blue-200 bg-clip-text text-transparent drop-shadow-md">
               Lanjut.id
-            </div>
-            <p className="text-center text-xl sm:text-2xl leading-snug text-white/95 font-medium drop-shadow-md max-w-[340px]">
-              Turning subscription churn into merchant retention & BNI intelligence.
+            </h2>
+            <p className="text-center text-xl sm:text-2xl leading-snug font-medium drop-shadow-md max-w-[400px] text-orange-100/90">
+              Transform subscription churn into lasting merchant retention & BNI intelligence.
             </p>
           </div>
         </div>
 
-        <div className="flex min-h-[760px] items-center justify-center px-6 py-12 sm:px-10 lg:min-h-0 lg:px-14 xl:px-20">
+        {/* Right Section - Form */}
+        <div className="flex items-center justify-center px-6 py-12 sm:px-10 lg:px-14 xl:px-20">
           <AuthForm />
         </div>
       </div>
@@ -78,22 +79,18 @@ function AuthForm() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[500px] text-center">
-      <h1 className="whitespace-nowrap text-3xl font-medium tracking-[-0.04em] sm:text-4xl lg:text-[42px] lg:leading-[1.05]">
+    <div className="mx-auto w-full max-w-[420px] text-center">
+      <h1 className="whitespace-nowrap text-3xl font-medium tracking-tight sm:text-4xl lg:text-[42px] mb-10">
         {step === "email" ? "Create an account" : "Enter OTP"}
       </h1>
 
-      {step === "email" && (
-        <div className="mb-8" />
-      )}
-
       {step === "otp" && (
-        <p className="mt-4 mb-8 text-black/60 dark:text-white/60">
-          We have sent a one-time password to <span className="font-semibold text-black dark:text-white">{email}</span>.
+        <p className="mt-4 mb-8 text-white/60">
+          We have sent a one-time password to <span className="font-semibold text-white">{email}</span>.
         </p>
       )}
 
-      <form className="space-y-5 text-left" onSubmit={handleSubmit}>
+      <form className="space-y-6 text-left" onSubmit={handleSubmit}>
         {step === "email" ? (
           <FieldBox label="Email" value={email} onChange={setEmail} type="email" placeholder="name@example.com" />
         ) : (
@@ -101,14 +98,14 @@ function AuthForm() {
         )}
 
         {step === "email" && (
-          <div className="space-y-3 pt-2 text-xs leading-4 text-black/30 dark:text-white/35 sm:text-[13px]">
+          <div className="space-y-3 pt-2 text-xs leading-5 text-white/40">
             <CheckboxLine>{termsText}</CheckboxLine>
           </div>
         )}
 
         <button
           type="submit"
-          className="mt-9 flex h-12 w-full items-center justify-center rounded-[10px] border border-black/40 bg-black text-lg font-medium text-white transition-colors hover:bg-black/85 dark:border-white/40 dark:bg-white dark:text-black dark:hover:bg-white/85"
+          className="mt-6 flex h-[52px] w-full items-center justify-center rounded-xl bg-white text-base font-semibold text-black transition-colors hover:bg-white/90"
         >
           {step === "email" ? "Continue with Email" : "Verify & Login"}
         </button>
@@ -117,7 +114,7 @@ function AuthForm() {
           <button
             type="button"
             onClick={() => setStep("email")}
-            className="mt-4 text-sm text-center w-full text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white transition-colors"
+            className="mt-4 text-sm text-center w-full text-white/50 hover:text-white transition-colors"
           >
             Wrong email? Go back
           </button>
@@ -142,14 +139,14 @@ function FieldBox({
   placeholder?: string;
 }) {
   return (
-    <label className="flex h-11 items-center justify-between gap-4 rounded-[8px] border border-black/20 bg-white px-4 text-base leading-none dark:border-white/15 dark:bg-white/5">
+    <label className="flex h-[52px] items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/5 px-4 text-base leading-none focus-within:border-white/30 focus-within:bg-white/10 transition-colors">
       <input
         type={type}
         value={value}
         aria-label={label}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="min-w-0 flex-1 truncate bg-transparent text-black outline-none placeholder:text-black/35 dark:text-white dark:placeholder:text-white/35"
+        className="min-w-0 flex-1 truncate bg-transparent text-white outline-none placeholder:text-white/30"
       />
     </label>
   );
@@ -157,22 +154,22 @@ function FieldBox({
 
 function CheckboxLine({ children }: { children: ReactNode }) {
   return (
-    <label className="flex items-start gap-3">
-      <span className="relative mt-0.5 size-3 shrink-0">
+    <label className="flex items-start gap-3 cursor-pointer">
+      <span className="relative mt-[2px] size-[14px] shrink-0">
         <input
           type="checkbox"
-          className="peer size-full appearance-none rounded-[2px] border border-black/25 bg-white checked:border-black checked:bg-black dark:border-white/30 dark:bg-white/5 dark:checked:border-white dark:checked:bg-white"
+          className="peer size-full appearance-none rounded-[3px] border border-white/20 bg-white/5 checked:border-white checked:bg-white transition-colors cursor-pointer"
         />
         <svg
           viewBox="0 0 12 12"
-          className="pointer-events-none absolute inset-0 hidden size-full p-px text-white peer-checked:block dark:text-black"
+          className="pointer-events-none absolute inset-0 hidden size-full p-[2px] text-black peer-checked:block"
           fill="none"
           aria-hidden="true"
         >
           <path
             d="M3 6.2 5 8.1 9 3.9"
             stroke="currentColor"
-            strokeWidth="1.6"
+            strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -182,5 +179,3 @@ function CheckboxLine({ children }: { children: ReactNode }) {
     </label>
   );
 }
-
-
