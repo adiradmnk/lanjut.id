@@ -59,11 +59,11 @@ export function WorkspaceSwitcher({
         className="flex items-center justify-between px-2 py-2 mb-4 rounded-lg hover:bg-white/5 cursor-pointer transition-colors select-none group border border-transparent hover:border-white/10"
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-[6px] bg-[#007979] text-white flex items-center justify-center font-semibold text-[13px] shadow-sm">
+          <div className="w-8 h-8 rounded-[6px] bg-white text-black flex items-center justify-center font-bold text-[13px] shadow-sm">
             {current.charAt(0)}
           </div>
           <div className="flex flex-col overflow-hidden text-left">
-            <span className="text-[13px] font-medium leading-none mb-1 text-neutral-200 truncate max-w-[130px]">{current}</span>
+            <span className="text-[13px] font-medium leading-none mb-1 text-white truncate max-w-[130px]">{current}</span>
             <span className="text-[11px] text-neutral-400 leading-none">{planLabel}</span>
           </div>
         </div>
@@ -73,12 +73,12 @@ export function WorkspaceSwitcher({
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-[52px] left-0 w-full bg-[#18181b] border border-white/10 rounded-lg shadow-2xl z-50 py-1 flex flex-col gap-0.5 animate-in fade-in zoom-in-95 duration-100">
+          <div className="absolute top-[52px] left-0 w-full bg-[#121215] border border-white/10 rounded-lg shadow-2xl z-50 py-1 flex flex-col gap-0.5 animate-in fade-in zoom-in-95 duration-100">
             {workspaces.map(ws => (
               <div 
                 key={ws}
                 onClick={() => { handleSelect(ws); setIsOpen(false); }}
-                className={`px-3 py-2 mx-1 text-[13px] rounded-md cursor-pointer transition-colors ${current === ws ? 'bg-[#007979]/20 text-[#24B1B1] font-medium' : 'text-neutral-300 hover:bg-white/5'}`}
+                className={`px-3 py-2 mx-1 text-[13px] rounded-md cursor-pointer transition-colors ${current === ws ? 'bg-white/10 text-white font-medium' : 'text-neutral-300 hover:bg-white/5'}`}
               >
                 {ws}
               </div>
@@ -123,7 +123,7 @@ export function NavItem({
         className={`group flex items-center justify-between px-2.5 py-[7px] rounded-[6px] cursor-pointer transition-all duration-200 select-none
           ${isActive 
             ? 'bg-white/10 text-white font-medium shadow-xs' 
-            : 'text-neutral-400 hover:bg-white/5 hover:text-neutral-200'
+            : 'text-neutral-400 hover:bg-white/5 hover:text-white'
           }
         `}
         style={{ paddingLeft: `${level * 12 + 10}px` }}
@@ -132,7 +132,7 @@ export function NavItem({
         <div className="flex items-center gap-2.5">
           <item.icon 
             className={`w-[16px] h-[16px] transition-colors
-              ${isActive ? 'text-[#24B1B1]' : 'text-neutral-400 group-hover:text-neutral-200'}
+              ${isActive ? 'text-white' : 'text-neutral-400 group-hover:text-white'}
             `} 
             strokeWidth={1.5} 
           />
@@ -148,7 +148,7 @@ export function NavItem({
              </kbd>
           )}
           {item.badge && (
-            <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-medium rounded-full bg-[#007979]/20 text-[#24B1B1]">
+            <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-medium rounded-full bg-white/10 text-white">
               {item.badge}
             </span>
           )}
@@ -214,7 +214,7 @@ export function SidebarNav({
   const handleSelect = onSelect || setInternalId;
 
   return (
-    <div className={`flex flex-col w-[260px] h-full bg-[#121215] border-r border-white/10 p-3 font-sans text-neutral-200 ${className}`}>
+    <div className={`flex flex-col w-[260px] h-full bg-[#09090b] border-none p-3 font-sans text-neutral-200 ${className}`}>
       <WorkspaceSwitcher 
         selected={activeWorkspace} 
         onSelect={onWorkspaceSelect} 

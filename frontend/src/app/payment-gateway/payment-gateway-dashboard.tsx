@@ -234,12 +234,12 @@ export default function PaymentGatewayDashboard() {
       
       {/* 1. COLLAPSIBLE SIDEBAR */}
       <div 
-        className={`h-full transition-all duration-300 ease-in-out shrink-0 overflow-hidden bg-[#121215] border-r border-white/10 ${
-          !sidebarCollapsed ? 'w-[260px] opacity-100' : 'w-0 opacity-0 border-none'
+        className={`h-full transition-all duration-300 ease-in-out shrink-0 overflow-hidden bg-[#09090b] ${
+          !sidebarCollapsed ? 'w-[260px] opacity-100' : 'w-0 opacity-0'
         }`}
       >
         <SidebarNav
-          className="w-[260px] border-none bg-transparent"
+          className="w-[260px] border-none bg-[#09090b]"
           activeId={activeNav}
           onSelect={handleNavSelect}
           navGroups={gatewayNavGroups}
@@ -251,10 +251,10 @@ export default function PaymentGatewayDashboard() {
       </div>
 
       {/* 2. MAIN VIEWPORT */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden bg-[#09090b] border-l border-white/5 relative z-10">
+      <main className="flex-1 flex flex-col h-full overflow-hidden bg-[#09090b] relative z-10">
         
         {/* TOP BAR (Breadcrumb Only) */}
-        <header className="h-12 border-b border-white/10 px-6 flex items-center shrink-0 bg-[#0c0c0e]/80 backdrop-blur-md">
+        <header className="h-12 border-b border-white/10 px-6 flex items-center shrink-0 bg-[#09090b]">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -264,9 +264,9 @@ export default function PaymentGatewayDashboard() {
               {sidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
             </button>
             <div className="flex items-center gap-2 text-xs font-medium text-neutral-400">
-              <span className="text-neutral-200 font-semibold">Payment Gateway</span>
+              <span className="text-white font-semibold">Payment Gateway</span>
               <span>/</span>
-              <span className="capitalize text-[#24B1B1] font-semibold">{activeNav.replace('-', ' ')}</span>
+              <span className="capitalize text-white font-semibold">{activeNav.replace('-', ' ')}</span>
             </div>
           </div>
         </header>
@@ -275,8 +275,8 @@ export default function PaymentGatewayDashboard() {
         <div className="flex-1 overflow-y-auto p-6">
           {/* Empty clean placeholder */}
           <div className="flex flex-col items-center justify-center min-h-[60vh] border border-dashed border-white/10 rounded-2xl p-12 text-center">
-            <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-neutral-400 mb-4">
-              <Cpu className="w-6 h-6 text-[#24B1B1]" />
+            <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white mb-4">
+              <Cpu className="w-6 h-6 text-white" />
             </div>
             <h2 className="text-lg font-semibold text-white tracking-tight capitalize">
               {activeNav.replace('-', ' ')}

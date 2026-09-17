@@ -253,12 +253,12 @@ export default function MerchantDashboardPage() {
       
       {/* 1. LEFT COLLAPSIBLE SIDEBAR */}
       <div 
-        className={`h-full transition-all duration-300 ease-in-out shrink-0 overflow-hidden bg-[#121215] border-r border-white/10 ${
-          isOpen ? 'w-[260px] opacity-100' : 'w-0 opacity-0 border-none'
+        className={`h-full transition-all duration-300 ease-in-out shrink-0 overflow-hidden bg-[#09090b] ${
+          isOpen ? 'w-[260px] opacity-100' : 'w-0 opacity-0'
         }`}
       >
         <SidebarNav 
-          className="w-[260px] border-none bg-transparent" 
+          className="w-[260px] border-none bg-[#09090b]" 
           activeId={activeId}
           onSelect={handleSelect}
           activeWorkspace={activeWorkspace}
@@ -274,7 +274,7 @@ export default function MerchantDashboardPage() {
       <div className="flex-1 bg-[#09090b] flex flex-col min-w-0 h-full overflow-hidden">
         
         {/* Top Header Bar (Breadcrumb Only) */}
-        <header className="h-12 border-b border-white/10 flex items-center px-4 sm:px-6 bg-[#121215] shrink-0 z-10">
+        <header className="h-12 border-b border-white/10 flex items-center px-4 sm:px-6 bg-[#09090b] shrink-0 z-10">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsOpen(!isOpen)}
@@ -295,8 +295,8 @@ export default function MerchantDashboardPage() {
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#09090b]">
           {/* Empty clean placeholder for each page */}
           <div className="flex flex-col items-center justify-center min-h-[60vh] border border-dashed border-white/10 rounded-2xl p-12 text-center">
-            <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-neutral-400 mb-4">
-              <Cpu className="w-6 h-6 text-[#24B1B1]" />
+            <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white mb-4">
+              <Cpu className="w-6 h-6 text-white" />
             </div>
             <h2 className="text-lg font-semibold text-white tracking-tight capitalize">
               {activeId.replace('-', ' ')}
