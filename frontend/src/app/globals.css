@@ -1,3 +1,9 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
 @font-face {
   font-family: 'Mazzard H';
   font-weight: 400;
@@ -5,6 +11,7 @@
   src: url('https://db.onlinewebfonts.com/t/eb5b5ee332420add9a40ee988cb6ac37.woff2') format('woff2'),
        url('https://db.onlinewebfonts.com/t/eb5b5ee332420add9a40ee988cb6ac37.woff') format('woff'),
        url('https://db.onlinewebfonts.com/t/eb5b5ee332420add9a40ee988cb6ac37.ttf') format('truetype');
+  font-display: swap;
 }
 @font-face {
   font-family: 'Mazzard H';
@@ -13,9 +20,8 @@
   src: url('https://db.onlinewebfonts.com/t/875fffdfa62169a0f131e90f37f1faf4.woff2') format('woff2'),
        url('https://db.onlinewebfonts.com/t/875fffdfa62169a0f131e90f37f1faf4.woff') format('woff'),
        url('https://db.onlinewebfonts.com/t/875fffdfa62169a0f131e90f37f1faf4.ttf') format('truetype');
+  font-display: swap;
 }
-
-@import "tailwindcss";
 
 :root {
   /* User requested palette */
@@ -45,42 +51,18 @@
   --btn-pad-x: 22px;
 }
 
-@theme {
-  --font-sans: var(--font);
-}
-
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
 html {
   scroll-behavior: smooth;
 }
 
-html, body {
-  background-color: #0b2238; /* Deep painterly mountain ocean tone at bottom */
+body {
   color: var(--text);
-  font-family: var(--font);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-button {
-  font-family: inherit;
-  border: none;
-  cursor: pointer;
-  background: none;
-}
-
-/* Page shell */
+/* Page shell (for landing page) */
 .page {
   position: relative;
   width: 100%;
@@ -88,6 +70,7 @@ button {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background-color: #0b2238;
 }
 
 /* Hero Viewport */

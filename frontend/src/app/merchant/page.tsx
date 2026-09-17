@@ -285,10 +285,11 @@ export default function MerchantDashboardPage() {
         {/* =========================================================================
             1. TOP NAVIGATION BAR
            ========================================================================= */}
-        <header className="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-100 bg-white">
-          <div className="flex items-center gap-4 lg:gap-6 flex-wrap">
-            {/* Brand Mark */}
-            <div className="flex items-center gap-2.5">
+        <header className="border-b border-neutral-200/80 bg-white">
+          {/* Top Bar: Brand & Actions */}
+          <div className="px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100">
+            {/* Left: Brand & Tenant */}
+            <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-neutral-950 flex items-center justify-center text-white font-bold text-sm shadow-sm">
                 <span className="text-orange-500">L</span>
               </div>
@@ -296,9 +297,9 @@ export default function MerchantDashboardPage() {
               <span className="px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 text-[10px] font-bold uppercase tracking-wide">
                 Merchant
               </span>
-              
+
               {/* Dynamic Tenant Switcher */}
-              <div className="relative flex items-center">
+              <div className="relative flex items-center ml-1">
                 <select
                   value={selectedTenantId}
                   onChange={(e) => setSelectedTenantId(e.target.value)}
@@ -314,145 +315,155 @@ export default function MerchantDashboardPage() {
               </div>
             </div>
 
-            {/* Navigation Tabs (Full 7 Tabs: anshkumar2311 4 tabs + lanjut.id operations) */}
-            <nav className="flex items-center gap-1 text-xs font-medium overflow-x-auto pb-1 md:pb-0">
+            {/* Right: Header Actions */}
+            <div className="flex items-center gap-2 flex-wrap">
               <button
-                onClick={() => setActiveTab('overview')}
-                className={`px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 shrink-0 ${
-                  activeTab === 'overview'
-                    ? 'bg-neutral-900 text-white shadow-sm font-semibold'
-                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
-                }`}
+                type="button"
+                onClick={() => setIsFeedbackDemoOpen(true)}
+                className="px-3 py-1.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                title="Demo alur integrasi pop-up feedback saat order/subscription dibatalkan"
               >
-                <span>🏠 Overview</span>
+                <AlertTriangle className="w-3.5 h-3.5 text-white" />
+                <span>Demo Canceled Survey</span>
               </button>
-
               <button
-                onClick={() => setActiveTab('analytics')}
-                className={`px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 shrink-0 ${
-                  activeTab === 'analytics'
-                    ? 'bg-blue-600 text-white shadow-sm font-semibold'
-                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
-                }`}
+                type="button"
+                onClick={() => setIsDataset900Open(true)}
+                className="px-3 py-1.5 rounded-full bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
               >
-                <BarChart3 className="w-3.5 h-3.5" />
-                <span>📊 Visual Analytics</span>
+                <Cpu className="w-3.5 h-3.5 text-white" />
+                <span>Audit 900 Dataset</span>
               </button>
-
-              <button
-                onClick={() => setActiveTab('predict')}
-                className={`px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 shrink-0 ${
-                  activeTab === 'predict'
-                    ? 'bg-purple-600 text-white shadow-sm font-semibold'
-                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
-                }`}
+              <Link
+                href="/member?member_id=mbr-dina-01"
+                target="_blank"
+                className="px-3 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-semibold flex items-center gap-1.5 transition-colors border border-neutral-200"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>🔮 AI Prediction</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('scenarios')}
-                className={`px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 shrink-0 ${
-                  activeTab === 'scenarios'
-                    ? 'bg-orange-600 text-white shadow-sm font-semibold'
-                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
-                }`}
+                <span>User Portal</span>
+                <ExternalLink className="w-3.5 h-3.5 text-neutral-500" />
+              </Link>
+              <Link
+                href="/bni"
+                className="px-3 py-1.5 rounded-full bg-[#005E6A] hover:bg-teal-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
               >
-                <Sliders className="w-3.5 h-3.5" />
-                <span>🌟 Future Scenarios</span>
-              </button>
+                <span>BNI Dashboard</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+              <Link
+                href="/login"
+                className="px-3.5 py-1.5 rounded-full bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
+              >
+                <span>Kembali ke login</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
 
               <button
-                onClick={() => setActiveTab('members')}
-                className={`px-3.5 py-1.5 rounded-full transition-all shrink-0 ${
-                  activeTab === 'members'
-                    ? 'bg-neutral-900 text-white shadow-sm font-semibold'
-                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
-                }`}
+                type="button"
+                onClick={loadData}
+                disabled={isLoading}
+                title="Refresh Data"
+                className="w-8 h-8 rounded-full border border-neutral-200 flex items-center justify-center hover:bg-neutral-50 text-neutral-500 transition-colors cursor-pointer"
               >
-                Members ({stats.total_members})
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-neutral-800' : ''}`} />
               </button>
-
-              <button
-                onClick={() => setActiveTab('retention')}
-                className={`px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 shrink-0 ${
-                  activeTab === 'retention'
-                    ? 'bg-neutral-900 text-white shadow-sm font-semibold'
-                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
-                }`}
-              >
-                <span>AI Retention</span>
-                {stats.at_risk_members > 0 && (
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                )}
-              </button>
-
-              <button
-                onClick={() => setActiveTab('capacity')}
-                className={`px-3.5 py-1.5 rounded-full transition-all shrink-0 ${
-                  activeTab === 'capacity'
-                    ? 'bg-neutral-900 text-white shadow-sm font-semibold'
-                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
-                }`}
-              >
-                Capacity ({stats.avg_quota_utilization_pct}%)
-              </button>
-            </nav>
-          </div>
-
-          {/* Right Header Actions */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            <button
-              onClick={() => setIsFeedbackDemoOpen(true)}
-              className="px-3 py-1.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer animate-pulse"
-              title="Demo alur integrasi pop-up feedback saat order/subscription dibatalkan"
-            >
-              <AlertTriangle className="w-3.5 h-3.5 text-white" />
-              <span>Demo Canceled Survey</span>
-            </button>
-            <button
-              onClick={() => setIsDataset900Open(true)}
-              className="px-3 py-1.5 rounded-full bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
-            >
-              <Cpu className="w-3.5 h-3.5 text-white" />
-              <span>Audit 900 Dataset</span>
-            </button>
-            <Link
-              href="/member?member_id=mbr-dina-01"
-              target="_blank"
-              className="px-3 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200/80 text-neutral-700 text-xs font-semibold flex items-center gap-1.5 transition-colors border border-neutral-200/60"
-            >
-              <span>User Portal</span>
-              <ExternalLink className="w-3.5 h-3.5 text-neutral-500" />
-            </Link>
-            <Link
-              href="/bni"
-              className="px-3 py-1.5 rounded-full bg-[#005E6A] hover:bg-teal-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
-            >
-              <span>BNI Dashboard</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-            <Link
-              href="/login"
-              className="px-3.5 py-1.5 rounded-full bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
-            >
-              <span>Kembali ke login</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-
-            <button
-              onClick={loadData}
-              disabled={isLoading}
-              title="Refresh Data"
-              className="w-8 h-8 rounded-full border border-neutral-200 flex items-center justify-center hover:bg-neutral-50 text-neutral-500 transition-colors cursor-pointer"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-neutral-800' : ''}`} />
-            </button>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 text-white font-bold text-xs flex items-center justify-center shadow-inner">
-              FB
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 text-white font-bold text-xs flex items-center justify-center shadow-inner">
+                FB
+              </div>
             </div>
           </div>
+
+          {/* Bottom Bar: 7 Navigation Tabs */}
+          <nav className="px-6 py-2.5 bg-neutral-50/60 flex items-center gap-1.5 overflow-x-auto text-xs font-medium scrollbar-none">
+            <button
+              type="button"
+              onClick={() => setActiveTab('overview')}
+              className={`px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 shrink-0 ${
+                activeTab === 'overview'
+                  ? 'bg-neutral-900 text-white shadow-sm font-semibold'
+                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60'
+              }`}
+            >
+              <span>🏠 Overview</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('analytics')}
+              className={`px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 shrink-0 ${
+                activeTab === 'analytics'
+                  ? 'bg-blue-600 text-white shadow-sm font-semibold'
+                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60'
+              }`}
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span>📊 Visual Analytics</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('predict')}
+              className={`px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 shrink-0 ${
+                activeTab === 'predict'
+                  ? 'bg-purple-600 text-white shadow-sm font-semibold'
+                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>🔮 AI Prediction</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('scenarios')}
+              className={`px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 shrink-0 ${
+                activeTab === 'scenarios'
+                  ? 'bg-orange-600 text-white shadow-sm font-semibold'
+                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60'
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span>🌟 Future Scenarios</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('members')}
+              className={`px-3.5 py-1.5 rounded-full transition-all shrink-0 ${
+                activeTab === 'members'
+                  ? 'bg-neutral-900 text-white shadow-sm font-semibold'
+                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60'
+              }`}
+            >
+              Members ({stats.total_members})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('retention')}
+              className={`px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 shrink-0 ${
+                activeTab === 'retention'
+                  ? 'bg-neutral-900 text-white shadow-sm font-semibold'
+                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60'
+              }`}
+            >
+              <span>AI Retention</span>
+              {stats.at_risk_members > 0 && (
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('capacity')}
+              className={`px-3.5 py-1.5 rounded-full transition-all shrink-0 ${
+                activeTab === 'capacity'
+                  ? 'bg-neutral-900 text-white shadow-sm font-semibold'
+                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60'
+              }`}
+            >
+              Capacity ({stats.avg_quota_utilization_pct}%)
+            </button>
+          </nav>
         </header>
 
         {/* =========================================================================
@@ -502,10 +513,10 @@ export default function MerchantDashboardPage() {
               {/* TOP 4 GRADIENT METRIC CARDS (Exact match to anshkumar2311) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Metric 1: Total Customers */}
-                <div className="rounded-[22px] p-6 text-white bg-gradient-to-br from-[#667eea] to-[#764ba2] shadow-md flex flex-col justify-between">
+                <div className="min-w-0 rounded-[22px] p-6 text-white bg-gradient-to-br from-[#667eea] to-[#764ba2] shadow-md flex flex-col justify-between">
                   <div className="flex items-center justify-between opacity-80 text-xs font-semibold uppercase tracking-wider">
                     <span>Total Customers</span>
-                    <Users className="w-4 h-4" />
+                    <Users className="w-4 h-4 shrink-0" />
                   </div>
                   <div className="text-4xl font-black mt-2 mb-1 tracking-tight">
                     {mlAnalytics.total_customers.toLocaleString()}
@@ -516,10 +527,10 @@ export default function MerchantDashboardPage() {
                 </div>
 
                 {/* Metric 2: Churn Rate */}
-                <div className="rounded-[22px] p-6 text-white bg-gradient-to-br from-[#f093fb] to-[#f5576c] shadow-md flex flex-col justify-between">
+                <div className="min-w-0 rounded-[22px] p-6 text-white bg-gradient-to-br from-[#f093fb] to-[#f5576c] shadow-md flex flex-col justify-between">
                   <div className="flex items-center justify-between opacity-80 text-xs font-semibold uppercase tracking-wider">
                     <span>Churn Rate</span>
-                    <TrendingUp className="w-4 h-4" />
+                    <TrendingUp className="w-4 h-4 shrink-0" />
                   </div>
                   <div className="text-4xl font-black mt-2 mb-1 tracking-tight">
                     {mlAnalytics.churn_rate_pct}%
@@ -530,10 +541,10 @@ export default function MerchantDashboardPage() {
                 </div>
 
                 {/* Metric 3: Model Accuracy */}
-                <div className="rounded-[22px] p-6 text-white bg-gradient-to-br from-[#4facfe] to-[#00f2fe] shadow-md flex flex-col justify-between">
+                <div className="min-w-0 rounded-[22px] p-6 text-white bg-gradient-to-br from-[#4facfe] to-[#00f2fe] shadow-md flex flex-col justify-between">
                   <div className="flex items-center justify-between opacity-80 text-xs font-semibold uppercase tracking-wider">
                     <span>Model Accuracy</span>
-                    <Sparkles className="w-4 h-4" />
+                    <Sparkles className="w-4 h-4 shrink-0" />
                   </div>
                   <div className="text-4xl font-black mt-2 mb-1 tracking-tight">
                     {mlAnalytics.model_accuracy_pct}%
@@ -544,10 +555,10 @@ export default function MerchantDashboardPage() {
                 </div>
 
                 {/* Metric 4: AI Features */}
-                <div className="rounded-[22px] p-6 text-white bg-gradient-to-br from-[#fa709a] to-[#fee140] shadow-md flex flex-col justify-between">
+                <div className="min-w-0 rounded-[22px] p-6 text-white bg-gradient-to-br from-[#fa709a] to-[#fee140] shadow-md flex flex-col justify-between">
                   <div className="flex items-center justify-between opacity-80 text-xs font-semibold uppercase tracking-wider">
                     <span>AI Features</span>
-                    <Layers className="w-4 h-4" />
+                    <Layers className="w-4 h-4 shrink-0" />
                   </div>
                   <div className="text-4xl font-black mt-2 mb-1 tracking-tight">
                     {mlAnalytics.ai_features_count}
