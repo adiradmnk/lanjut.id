@@ -1,64 +1,73 @@
 """
-Knowledge Base Taktik Retensi untuk LANJUT Engine
-Diadaptasi dari RETENTION_TACTICS_KB pada Outlier.AI dan disesuaikan untuk
-Konteks Fintech / Subscription Recovery / Gym Membership B2B.
+Dynamic Tactic Synthesizer & Universal Retention Knowledge Base
+Menghasilkan taktik retensi adaptif langsung dari Business Rules hasil analisis guidebook,
+bukan dari daftar statis spesifik industri tertentu.
 """
 
-RETENTION_TACTICS_KB = {
-    "PAYMENT_FRICTION": [
-        {
-            "action": "BNI Auto-Debit Migration + Cashback 5%",
-            "benefit": "Mengeliminasi kegagalan tagihan berulang dan friction manual checkout",
-            "reference": "BNI Payment Gateway Best Practice 2024",
-            "category": "FINTECH_AUTOMATION"
-        },
-        {
-            "action": "Grace Period Extension (7 Hari)",
-            "benefit": "Memberikan relaksasi waktu pembayaran sebelum kuota diputus",
-            "reference": "Subscription Billing Recovery Playbook",
-            "category": "BILLING_POLICY"
-        }
-    ],
-    "SCHEDULE_CONFLICT": [
-        {
-            "action": "Switch to Off-Peak / Evening Sessions",
-            "benefit": "Mengalihkan member dari jam sibuk (pagi) ke sesi malam tanpa kehilangan keanggotaan",
-            "reference": "Capacity-Aware Smart Scheduling",
-            "category": "RESOURCE_OPTIMIZATION"
-        },
-        {
-            "action": "Weekend Class Access Unlock",
-            "benefit": "Memberi opsi latihan fleksibel bagi pekerja kantoran (WFO)",
-            "reference": "Member Utilization Retention Matrix",
-            "category": "SCHEDULE_PIVOT"
-        }
-    ],
-    "PRICE_SENSITIVITY": [
-        {
-            "action": "Downgrade with Margin-Protected Discount",
-            "benefit": "Menyesuaikan kapasitas kuota sesi yang realistis tanpa melanggar batas margin merchant",
-            "reference": "Dynamic Tier Downsizing Strategy",
-            "category": "MARGIN_PROTECTION"
-        },
-        {
-            "action": "Freeze Membership 30 Hari (Pause)",
-            "benefit": "Mencegah churn permanen saat member mengalami kendala anggaran temporer",
-            "reference": "SaaS & Gym Membership Freeze Protocol",
-            "category": "RETENTION_FREEZE"
-        }
-    ],
-    "SILENT_CHURN": [
-        {
-            "action": "Proactive Personal Trainer Consultation",
-            "benefit": "Membangkitkan kembali motivasi latihan member yang inaktif > 21 hari",
-            "reference": "High-Touch Engagement Protocol",
-            "category": "ENGAGEMENT"
-        },
-        {
-            "action": "Class Buddy Pass (Ajak Teman Gratis)",
-            "benefit": "Meningkatkan stickiness melalui aspek sosial komunitas",
-            "reference": "Community-Driven Habit Rebuild",
-            "category": "SOCIAL_STICKINESS"
-        }
-    ]
-}
+from typing import Dict, Any, List
+from app.core.schemas import ExtractedBusinessRules
+
+class DynamicTacticsSynthesizer:
+    @classmethod
+    def synthesize_tactics(cls, business_rules: ExtractedBusinessRules, intent_category: str = "") -> List[Dict[str, Any]]:
+        tactics = []
+        category = (business_rules.business_profile.category or "Layanan").lower()
+        currency = business_rules.financial_constraints.currency or "IDR"
+        max_disc = business_rules.financial_constraints.max_discount_allowed_pct
+        min_margin = business_rules.financial_constraints.min_margin_floor_idr
+
+        # 1. Sintesis dari cancellation_triggers pada Guidebook
+        for trigger in business_rules.cancellation_triggers:
+            tactics.append({
+                "action": trigger.recommended_action,
+                "benefit": trigger.description,
+                "allowed_discount_pct": min(trigger.allowed_discount_pct, max_disc),
+                "category": "GUIDEBOOK_TRIGGER_POLICY",
+                "trigger_pattern": trigger.trigger_pattern
+            })
+
+        # 2. Sintesis dari Retention Policy (Freeze / Reschedule / Flex)
+        policy = business_rules.retention_policy
+        if policy.free_freeze_allowed and policy.max_freeze_days > 0:
+            tactics.append({
+                "action": "FREEZE_MEMBERSHIP_PAUSE",
+                "benefit": f"Jeda akun gratis hingga {policy.max_freeze_days} hari tanpa kehilangan status aktif.",
+                "allowed_discount_pct": 0.0,
+                "category": "RETENTION_POLICY_FREEZE",
+                "trigger_pattern": "Kendala temporer / libur / sakit"
+            })
+
+        if policy.allow_reschedule:
+            notice = f" (Pemberitahuan min. {policy.reschedule_notice_hours} jam)" if policy.reschedule_notice_hours else ""
+            tactics.append({
+                "action": "FLEXIBLE_RESCHEDULE_OFF_PEAK",
+                "benefit": f"Pindah jadwal/sesi ke waktu lain yang masih tersedia{notice} tanpa biaya pinalti.",
+                "allowed_discount_pct": 0.0,
+                "category": "RESOURCE_OPTIMIZATION",
+                "trigger_pattern": "Jadwal bentrok / kesibukan mendadak"
+            })
+
+        # 3. Sintesis dari Katalog Produk (Downgrade / Alternative Tier)
+        if business_rules.product_catalog and len(business_rules.product_catalog) > 1:
+            # Sort katalog dari harga terendah ke tertinggi
+            sorted_products = sorted(business_rules.product_catalog, key=lambda p: p.price_idr)
+            cheapest = sorted_products[0]
+            tactics.append({
+                "action": "DOWNGRADE_TO_AFFORDABLE_TIER",
+                "benefit": f"Pindah ke opsi lebih hemat '{cheapest.name}' ({currency} {cheapest.price_idr:,.0f}) dengan tetap menjaga margin aman.",
+                "allowed_discount_pct": min(10.0, max_disc),
+                "category": "TIER_OPTIMIZATION",
+                "trigger_pattern": "Kendala anggaran / efisiensi pengeluaran"
+            })
+
+        # Fallback jika guidebook belum memiliki triggers lengkap
+        if not tactics:
+            tactics.append({
+                "action": "GENERIC_INTERVENTION_SAFE_MARGIN",
+                "benefit": f"Penyesuaian paket fleksibel dengan diskon maksimal {max_disc}% (Menjaga margin minimal {currency} {min_margin:,.0f}).",
+                "allowed_discount_pct": max_disc,
+                "category": "FINANCIAL_GUARDRAIL",
+                "trigger_pattern": "Semua jenis keluhan pelanggan"
+            })
+
+        return tactics

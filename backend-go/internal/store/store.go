@@ -295,3 +295,56 @@ func (s *Store) SaveMagicToken(ctx context.Context, memberID, tokenHash string, 
 		ON CONFLICT (token_hash) DO NOTHING`, memberID, tokenHash, expiresAtUnixMs)
 	return err
 }
+
+func (s *Store) SaveGuidebook(ctx context.Context, gb *models.MerchantGuidebook) error {
+	rulesJSON, err := json.Marshal(gb.ExtractedRules)
+	if err != nil {
+		rulesJSON = []byte("{}")
+	}
+
+	row := s.pool.QueryRow(ctx, `
+		INSERT INTO merchant_guidebooks (tenant_id, filename, file_type, raw_text, extracted_rules, status, error_message, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+		RETURNING id, created_at, updated_at`,
+		gb.TenantID, gb.Filename, gb.FileType, gb.RawText, rulesJSON, gb.Status, gb.ErrorMessage)
+
+	return row.Scan(&gb.ID, &gb.CreatedAt, &gb.UpdatedAt)
+}
+
+func (s *Store) UpdateTenantBusinessRules(ctx context.Context, tenantID string, activeGuidebookID string, maxDiscountPct float64, minMarginFloorIDR float64, category string) error {
+	_, err := s.pool.Exec(ctx, `
+		UPDATE tenants
+		SET active_guidebook_id = $1::uuid,
+		    max_discount_pct = $2,
+		    min_margin_floor_idr = $3,
+		    category = COALESCE(NULLIF($4, ''), category)
+		WHERE id = $5`,
+		activeGuidebookID, maxDiscountPct, minMarginFloorIDR, category, tenantID)
+	return err
+}
+
+func (s *Store) GetLatestGuidebookByTenant(ctx context.Context, tenantID string) (*models.MerchantGuidebook, error) {
+	row := s.pool.QueryRow(ctx, `
+		SELECT id, tenant_id, filename, file_type, raw_text, extracted_rules, status, COALESCE(error_message, ''), created_at, updated_at
+		FROM merchant_guidebooks
+		WHERE tenant_id = $1
+		ORDER BY created_at DESC LIMIT 1`, tenantID)
+
+	var gb models.MerchantGuidebook
+	var rulesJSON []byte
+	err := row.Scan(&gb.ID, &gb.TenantID, &gb.Filename, &gb.FileType, &gb.RawText, &rulesJSON, &gb.Status, &gb.ErrorMessage, &gb.CreatedAt, &gb.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("scan guidebook: %w", err)
+	}
+
+	if len(rulesJSON) > 0 {
+		var r models.ExtractedBusinessRules
+		if err := json.Unmarshal(rulesJSON, &r); err == nil {
+			gb.ExtractedRules = &r
+		}
+	}
+	return &gb, nil
+}

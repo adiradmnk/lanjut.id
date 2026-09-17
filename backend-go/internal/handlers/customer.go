@@ -31,27 +31,58 @@ func (h *Handlers) CancelSubscription(c *gin.Context) {
 		return
 	}
 
+	tenant, _ := h.Store.GetTenant(ctx, member.TenantID)
+
+	// Ambil nilai transaksi riil terakhir member dari database
+	var lastTrxAmount float64
+	var lastTrxStatus string
+	trxs, errTrx := h.Store.ListTransactionsByMember(ctx, member.ID)
+	if errTrx == nil && len(trxs) > 0 {
+		lastTrxAmount = trxs[0].Amount
+		lastTrxStatus = trxs[0].Status
+	} else if tenant != nil {
+		// Jika belum ada transaksi, cari harga paket dari katalog aktif merchant
+		pkgs, errPkg := h.Store.ListActiveProductPackages(ctx, tenant.ID)
+		if errPkg == nil && len(pkgs) > 0 {
+			lastTrxAmount = pkgs[0].PriceIDR
+		} else {
+			lastTrxAmount = tenant.Config.MinMarginFloorIDR
+		}
+		lastTrxStatus = "CATALOG_ACTIVE"
+	}
+
+	// Trigger AI Dynamic Cancellation Survey (Empati pertanyaan + Checkbox + Free Text)
+	survey, _ := h.AIGateway.GenerateCancellationSurvey(ctx, member, tenant, map[string]any{
+		"amount_idr": lastTrxAmount,
+		"status":     lastTrxStatus,
+	})
+
 	if alreadyProcessed {
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "ALREADY_PROCESSED",
 			"message": "Subscription ini sudah dibatalkan sebelumnya.",
 			"member":  member,
+			"survey":  survey,
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Subscription dibatalkan.", "member": member})
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"message": "Subscription dibatalkan.",
+		"member":  member,
+		"survey":  survey,
+	})
 }
 
 type subscriptionFeedbackRequest struct {
-	ReasonCode string `json:"reason_code"`
-	FreeText   string `json:"free_text"`
+	ReasonCode       string   `json:"reason_code"`
+	FreeText         string   `json:"free_text"`
+	SelectedOptionIDs []string `json:"selected_option_ids"`
 }
 
 // SubmitSubscriptionFeedback handles POST /api/member/subscription/:id/feedback.
 // ASUMSI: maps to context_type=CANCELLATION with context_ref_id=the member/subscription id
-// — the enum in migration 0011 has no dedicated "subscription feedback" value, and this is
-// the natural fit given the endpoint's placement right next to cancel.
 func (h *Handlers) SubmitSubscriptionFeedback(c *gin.Context) {
 	ctx := c.Request.Context()
 	memberID := c.Param("id")
@@ -79,11 +110,28 @@ func (h *Handlers) SubmitSubscriptionFeedback(c *gin.Context) {
 		return
 	}
 
+	tenant, _ := h.Store.GetTenant(ctx, member.TenantID)
+	// Trigger AI Survey Feedback Analysis & Safe Margin-Locked Retention Offer
+	selectedOpts := body.SelectedOptionIDs
+	if len(selectedOpts) == 0 && body.ReasonCode != "" {
+		selectedOpts = []string{body.ReasonCode}
+	}
+	aiOffer, _ := h.AIGateway.AnalyzeSurveyFeedback(ctx, member, selectedOpts, body.FreeText, tenant)
+
 	if alreadyProcessed {
-		c.JSON(http.StatusOK, gin.H{"status": "ALREADY_PROCESSED", "message": "Feedback untuk ini sudah pernah dikirim.", "feedback": feedback})
+		c.JSON(http.StatusOK, gin.H{
+			"status":   "ALREADY_PROCESSED",
+			"message":  "Feedback untuk ini sudah pernah dikirim.",
+			"feedback": feedback,
+			"retention_offer": aiOffer,
+		})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"status": "success", "feedback": feedback})
+	c.JSON(http.StatusCreated, gin.H{
+		"status":   "success",
+		"feedback": feedback,
+		"retention_offer": aiOffer,
+	})
 }
 
 type receiptFeedbackRequest struct {

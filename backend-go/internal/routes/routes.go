@@ -61,7 +61,22 @@ func Register(r *gin.Engine, h *handlers.Handlers) {
 		api.POST("/ai/tenants/:tenantId/members/:memberId/generate-offers", h.GenerateOffers)
 		api.GET("/ai/tenants/:tenantId/transaction-feed", h.ListTenantTransactionFeedForAI)
 
+		// Frontend Merchant Tab: AI Prediction, Future Scenarios, Visual Analytics, Dataset 900
+		api.POST("/merchant/churn-predict", h.PredictChurn)
+		api.POST("/merchant/churn-simulate", h.SimulateChurn)
+		api.GET("/merchant/churn-analytics", h.GetChurnAnalytics)
+		api.GET("/merchant/dataset-900/summary", h.Dataset900Summary)
+		api.GET("/merchant/dataset-900/members", h.Dataset900Members)
+		api.POST("/merchant/dataset-900/run-stress-test", h.Dataset900RunStressTest)
+		api.GET("/merchant/retention-logs", h.GetMerchantRetentionLogs)
+
+		// Merchant Conversational Business Logic Chatbot
+		api.POST("/merchant/:tenantId/chat-instruction", h.MerchantChatbotInstruction)
+
+		// BNI & Payment Gateway Provider Dashboard
 		api.GET("/bni/dashboard", h.BNIDashboard)
+		api.GET("/bni/portfolio-health", h.GetBNIPortfolioHealth)
+		api.GET("/bni/merchant-list", h.GetBNIMerchantList)
 		api.GET("/bni/tenants/:tenantId/insights", h.GetTenantInsights)
 	}
 
