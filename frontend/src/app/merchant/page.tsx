@@ -249,16 +249,16 @@ export default function MerchantDashboardPage() {
   ];
 
   return (
-    <div className="flex h-screen h-[100dvh] w-full bg-[#09090b] text-[#fafafa] font-sans antialiased overflow-hidden select-none">
+    <div className="flex h-screen h-[100dvh] w-full bg-[#171717] text-[#fafafa] font-sans antialiased overflow-hidden select-none">
       
       {/* 1. LEFT COLLAPSIBLE SIDEBAR */}
       <div 
-        className={`h-full transition-all duration-300 ease-in-out shrink-0 overflow-hidden bg-[#09090b] ${
+        className={`h-full transition-all duration-300 ease-in-out shrink-0 overflow-hidden bg-[#171717] ${
           isOpen ? 'w-[260px] opacity-100' : 'w-0 opacity-0'
         }`}
       >
         <SidebarNav 
-          className="w-[260px] border-none bg-[#09090b]" 
+          className="w-[260px] border-none bg-[#171717]" 
           activeId={activeId}
           onSelect={handleSelect}
           activeWorkspace={activeWorkspace}
@@ -271,19 +271,19 @@ export default function MerchantDashboardPage() {
       </div>
 
       {/* 2. MAIN CONTENT AREA (FIT TO PAGE) */}
-      <div className="flex-1 bg-[#09090b] flex flex-col min-w-0 h-full overflow-hidden">
+      <div className="flex-1 bg-[#171717] flex flex-col min-w-0 h-full overflow-hidden">
         
         {/* Top Header Bar (Breadcrumb Only) */}
-        <header className="h-12 border-b border-white/10 flex items-center px-4 sm:px-6 bg-[#09090b] shrink-0 z-10">
+        <header className="h-12 border-b border-white/10 flex items-center px-4 sm:px-6 bg-[#171717] shrink-0 z-10">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsOpen(!isOpen)}
-              className="p-1.5 rounded-md text-neutral-400 hover:bg-white/5 hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 rounded-md text-neutral-400 hover:bg-[#2e2e2e]/50 hover:text-white transition-colors cursor-pointer"
               title={isOpen ? "Tutup Sidebar" : "Buka Sidebar"}
             >
               {isOpen ? <PanelLeftClose className="w-[18px] h-[18px]" strokeWidth={1.5} /> : <PanelLeftOpen className="w-[18px] h-[18px]" strokeWidth={1.5} />}
             </button>
-            <div className="flex items-center gap-2 text-sm text-neutral-400">
+            <div className="flex items-center gap-2 text-sm text-[#a1a1a1]">
               <span className="truncate max-w-[140px] sm:max-w-[200px]">{activeWorkspace}</span>
               <span>/</span>
               <span className="font-medium text-white truncate capitalize">{activeId}</span>
@@ -292,7 +292,7 @@ export default function MerchantDashboardPage() {
         </header>
 
         {/* Dynamic Body Content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#09090b]">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#171717]">
           {/* Empty clean placeholder for each page */}
           <div className="flex flex-col items-center justify-center min-h-[60vh] border border-dashed border-white/10 rounded-2xl p-12 text-center">
             <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white mb-4">
@@ -301,7 +301,7 @@ export default function MerchantDashboardPage() {
             <h2 className="text-lg font-semibold text-white tracking-tight capitalize">
               {activeId.replace('-', ' ')}
             </h2>
-            <p className="text-xs text-neutral-500 mt-1 max-w-sm">
+            <p className="text-xs text-neutral-400 mt-1 max-w-sm">
               Halaman ini telah dikosongkan dan siap untuk implementasi {activeId === 'business-logic' ? 'Business Logic engine' : 'modul berikutnya'}.
             </p>
           </div>
@@ -312,12 +312,12 @@ export default function MerchantDashboardPage() {
       {isSearchOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/60 backdrop-blur-sm px-4">
           <div className="fixed inset-0" onClick={() => setIsSearchOpen(false)} />
-          <div className="relative w-full max-w-xl bg-[#121215] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-xl bg-[#212121] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center px-4 border-b border-white/10">
               <Search className="w-[18px] h-[18px] text-neutral-400 mr-3 shrink-0" strokeWidth={1.5} />
               <input 
                 autoFocus
-                className="flex-1 bg-transparent py-4 outline-none text-[14px] text-white placeholder:text-neutral-500"
+                className="flex-1 bg-transparent py-4 outline-none text-[14px] text-white placeholder:text-[#a1a1a1]"
                 placeholder="Search members, campaigns, or actions..."
               />
               <kbd 

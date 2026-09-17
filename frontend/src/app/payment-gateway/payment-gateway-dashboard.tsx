@@ -230,16 +230,16 @@ export default function PaymentGatewayDashboard() {
   ];
 
   return (
-    <div className="h-screen h-[100dvh] w-full bg-[#09090b] text-neutral-200 font-sans antialiased overflow-hidden flex flex-col lg:flex-row">
+    <div className="h-screen h-[100dvh] w-full bg-[#171717] text-neutral-200 font-sans antialiased overflow-hidden flex flex-col lg:flex-row">
       
       {/* 1. COLLAPSIBLE SIDEBAR */}
       <div 
-        className={`h-full transition-all duration-300 ease-in-out shrink-0 overflow-hidden bg-[#09090b] ${
+        className={`h-full transition-all duration-300 ease-in-out shrink-0 overflow-hidden bg-[#171717] ${
           !sidebarCollapsed ? 'w-[260px] opacity-100' : 'w-0 opacity-0'
         }`}
       >
         <SidebarNav
-          className="w-[260px] border-none bg-[#09090b]"
+          className="w-[260px] border-none bg-[#171717]"
           activeId={activeNav}
           onSelect={handleNavSelect}
           navGroups={gatewayNavGroups}
@@ -251,19 +251,19 @@ export default function PaymentGatewayDashboard() {
       </div>
 
       {/* 2. MAIN VIEWPORT */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden bg-[#09090b] relative z-10">
+      <main className="flex-1 flex flex-col h-full overflow-hidden bg-[#171717] relative z-10">
         
         {/* TOP BAR (Breadcrumb Only) */}
-        <header className="h-12 border-b border-white/10 px-6 flex items-center shrink-0 bg-[#09090b]">
+        <header className="h-12 border-b border-white/10 px-6 flex items-center shrink-0 bg-[#171717]">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="p-1.5 rounded-md hover:bg-white/5 text-neutral-400 hover:text-neutral-200 transition-colors cursor-pointer"
+              className="p-1.5 rounded-md hover:bg-[#2e2e2e]/50 text-neutral-400 hover:text-neutral-200 transition-colors cursor-pointer"
               title="Toggle Sidebar"
             >
               {sidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
             </button>
-            <div className="flex items-center gap-2 text-xs font-medium text-neutral-400">
+            <div className="flex items-center gap-2 text-xs font-medium text-[#a1a1a1]">
               <span className="text-white font-semibold">Payment Gateway</span>
               <span>/</span>
               <span className="capitalize text-white font-semibold">{activeNav.replace('-', ' ')}</span>
@@ -272,7 +272,7 @@ export default function PaymentGatewayDashboard() {
         </header>
 
         {/* SCROLLABLE MAIN BODY */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 bg-[#171717]">
           {/* Empty clean placeholder */}
           <div className="flex flex-col items-center justify-center min-h-[60vh] border border-dashed border-white/10 rounded-2xl p-12 text-center">
             <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white mb-4">
@@ -281,7 +281,7 @@ export default function PaymentGatewayDashboard() {
             <h2 className="text-lg font-semibold text-white tracking-tight capitalize">
               {activeNav.replace('-', ' ')}
             </h2>
-            <p className="text-xs text-neutral-500 mt-1 max-w-sm">
+            <p className="text-xs text-neutral-400 mt-1 max-w-sm">
               Halaman ini telah dikosongkan dan siap untuk konfigurasi komponen gateway berikutnya.
             </p>
           </div>
@@ -292,16 +292,16 @@ export default function PaymentGatewayDashboard() {
       {/* ⌘K SEARCH MODAL */}
       {searchModalOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-lg bg-[#18181b] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+          <div className="w-full max-w-lg bg-[#212121] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
             <div className="flex items-center px-4 py-3 border-b border-white/10">
               <Search className="w-4 h-4 text-neutral-400 mr-3" />
               <input
                 type="text"
                 autoFocus
+                placeholder="Search gateway endpoints, logs, or merchants..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari merchant, virtual account, atau transaksi..."
-                className="w-full bg-transparent text-sm text-neutral-200 placeholder-neutral-500 focus:outline-none"
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent text-sm text-white placeholder:text-[#a1a1a1] focus:outline-none"
               />
               <button 
                 onClick={() => setSearchModalOpen(false)}

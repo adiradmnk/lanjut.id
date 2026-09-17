@@ -73,18 +73,18 @@ export function WorkspaceSwitcher({
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-[52px] left-0 w-full bg-[#121215] border border-white/10 rounded-lg shadow-2xl z-50 py-1 flex flex-col gap-0.5 animate-in fade-in zoom-in-95 duration-100">
+          <div className="absolute top-[52px] left-0 w-full bg-[#212121] border border-white/10 rounded-lg shadow-2xl z-50 py-1 flex flex-col gap-0.5 animate-in fade-in zoom-in-95 duration-100">
             {workspaces.map(ws => (
               <div 
                 key={ws}
                 onClick={() => { handleSelect(ws); setIsOpen(false); }}
-                className={`px-3 py-2 mx-1 text-[13px] rounded-md cursor-pointer transition-colors ${current === ws ? 'bg-white/10 text-white font-medium' : 'text-neutral-300 hover:bg-white/5'}`}
+                className={`px-3 py-2 mx-1 text-[13px] rounded-md cursor-pointer transition-colors ${current === ws ? 'bg-[#2e2e2e] text-[#fafafa] font-medium' : 'text-[#a1a1a1] hover:bg-[#2e2e2e]/50 hover:text-white'}`}
               >
                 {ws}
               </div>
             ))}
             <div className="h-px bg-white/10 my-1 mx-2" />
-            <div className="px-3 py-2 mx-1 text-[13px] text-neutral-400 hover:bg-white/5 rounded-md cursor-pointer flex items-center gap-2 transition-colors">
+            <div className="px-3 py-2 mx-1 text-[13px] text-[#a1a1a1] hover:bg-[#2e2e2e]/50 hover:text-white rounded-md cursor-pointer flex items-center gap-2 transition-colors">
               <span className="text-[16px] leading-none mb-0.5">+</span> Create Workspace
             </div>
           </div>
@@ -120,10 +120,10 @@ export function NavItem({
   return (
     <div className="flex flex-col w-full">
       <div 
-        className={`group flex items-center justify-between px-2.5 py-[7px] rounded-[6px] cursor-pointer transition-all duration-200 select-none
+        className={`group flex items-center justify-between px-2.5 py-[7px] rounded-lg cursor-pointer transition-all duration-150 select-none
           ${isActive 
-            ? 'bg-white/10 text-white font-medium shadow-xs' 
-            : 'text-neutral-400 hover:bg-white/5 hover:text-white'
+            ? 'bg-[#2e2e2e] text-[#fafafa] font-medium' 
+            : 'text-[#a1a1a1] hover:bg-[#2e2e2e]/40 hover:text-white'
           }
         `}
         style={{ paddingLeft: `${level * 12 + 10}px` }}
@@ -132,7 +132,7 @@ export function NavItem({
         <div className="flex items-center gap-2.5">
           <item.icon 
             className={`w-[16px] h-[16px] transition-colors
-              ${isActive ? 'text-white' : 'text-neutral-400 group-hover:text-white'}
+              ${isActive ? 'text-[#fafafa]' : 'text-[#a1a1a1] group-hover:text-white'}
             `} 
             strokeWidth={1.5} 
           />
@@ -143,18 +143,18 @@ export function NavItem({
         
         <div className="flex items-center gap-2">
           {item.shortcut && (
-             <kbd className="hidden group-hover:inline-flex items-center justify-center h-5 px-1.5 text-[10px] font-medium font-mono text-neutral-400 bg-neutral-900 border border-white/10 rounded-[4px] shadow-xs">
+             <kbd className="hidden group-hover:inline-flex items-center justify-center h-5 px-1.5 text-[10px] font-medium font-mono text-[#a1a1a1] bg-[#212121] border border-white/10 rounded-[4px]">
                {item.shortcut}
              </kbd>
           )}
           {item.badge && (
-            <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-medium rounded-full bg-white/10 text-white">
+            <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-medium rounded-full bg-[#2e2e2e] text-[#fafafa]">
               {item.badge}
             </span>
           )}
           {hasChildren && (
             <ChevronRight 
-              className={`w-3.5 h-3.5 text-neutral-400 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} 
+              className={`w-3.5 h-3.5 text-[#a1a1a1] transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} 
               strokeWidth={2}
             />
           )}
@@ -214,7 +214,7 @@ export function SidebarNav({
   const handleSelect = onSelect || setInternalId;
 
   return (
-    <div className={`flex flex-col w-[260px] h-full bg-[#09090b] border-none p-3 font-sans text-neutral-200 ${className}`}>
+    <div className={`flex flex-col w-[260px] h-full bg-[#171717] border-none p-3 font-sans text-[#a1a1a1] ${className}`}>
       <WorkspaceSwitcher 
         selected={activeWorkspace} 
         onSelect={onWorkspaceSelect} 
@@ -226,7 +226,7 @@ export function SidebarNav({
         {navGroups.map((group, idx) => (
           <div key={idx} className="flex flex-col gap-0.5">
             {group.heading && (
-              <span className="px-2.5 mb-1 text-[11px] font-semibold tracking-wider text-neutral-500 uppercase">
+              <span className="px-2.5 mb-1 text-[11px] font-semibold tracking-wider text-[#787878] uppercase">
                 {group.heading}
               </span>
             )}
