@@ -33,6 +33,7 @@ class GenerateSurveyRequest(BaseModel):
     member_name: str
     last_transaction_context: Optional[Dict[str, Any]] = None
     last_transaction: Optional[Dict[str, Any]] = None
+    transaction_history: Optional[List[TransactionItem]] = Field(default_factory=list)
     business_rules: Optional[ExtractedBusinessRules] = None
 
 class AnalyzeFeedbackRequest(BaseModel):

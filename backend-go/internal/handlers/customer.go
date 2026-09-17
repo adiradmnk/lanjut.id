@@ -118,6 +118,27 @@ func (h *Handlers) SubmitSubscriptionFeedback(c *gin.Context) {
 	}
 	aiOffer, _ := h.AIGateway.AnalyzeSurveyFeedback(ctx, member, selectedOpts, body.FreeText, tenant)
 
+	if !alreadyProcessed && aiOffer != nil {
+		if offers, ok := aiOffer["personalized_retention_offers"].([]any); ok && len(offers) > 0 {
+			if firstOffer, ok := offers[0].(map[string]any); ok {
+				title, _ := firstOffer["title"].(string)
+				price, _ := firstOffer["price_idr"].(float64)
+				
+				// Persist to ai_offers for RM dashboard visibility
+				offerData := models.AIOffer{
+					TenantID:           tenant.ID,
+					MemberID:           member.ID,
+					Source:             "AI_GENERATED",
+					ProposedTitle:      title,
+					PriceIDR:           price,
+					DiscountPct:        0,
+					ProjectedMarginIDR: price, // Simplification for survey flow
+				}
+				_, _, _ = h.Store.CreateOfferWithReservation(ctx, offerData, time.Now().Add(24*time.Hour), 0)
+			}
+		}
+	}
+
 	if alreadyProcessed {
 		c.JSON(http.StatusOK, gin.H{
 			"status":   "ALREADY_PROCESSED",

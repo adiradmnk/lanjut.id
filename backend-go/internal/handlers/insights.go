@@ -75,6 +75,9 @@ func (h *Handlers) GetTenantInsights(c *gin.Context) {
 			"total_revenue_paid_idr":    stats.TotalRevenuePaidIDR,
 			"total_feedback_count":      stats.TotalFeedbackCount,
 			"top_feedback_category":     topChurnReason,
+			"outreach_sent":             stats.OutreachSent,
+			"magic_link_opened":         stats.MagicLinkOpened,
+			"va_settled":                stats.VaSettled,
 		},
 		"narrative": summary,
 	})

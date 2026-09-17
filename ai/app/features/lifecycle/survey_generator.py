@@ -184,10 +184,14 @@ class UserFeedbackAnalyzer:
                 root_cause = PIISanitizer.desanitize_text(llm_res.get("root_cause_summary", ""), pii_map)
                 
                 # Enforce Hard Guardrail pada hasil harga LLM
-                # price_idr=0 atau None juga wajib di-floor — bukan hanya price > 0
                 for offer in llm_res["personalized_retention_offers"]:
                     raw_price = float(offer.get("price_idr") or 0)
-                    offer["price_idr"] = max(min_floor, raw_price)
+                    o_type = str(offer.get("offer_type", "")).upper()
+                    
+                    if o_type in ["FREEZE_MEMBERSHIP", "REISSUE_VA", "SWITCH_SCHEDULE"]:
+                        offer["price_idr"] = raw_price
+                    else:
+                        offer["price_idr"] = max(min_floor, raw_price)
 
                 return {
                     "member_name": member_name,

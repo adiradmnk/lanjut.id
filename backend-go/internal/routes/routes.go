@@ -38,6 +38,9 @@ func Register(r *gin.Engine, h *handlers.Handlers) {
 
 		api.GET("/merchant/:tenantId/dashboard", h.MerchantDashboard)
 		api.GET("/merchant/:tenantId/at-risk-members", h.MerchantAtRiskMembers)
+		api.PATCH("/merchant/:tenantId/config", h.UpdateMerchantConfig)
+		api.GET("/merchant/:tenantId/churn-events", h.GetMerchantChurnEvents)
+		api.GET("/merchant/:tenantId/revenue-insights", h.GetMerchantRevenueInsights)
 		api.GET("/merchant/:tenantId/insights", h.GetTenantInsights)
 		api.GET("/merchant/dashboard-stats", h.MerchantDashboard)
 		api.GET("/merchant/members-overview", h.MerchantAtRiskMembers)

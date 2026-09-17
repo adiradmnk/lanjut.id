@@ -347,7 +347,8 @@ export default function PaymentGatewayDashboard() {
   const pendingCount = payments.filter(p => paymentStatus(p.status) === 'pending').length;
 
   const copyCredential = () => {
-    navigator.clipboard.writeText('bni_snap_live_9a87f8b912c74d');
+    const dynamicKey = `bni_snap_${selectedMerchant.id.replace(/-/g, '_')}_${btoa(selectedMerchant.id).substring(0, 10).toLowerCase()}`;
+    navigator.clipboard.writeText(dynamicKey);
     setCopiedKey(true);
     setTimeout(() => setCopiedKey(false), 2000);
   };
@@ -508,15 +509,23 @@ export default function PaymentGatewayDashboard() {
 
                 <div className="p-5 bg-card rounded-xl border border-border/60 shadow-xs flex flex-col justify-between sm:col-span-2 lg:col-span-1">
                   <div className="flex items-center justify-between text-muted-foreground">
-                    <span className="text-xs font-medium">Debt Service Coverage (DSCR)</span>
-                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                    <span className="text-xs font-medium">Prioritas RM BNI (AI Evaluated)</span>
+                    <ShieldCheck className={`w-4 h-4 ${
+                      selectedMerchant?.health?.overview?.bni_rm_priority === 'HIGH_ATTENTION' ? 'text-red-500' :
+                      selectedMerchant?.health?.overview?.bni_rm_priority === 'MEDIUM_OBSERVATION' ? 'text-orange-500' :
+                      'text-emerald-500'
+                    }`} />
                   </div>
                   <div className="mt-3">
-                    <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                      2.45x (PRIME)
+                    <div className={`text-xl font-bold ${
+                      selectedMerchant?.health?.overview?.bni_rm_priority === 'HIGH_ATTENTION' ? 'text-red-600 dark:text-red-400' :
+                      selectedMerchant?.health?.overview?.bni_rm_priority === 'MEDIUM_OBSERVATION' ? 'text-orange-600 dark:text-orange-400' :
+                      'text-emerald-600 dark:text-emerald-400'
+                    }`}>
+                      {selectedMerchant?.health?.overview?.bni_rm_priority || 'PRIME_HEALTHY'}
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-1">
-                      Ambang aman BNI: &ge; 1.25x angsuran bulanan
+                      Dievaluasi dari transaksi & friction rate
                     </div>
                   </div>
                 </div>
@@ -702,15 +711,15 @@ export default function PaymentGatewayDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-6 bg-card rounded-xl border border-border/60 shadow-xs flex flex-col justify-between">
                   <div>
-                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Kolektibilitas & DSCR</span>
-                    <h3 className="text-xl font-bold text-foreground mt-1">Status: PRIME_LOW_RISK</h3>
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Kolektibilitas & Rekomendasi RM</span>
+                    <h3 className="text-xl font-bold text-foreground mt-1">Status: {selectedMerchant?.health?.overview?.bni_rm_priority || 'PRIME_HEALTHY'}</h3>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Rasio perputaran dana Virtual Account terhadap kewajiban angsuran bulanan BNI Wirausaha mencapai 2.45x (jauh di atas batas minimum 1.25x).
+                      {selectedMerchant?.health?.payment_gateway_friction_patterns?.[0] || 'Transaksi lancar, tidak terdeteksi anomali pada payment gateway.'}
                     </p>
                   </div>
                   <div className="mt-6 pt-4 border-t border-border/40">
                     <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                      Rekomendasi RM: Layak untuk penambahan limit kredit modal kerja.
+                      Rekomendasi RM: {selectedMerchant?.health?.actionable_rm_recommendations?.[0] || 'Lanjutkan pemantauan reguler dan tawarkan upgrade BNI Direct Debit.'}
                     </span>
                   </div>
                 </div>

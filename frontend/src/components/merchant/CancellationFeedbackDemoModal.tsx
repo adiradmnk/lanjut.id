@@ -111,35 +111,12 @@ export default function CancellationFeedbackDemoModal({
           setMembers(data.members);
           setSelectedMember(data.members[0]);
         } else {
-          // Default fallback
-          const fallback = [
-            {
-              id: 'mbr-dina-01',
-              name: 'Dina Kusuma',
-              email: 'dina.kusuma@example.com',
-              current_package: 'Monthly Morning Pilates (08.00 WIB)',
-              churn_risk_flag: 'HIGH',
-              used_quota: 2,
-              total_quota: 8
-            }
-          ];
-          setMembers(fallback);
-          setSelectedMember(fallback[0]);
+          setMembers([]);
+          setSelectedMember(null);
         }
       } catch {
-        const fallback = [
-          {
-            id: 'mbr-dina-01',
-            name: 'Dina Kusuma',
-            email: 'dina.kusuma@example.com',
-            current_package: 'Monthly Morning Pilates (08.00 WIB)',
-            churn_risk_flag: 'HIGH',
-            used_quota: 2,
-            total_quota: 8
-          }
-        ];
-        setMembers(fallback);
-        setSelectedMember(fallback[0]);
+        setMembers([]);
+        setSelectedMember(null);
       } finally {
         setLoadingMembers(false);
       }
@@ -330,7 +307,7 @@ export default function CancellationFeedbackDemoModal({
                           <Check className="w-4 h-4 text-orange-400 shrink-0" />
                         )}
                       </div>
-                    ))}
+                    )))}
                   </div>
                 )}
               </div>

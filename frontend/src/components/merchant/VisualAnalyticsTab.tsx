@@ -1,13 +1,14 @@
 'use client';
 
 import React from 'react';
-import { BarChart3, PieChart, TrendingUp, Layers, HelpCircle, Activity } from 'lucide-react';
+import { BarChart3, PieChart, TrendingUp, Layers, HelpCircle, Activity, Sparkles } from 'lucide-react';
 
 interface VisualAnalyticsTabProps {
   analytics: any;
+  revenueInsights?: any;
 }
 
-export default function VisualAnalyticsTab({ analytics }: VisualAnalyticsTabProps) {
+export default function VisualAnalyticsTab({ analytics, revenueInsights }: VisualAnalyticsTabProps) {
   const activeCount = analytics?.active_customers || 735;
   const churnedCount = analytics?.churned_customers || 265;
   const totalCount = activeCount + churnedCount;
@@ -275,42 +276,37 @@ export default function VisualAnalyticsTab({ analytics }: VisualAnalyticsTabProp
       </div>
 
       {/* Row 3: Correlation Matrix Table */}
-      <div className="bg-[#fafafa] border border-neutral-200/90 rounded-[24px] p-6 shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-sm font-bold text-neutral-900">📈 Feature Correlation Matrix</h3>
-            <p className="text-xs text-neutral-500">Koefisien korelasi linear Pearson antar indikator performa pelanggan</p>
+      {/* Row 3: Revenue Analytics & Optimizations (From API) */}
+      {revenueInsights && (
+        <div className="bg-[#fafafa] border border-neutral-200/90 rounded-[24px] p-6 shadow-[0_1px_4px_rgba(0,0,0,0.02)] mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-neutral-900">📈 Revenue Recovery Strategy & Trends</h3>
+              <p className="text-xs text-neutral-500">{revenueInsights.market_trend_opportunity}</p>
+            </div>
+            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              {revenueInsights.engine_source}
+            </span>
           </div>
-          <span className="text-xs font-bold text-neutral-600 bg-neutral-200/60 px-2.5 py-0.5 rounded-full">
-            Multivariate Matrix
-          </span>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
-          {(analytics?.correlation_matrix || [
-            { var1: 'tenure', var2: 'TotalCharges', corr: 0.83 },
-            { var1: 'MonthlyCharges', var2: 'TotalCharges', corr: 0.65 },
-            { var1: 'tenure', var2: 'Churn', corr: -0.35 },
-            { var1: 'MonthlyCharges', var2: 'Churn', corr: 0.19 },
-            { var1: 'SeniorCitizen', var2: 'Churn', corr: 0.15 },
-          ]).map((c: any, idx: number) => {
-            const isNegative = c.corr < 0;
-            return (
-              <div key={idx} className="p-3 bg-white rounded-xl border border-neutral-200/70 text-xs space-y-1">
-                <div className="text-[11px] text-neutral-400 font-medium truncate">
-                  {c.var1} &harr; {c.var2}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {revenueInsights.actionable_revenue_optimizations?.map((opt: any, idx: number) => (
+              <div key={idx} className="p-4 bg-white rounded-xl border border-neutral-200/70 space-y-2">
+                <div className="flex justify-between items-start">
+                  <h4 className="font-bold text-neutral-900 text-sm">{opt.strategy_title}</h4>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${opt.impact_level === 'HIGH' ? 'bg-indigo-100 text-indigo-700' : 'bg-blue-50 text-blue-700'}`}>
+                    Boost: {opt.potential_revenue_boost_pct}%
+                  </span>
                 </div>
-                <div className={`text-lg font-black ${isNegative ? 'text-emerald-600' : 'text-blue-600'}`}>
-                  {c.corr > 0 ? `+${c.corr}` : c.corr}
-                </div>
-                <div className="text-[10px] text-neutral-500">
-                  {isNegative ? 'Proteksi Retensi' : 'Korelasi Positif'}
-                </div>
+                <p className="text-xs text-neutral-600 leading-relaxed">
+                  {opt.action_description}
+                </p>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

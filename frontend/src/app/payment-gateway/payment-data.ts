@@ -9,6 +9,7 @@ export interface Merchant {
   id: string;
   name: string;
   category: string;
+  health?: any;
 }
 
 export interface RetentionPayment {
@@ -56,6 +57,7 @@ export function parseMerchants(value: unknown): Merchant[] {
       id: item.id,
       name: item.name,
       category: typeof item.category === 'string' ? item.category : '',
+      health: item.health,
     };
   });
 }

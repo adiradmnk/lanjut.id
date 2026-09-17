@@ -15,13 +15,18 @@ class RMPaymentHealthEngine:
     @classmethod
     def evaluate_gateway_health(
         cls,
+        merchant_id: str,
         merchant_name: str,
         transaction_history: List[Dict[str, Any]],
-        feedback_list: List[Dict[str, Any]]
+        feedback_list: List[Dict[str, Any]],
+        thresholds: Dict[str, float] = None
     ) -> Dict[str, Any]:
+        if thresholds is None:
+            thresholds = {"high_attention_success_pct": 75.0, "high_attention_pending_pct": 0.3, "medium_observation_success_pct": 88.0}
         total_trx = len(transaction_history)
         if total_trx == 0:
             return {
+                "merchant_id": merchant_id,
                 "merchant_name": merchant_name,
                 "overview": {
                     "total_transactions": 0,
@@ -44,9 +49,9 @@ class RMPaymentHealthEngine:
         total_settled_idr = sum(float(t.get("amount", 0)) for t in transaction_history if str(t.get("status", "")).upper() == "PAID")
 
         # Prioritas Pendampingan RM BNI
-        if success_rate < 75.0 or pending_trx >= (total_trx * 0.3):
+        if success_rate < thresholds["high_attention_success_pct"] or pending_trx >= (total_trx * thresholds["high_attention_pending_pct"]):
             rm_priority = "HIGH_ATTENTION"
-        elif success_rate < 88.0:
+        elif success_rate < thresholds["medium_observation_success_pct"]:
             rm_priority = "MEDIUM_OBSERVATION"
         else:
             rm_priority = "PRIME_HEALTHY"
@@ -86,6 +91,7 @@ class RMPaymentHealthEngine:
             )
             if llm_analysis and "actionable_rm_recommendations" in llm_analysis:
                 return {
+                    "merchant_id": merchant_id,
                     "merchant_name": merchant_name,
                     "overview": {
                         "total_transactions": total_trx,
@@ -103,6 +109,7 @@ class RMPaymentHealthEngine:
 
         # Fallback Analysis
         return {
+            "merchant_id": merchant_id,
             "merchant_name": merchant_name,
             "overview": {
                 "total_transactions": total_trx,

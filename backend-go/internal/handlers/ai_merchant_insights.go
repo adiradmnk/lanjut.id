@@ -313,10 +313,14 @@ func (h *Handlers) GetBNIMerchantList(c *gin.Context) {
 
 	items := make([]gin.H, 0, len(tenants))
 	for _, t := range tenants {
+		// Mock passing empty lists to AI for health check
+		health, _ := h.AIGateway.EvaluateSMECreditDSS(ctx, t.ID, t.BusinessName, []map[string]any{}, []map[string]any{})
+		
 		items = append(items, gin.H{
 			"id":       t.ID,
 			"name":     t.BusinessName,
 			"category": t.Category,
+			"health":   health,
 		})
 	}
 

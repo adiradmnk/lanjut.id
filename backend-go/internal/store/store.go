@@ -323,6 +323,16 @@ func (s *Store) UpdateTenantBusinessRules(ctx context.Context, tenantID string, 
 	return err
 }
 
+func (s *Store) UpdateTenantConfig(ctx context.Context, tenantID string, cfg models.TenantConfig) error {
+	_, err := s.pool.Exec(ctx, `
+		UPDATE tenants
+		SET max_discount_pct = $1,
+		    min_margin_floor_idr = $2
+		WHERE id = $3`,
+		cfg.MaxDiscountPct, cfg.MinMarginFloorIDR, tenantID)
+	return err
+}
+
 func (s *Store) GetLatestGuidebookByTenant(ctx context.Context, tenantID string) (*models.MerchantGuidebook, error) {
 	row := s.pool.QueryRow(ctx, `
 		SELECT id, tenant_id, filename, file_type, raw_text, extracted_rules, status, COALESCE(error_message, ''), created_at, updated_at

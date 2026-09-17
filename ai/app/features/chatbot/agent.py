@@ -27,7 +27,8 @@ class ConversationalLogicAgent:
         self,
         message: str,
         current_rules: ExtractedBusinessRules,
-        history: Optional[List[Dict[str, str]]] = None
+        history: Optional[List[Dict[str, str]]] = None,
+        tenant_id: Optional[str] = None
     ) -> Dict[str, Any]:
         sanitized_msg, pii_map = PIISanitizer.sanitize_text(message)
 
@@ -47,6 +48,7 @@ class ConversationalLogicAgent:
         if intent_type == "INQUIRY":
             reply = self._synthesize_inquiry_reply(sanitized_msg, current_rules, history)
             return {
+                "tenant_id": tenant_id,
                 "status": "INQUIRY_ANSWER",
                 "reply_message": PIISanitizer.desanitize_text(reply, pii_map),
                 "updated_rules": current_rules.model_dump(),
@@ -76,6 +78,7 @@ class ConversationalLogicAgent:
                 guardrail=guardrail
             )
             return {
+                "tenant_id": tenant_id,
                 "status": "REJECTED",
                 "reply_message": PIISanitizer.desanitize_text(rejection_reply, pii_map),
                 "updated_rules": current_rules.model_dump(),
@@ -122,6 +125,7 @@ class ConversationalLogicAgent:
         )
 
         return {
+            "tenant_id": tenant_id,
             "status": "ACCEPTED",
             "reply_message": PIISanitizer.desanitize_text(success_reply, pii_map),
             "updated_rules": updated_dict,

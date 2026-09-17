@@ -67,10 +67,12 @@ class TransactionChurnDetector:
             burn_rate_ratio = round(unused_quota / max(1, days_to_expiry), 2)
 
         # STATE MACHINE DECISION TREE (Temporal / Event-Driven Pattern)
+        base_prob = 0.05
+        penalty = 0.0
         
         # Skenario 1: SILENT CANCELLATION (Tagihan VA dibiarkan kedaluwarsa oleh nasabah)
         if (expired_count > 0 or pending_count > 0) and paid_count > 0:
-            prob = 0.88
+            penalty += 0.40 + (0.10 * expired_count)
             pattern = "SILENT_CANCELLATION"
             cause = (
                 f"Nasabah sengaja membiarkan {expired_count + pending_count} tagihan Virtual Account BNI "
@@ -80,7 +82,7 @@ class TransactionChurnDetector:
 
         # Skenario 2: PASSIVE NON-RENEWAL / BURN RATE FRICTION (Sisa kuota banyak, hari mau habis)
         elif days_to_expiry <= 7 and ((total_quota and unused_quota >= (total_quota * 0.5)) or burn_rate_ratio >= 0.8):
-            prob = 0.78
+            penalty += 0.35 + (0.05 * min(5, unused_quota)) + (0.05 * (7 - days_to_expiry))
             pattern = "PASSIVE_NON_RENEWAL"
             cause = (
                 f"Masa aktif tersisa {days_to_expiry} hari dengan {unused_quota} sesi kuota belum terpakai "
@@ -90,24 +92,27 @@ class TransactionChurnDetector:
 
         # Skenario 3: PAYMENT FRICTION (Fasilitas atau limit bank bermasalah)
         elif failed_count >= 2:
-            prob = 0.72
+            penalty += 0.30 + (0.08 * failed_count)
             pattern = "PAYMENT_FRICTION"
             cause = f"Terdeteksi {failed_count} kali transaksi ditolak/gagal oleh payment gateway BNI."
             trigger = "REISSUE_BNI_VA_OR_DIRECT_DEBIT"
 
         # Skenario 4: Standard Expiry Nudge
         elif days_to_expiry <= 7:
-            prob = 0.60
+            penalty += 0.20 + (0.03 * (7 - days_to_expiry))
             pattern = "CYCLE_NON_RENEWAL"
             cause = f"Masa aktif paket tersisa {days_to_expiry} hari dan belum ada transaksi pembaruan."
             trigger = "RENEWAL_REMINDER"
 
         # Skenario 5: Sehat & Aktif
         else:
-            prob = 0.12
+            penalty -= (0.02 * paid_count)
             pattern = "HEALTHY_ACTIVE"
             cause = f"Transaksi nasabah berjalan lancar ({paid_count} kali pembayaran sukses via BNI VA)."
             trigger = "NONE"
+
+        prob = min(0.98, max(0.01, base_prob + penalty))
+        prob = round(prob, 2)
 
         is_at_risk = prob >= 0.50
         risk_level = "HIGH" if prob >= 0.75 else ("MEDIUM" if prob >= 0.45 else "LOW")

@@ -26,7 +26,13 @@ class RevenueOptimizerEngine:
         catalog = business_rules.product_catalog or []
         biz_name = business_rules.business_profile.business_name or "Merchant"
         category = business_rules.business_profile.category or "Layanan"
-        avg_price = (sum(p.price_idr for p in catalog) / len(catalog)) if catalog else 150000.0
+        avg_price = fin.min_margin_floor_idr
+        if catalog:
+            avg_price = sum(p.price_idr for p in catalog) / len(catalog)
+        elif transaction_history:
+            prices = [t.get("amount", 0) for t in transaction_history if t.get("amount", 0) > 0]
+            if prices:
+                avg_price = sum(prices) / len(prices)
 
         est_saved_revenue_idr = saved_members_count * avg_price
         est_at_risk_revenue_idr = churn_risk_count * avg_price

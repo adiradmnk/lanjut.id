@@ -905,7 +905,8 @@ func containsAny(s string, subs ...string) bool {
 // ProcessMerchantChatbotInstruction proxies conversational business logic builder to LangChain agent
 func (a *AIGateway) ProcessMerchantChatbotInstruction(ctx context.Context, tenant *models.Tenant, userMessage string) (map[string]any, error) {
 	reqBody := map[string]any{
-		"user_message": userMessage,
+		"tenant_id":    tenant.ID,
+		"message":      userMessage,
 		"current_rules": map[string]any{
 			"business_profile": map[string]any{
 				"business_name": tenant.BusinessName,
@@ -940,3 +941,95 @@ func (a *AIGateway) ProcessMerchantChatbotInstruction(ctx context.Context, tenan
 	return out, nil
 }
 
+
+// GetMerchantRevenueInsights calls the /merchant-revenue-insights sidecar endpoint.
+func (a *AIGateway) GetMerchantRevenueInsights(ctx context.Context, tenant *models.Tenant, totalMembers, atRisk, saved int) (map[string]any, error) {
+	reqBody := map[string]any{
+		"total_members":         totalMembers,
+		"churn_risk_count":      atRisk,
+		"saved_members_count":   saved,
+		"feedback_summary_list": []map[string]any{},
+		"transaction_history":   []map[string]any{},
+	}
+	if tenant != nil {
+		reqBody["business_rules"] = map[string]any{
+			"business_profile": map[string]any{
+				"business_name": tenant.BusinessName,
+				"category":      tenant.Category,
+			},
+			"financial_constraints": map[string]any{
+				"max_discount_allowed_pct": tenant.Config.MaxDiscountPct,
+				"min_margin_floor_idr":     tenant.Config.MinMarginFloorIDR,
+			},
+		}
+	}
+	
+	bodyJSON, _ := json.Marshal(reqBody)
+	reqCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, a.baseURL+"/api/v1/lifecycle/merchant-revenue-insights", bytes.NewReader(bodyJSON))
+	if err == nil {
+		req.Header.Set("Content-Type", "application/json")
+		resp, doErr := a.slowClient.Do(req)
+		if doErr == nil {
+			defer resp.Body.Close()
+			var out map[string]any
+			if decErr := json.NewDecoder(resp.Body).Decode(&out); decErr == nil && out != nil {
+				return out, nil
+			}
+		}
+	}
+	
+	// Fallback map if AI offline
+	return map[string]any{
+		"merchant_name": tenant.BusinessName,
+		"metrics": map[string]any{
+			"total_active_members": totalMembers,
+			"at_risk_members": atRisk,
+			"successfully_saved_members": saved,
+			"retention_success_rate_pct": float64(saved) / float64(max(1, atRisk)) * 100,
+			"est_monthly_saved_revenue_idr": saved * int(tenant.Config.MinMarginFloorIDR),
+			"potential_at_risk_revenue_idr": atRisk * int(tenant.Config.MinMarginFloorIDR),
+		},
+		"market_trend_opportunity": "Fallback trend",
+		"actionable_revenue_optimizations": []map[string]any{},
+		"engine_source": "Fallback",
+	}, nil
+}
+
+func (a *AIGateway) EvaluateSMECreditDSS(ctx context.Context, merchantID, merchantName string, trxHistory, feedback []map[string]any) (map[string]any, error) {
+	reqBody := map[string]any{
+		"merchant_id":         merchantID,
+		"merchant_name":       merchantName,
+		"transaction_history": trxHistory,
+		"feedback_list":       feedback,
+	}
+
+	bodyJSON, _ := json.Marshal(reqBody)
+	reqCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, a.baseURL+"/api/v1/retention/evaluate-sme-credit-dss", bytes.NewReader(bodyJSON))
+	if err == nil {
+		req.Header.Set("Content-Type", "application/json")
+		resp, doErr := a.slowClient.Do(req)
+		if doErr == nil {
+			defer resp.Body.Close()
+			var out map[string]any
+			if decErr := json.NewDecoder(resp.Body).Decode(&out); decErr == nil && out != nil {
+				return out, nil
+			}
+		}
+	}
+	
+	// Fallback
+	return map[string]any{
+		"merchant_id": merchantID,
+		"merchant_name": merchantName,
+		"overview": map[string]any{
+			"total_transactions": len(trxHistory),
+			"bni_rm_priority": "MEDIUM_OBSERVATION",
+		},
+	}, nil
+}

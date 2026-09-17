@@ -42,12 +42,15 @@ import {
 } from 'lucide-react';
 
 interface MerchantStats {
-  total_active_members: number;
-  members_at_risk: number;
-  members_saved_by_ai: number;
+  total_members: number;
+  at_risk_members: number;
+  saved_members: number;
   retention_rate_pct: number;
-  saved_revenue_idr: number;
-  capacity_utilization_pct: number;
+  total_revenue_paid_idr: number;
+  avg_quota_utilization_pct: number;
+  outreach_sent: number;
+  magic_link_opened: number;
+  va_settled: number;
 }
 
 interface RetentionLog {
@@ -84,12 +87,15 @@ interface ClassSessionItem {
 
 export default function MerchantDashboardPage() {
   const [stats, setStats] = useState<MerchantStats>({
-    total_active_members: 50,
-    members_at_risk: 4,
-    members_saved_by_ai: 34,
+    total_members: 50,
+    at_risk_members: 4,
+    saved_members: 34,
     retention_rate_pct: 92.0,
-    saved_revenue_idr: 11900000,
-    capacity_utilization_pct: 84,
+    total_revenue_paid_idr: 11900000,
+    avg_quota_utilization_pct: 84,
+    outreach_sent: 38,
+    magic_link_opened: 36,
+    va_settled: 34,
   });
 
   const [logs, setLogs] = useState<RetentionLog[]>([]);
@@ -99,6 +105,8 @@ export default function MerchantDashboardPage() {
   const [isTriggeringEmail, setIsTriggeringEmail] = useState(false);
   const [emailTriggerSuccess, setEmailTriggerSuccess] = useState<any>(null);
   const [aiPromptQuery, setAiPromptQuery] = useState('');
+  const [aiChatResponse, setAiChatResponse] = useState<any>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'predict' | 'scenarios' | 'members' | 'retention' | 'capacity'>('overview');
   const [isDataset900Open, setIsDataset900Open] = useState<boolean>(false);
   const [isFeedbackDemoOpen, setIsFeedbackDemoOpen] = useState<boolean>(false);
@@ -112,6 +120,7 @@ export default function MerchantDashboardPage() {
     model_accuracy_pct: 82.4,
     ai_features_count: 15,
   });
+  const [revenueInsights, setRevenueInsights] = useState<any>(null);
 
   // Interactive Capacity & Margin Guard state
   const [maxDiscountTolerance, setMaxDiscountTolerance] = useState<number>(15);
@@ -168,6 +177,13 @@ export default function MerchantDashboardPage() {
         const a = await analyticsRes.json();
         if (a.analytics) setMlAnalytics(a.analytics);
       }
+
+      // 5. Fetch Revenue Insights
+      const revRes = await fetch(`/api/merchant/${selectedTenantId}/revenue-insights`);
+      if (revRes.ok) {
+        const r = await revRes.json();
+        if (r.insights) setRevenueInsights(r.insights);
+      }
     } catch (err) {
       console.warn('Gagal memuat data dari backend:', err);
     } finally {
@@ -212,6 +228,29 @@ export default function MerchantDashboardPage() {
       });
     } finally {
       setIsTriggeringEmail(false);
+    }
+  };
+
+  const handleAskAi = async () => {
+    if (!aiPromptQuery) return;
+    setIsAiLoading(true);
+    setAiChatResponse(null);
+    try {
+      const res = await fetch(`/api/merchant/${selectedTenantId}/chat-instruction`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: aiPromptQuery }),
+      });
+      const data = await res.json();
+      setAiChatResponse(data);
+      if (data.status === 'ACCEPTED') {
+        loadData(); // reload stats and config
+      }
+    } catch (err) {
+      console.error(err);
+      setAiChatResponse({ error: 'Gagal menghubungi AI agent' });
+    } finally {
+      setIsAiLoading(false);
     }
   };
 
@@ -332,7 +371,7 @@ export default function MerchantDashboardPage() {
                     : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
                 }`}
               >
-                Members ({stats.total_active_members})
+                Members ({stats.total_members})
               </button>
 
               <button
@@ -344,7 +383,7 @@ export default function MerchantDashboardPage() {
                 }`}
               >
                 <span>AI Retention</span>
-                {stats.members_at_risk > 0 && (
+                {stats.at_risk_members > 0 && (
                   <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                 )}
               </button>
@@ -357,7 +396,7 @@ export default function MerchantDashboardPage() {
                     : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
                 }`}
               >
-                Capacity ({stats.capacity_utilization_pct}%)
+                Capacity ({stats.avg_quota_utilization_pct}%)
               </button>
             </nav>
           </div>
@@ -622,23 +661,23 @@ export default function MerchantDashboardPage() {
                     <div className="grid grid-cols-5 gap-2 text-left mb-4 pt-2 border-t border-neutral-200/60">
                       <div>
                         <span className="text-[11px] text-neutral-400 block">Members at Risk</span>
-                        <span className="text-lg font-bold text-neutral-900">{stats.members_at_risk + stats.members_saved_by_ai}</span>
+                        <span className="text-lg font-bold text-neutral-900">{stats.at_risk_members + stats.saved_members}</span>
                       </div>
                       <div>
                         <span className="text-[11px] text-neutral-400 block">Outreach Sent</span>
-                        <span className="text-lg font-bold text-neutral-900">38</span>
+                        <span className="text-lg font-bold text-neutral-900">{stats.outreach_sent || 38}</span>
                       </div>
                       <div>
                         <span className="text-[11px] text-neutral-400 block">Magic Link Opened</span>
-                        <span className="text-lg font-bold text-neutral-900">36</span>
+                        <span className="text-lg font-bold text-neutral-900">{stats.magic_link_opened || 36}</span>
                       </div>
                       <div>
                         <span className="text-[11px] text-neutral-400 block">Solutions Picked</span>
-                        <span className="text-lg font-bold text-neutral-900">{stats.members_saved_by_ai}</span>
+                        <span className="text-lg font-bold text-neutral-900">{stats.saved_members || stats.saved_members || 0}</span>
                       </div>
                       <div>
                         <span className="text-[11px] text-neutral-400 block">VA Settled</span>
-                        <span className="text-lg font-bold text-neutral-900">{stats.members_saved_by_ai}</span>
+                        <span className="text-lg font-bold text-neutral-900">{stats.va_settled || stats.saved_members || 0}</span>
                       </div>
                     </div>
 
@@ -681,16 +720,25 @@ export default function MerchantDashboardPage() {
                         type="text"
                         value={aiPromptQuery}
                         onChange={(e) => setAiPromptQuery(e.target.value)}
-                        placeholder="Tanyakan pola retensi atau rekomendasi harga..."
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleAskAi(); }}
+                        placeholder="Ubah aturan retensi (misal: 'set batas margin jadi 60rb')..."
                         className="flex-1 text-xs text-neutral-800 placeholder:text-neutral-400 bg-transparent outline-none"
+                        disabled={isAiLoading}
                       />
                       <button
-                        onClick={() => setActiveTab('predict')}
-                        className="px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-800 flex items-center gap-1 cursor-pointer"
+                        onClick={handleAskAi}
+                        disabled={isAiLoading || !aiPromptQuery}
+                        className="px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-800 flex items-center gap-1 cursor-pointer disabled:opacity-50"
                       >
-                        <span>Uji di Predict Engine &rarr;</span>
+                        {isAiLoading ? 'Memproses...' : 'Tanya AI &rarr;'}
                       </button>
                     </div>
+                    {aiChatResponse && (
+                      <div className={`mt-3 p-3 rounded-xl border text-xs leading-relaxed ${aiChatResponse.status === 'REJECTED' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
+                        <div className="font-bold mb-1">{aiChatResponse.status === 'REJECTED' ? '⚠️ Usulan Ditolak (Guardrail)' : '✅ Usulan Diterima'}</div>
+                        <p>{aiChatResponse.reply_message || aiChatResponse.error || 'Berhasil diperbarui.'}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -706,7 +754,7 @@ export default function MerchantDashboardPage() {
 
                     <div className="flex items-baseline gap-2.5 mt-2">
                       <span className="text-3xl lg:text-4xl font-extrabold tracking-tight text-neutral-950">
-                        {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(stats.saved_revenue_idr)}
+                        {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(stats.total_revenue_paid_idr)}
                       </span>
                     </div>
                     <p className="text-[11px] text-neutral-500 mt-1">
@@ -756,9 +804,9 @@ export default function MerchantDashboardPage() {
             </div>
           )}
 
-          {/* === TAB 2: VISUAL ANALYTICS (anshkumar2311 parity) === */}
+          {/* === TAB 2: ADVANCED VISUAL ANALYTICS (anshkumar2311 parity) === */}
           {activeTab === 'analytics' && (
-            <VisualAnalyticsTab analytics={mlAnalytics} />
+            <VisualAnalyticsTab analytics={mlAnalytics} revenueInsights={revenueInsights} />
           )}
 
           {/* === TAB 3: AI PREDICTION ENGINE (anshkumar2311 parity) === */}
@@ -817,6 +865,19 @@ export default function MerchantDashboardPage() {
                           Buka Portal &rarr;
                         </Link>
                       </div>
+                      <div className="pt-1 mt-1 border-t border-neutral-100 flex items-center justify-between">
+                        <span className="text-[10px] text-neutral-400">Churn Trend</span>
+                        <svg width="40" height="12" viewBox="0 0 40 12" className="overflow-visible">
+                          <polyline 
+                            fill="none" 
+                            stroke={m.churn_risk_flag === 'HIGH' ? '#ef4444' : '#10b981'} 
+                            strokeWidth="1.5" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            points={m.churn_risk_flag === 'HIGH' ? '0,10 10,8 20,9 30,3 40,0' : '0,2 10,4 20,2 30,8 40,10'} 
+                          />
+                        </svg>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -833,7 +894,7 @@ export default function MerchantDashboardPage() {
                     <div className="flex items-center gap-2">
                       <h3 className="text-base font-bold text-neutral-900">Attendance Velocity Churn Alert (Daftar Merah Member)</h3>
                       <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
-                        {stats.members_at_risk} Butuh Solusi
+                        {stats.at_risk_members} Butuh Solusi
                       </span>
                     </div>
                     <p className="text-xs text-neutral-500 mt-0.5">
@@ -999,7 +1060,7 @@ export default function MerchantDashboardPage() {
                     </span>
                   </div>
                   <div className="flex items-baseline gap-2 mt-2">
-                    <span className="text-3xl font-extrabold text-neutral-900">{stats.capacity_utilization_pct}%</span>
+                    <span className="text-3xl font-extrabold text-neutral-900">{stats.avg_quota_utilization_pct}%</span>
                     <span className="text-xs text-neutral-500">rata-rata utilitas studio</span>
                   </div>
 
