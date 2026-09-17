@@ -25,7 +25,8 @@ import {
   ArrowLeft,
   Flame,
   CheckCircle,
-  Timer
+  Timer,
+  Ban
 } from 'lucide-react';
 
 interface SmartOption {
@@ -62,6 +63,7 @@ interface VAResult {
   amount: number;
   expired_at: string;
   proposal_id?: string;
+  trx_id?: string;
 }
 
 function MemberPortalContent() {
@@ -91,6 +93,72 @@ function MemberPortalContent() {
   const [complaintText, setComplaintText] = useState('');
   const [isAnalyzingGrievance, setIsAnalyzingGrievance] = useState(false);
   const [grievanceAnalysis, setGrievanceAnalysis] = useState<any | null>(null);
+
+  // End-to-End Dynamic Cancellation Survey & Modal States
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelSurvey, setCancelSurvey] = useState<any | null>(null);
+  const [cancelSelectedOptions, setCancelSelectedOptions] = useState<string[]>([]);
+  const [cancelFreeText, setCancelFreeText] = useState('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [feedbackOfferResult, setFeedbackOfferResult] = useState<any | null>(null);
+
+  const handleOpenCancelSurvey = async () => {
+    setIsCancelling(true);
+    try {
+      // 1. If user has active VA checkout, cancel the checkout transaction first
+      if (vaData?.trx_id) {
+        await fetch(`/api/member/checkout/${vaData.trx_id}/cancel`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ member_id: member?.id || memberIdFallback })
+        });
+      }
+
+      // 2. Call real End-to-End API: POST /api/member/subscription/:id/cancel
+      const res = await fetch(`/api/member/subscription/${member?.id || memberIdFallback}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (data.survey) {
+        setCancelSurvey(data.survey);
+        if (data.survey.multiple_choice_options?.length > 0) {
+          setCancelSelectedOptions([data.survey.multiple_choice_options[0].id]);
+        }
+      }
+      setIsCancelModalOpen(true);
+    } catch (e) {
+      console.error('Failed to trigger cancellation survey:', e);
+      setIsCancelModalOpen(true);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const handleSubmitCancelFeedback = async () => {
+    setIsSubmittingFeedback(true);
+    try {
+      const primaryReason = cancelSelectedOptions[0] || 'PRICE_SENSITIVE';
+      const res = await fetch(`/api/member/subscription/${member?.id || memberIdFallback}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason_code: primaryReason,
+          selected_option_ids: cancelSelectedOptions,
+          free_text: cancelFreeText
+        })
+      });
+      const data = await res.json();
+      if (data.retention_offer) {
+        setFeedbackOfferResult(data.retention_offer);
+      }
+    } catch (e) {
+      console.error('Failed to submit cancellation feedback:', e);
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
 
   const handleAnalyzeGrievance = async () => {
     if (!complaintText.trim()) return;
@@ -250,6 +318,7 @@ function MemberPortalContent() {
       const data = await res.json();
       if (data.status === 'success' || data.va_number) {
         setVaData({
+          trx_id: data.trx_id,
           va_number: data.va_number || '8808123456789012',
           amount: data.amount !== undefined ? data.amount : option.price_adjustment_idr,
           expired_at: data.expired_at || '2026-09-24T23:59:59Z',
@@ -559,6 +628,19 @@ function MemberPortalContent() {
                 🔒 Kuota kelas terverifikasi otomatis oleh database relasional FitBody
               </div>
 
+              {/* Batalkan Langganan Button -> Triggers Real Dynamic Cancellation Survey */}
+              <div className="pt-2 text-center">
+                <button
+                  type="button"
+                  onClick={handleOpenCancelSurvey}
+                  disabled={isCancelling}
+                  className="text-xs text-neutral-400 hover:text-rose-600 transition-colors font-medium underline underline-offset-4 flex items-center justify-center gap-1 mx-auto"
+                >
+                  <Ban className="w-3.5 h-3.5" />
+                  <span>{isCancelling ? 'Menyiapkan survei...' : 'Tidak cocok dengan opsi di atas? Batalkan langganan'}</span>
+                </button>
+              </div>
+
             </div>
           )}
 
@@ -673,6 +755,19 @@ function MemberPortalContent() {
                 <span className="text-[10px] text-neutral-400 text-center block mt-1.5">
                   Klik tombol di atas untuk melihat sinkronisasi instan ke Dashboard BNI &amp; Merchant
                 </span>
+
+                {/* Cancel Checkout Option */}
+                <div className="pt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={handleOpenCancelSurvey}
+                    disabled={isCancelling}
+                    className="text-xs text-neutral-400 hover:text-rose-600 transition-colors font-medium underline underline-offset-4 flex items-center justify-center gap-1 mx-auto"
+                  >
+                    <Ban className="w-3.5 h-3.5" />
+                    <span>{isCancelling ? 'Membatalkan...' : 'Batal checkout & minta solusi lain'}</span>
+                  </button>
+                </div>
               </div>
 
             </div>
@@ -772,6 +867,157 @@ function MemberPortalContent() {
         </div>
 
       </div>
+
+      {/* End-to-End Cancellation Survey Modal */}
+      {isCancelModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md bg-white rounded-[28px] p-6 shadow-2xl border border-neutral-200 space-y-4">
+            {!feedbackOfferResult ? (
+              <>
+                <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-200">
+                      <Ban className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-neutral-900">Konfirmasi Pembatalan</h4>
+                      <p className="text-[10px] text-neutral-400">Panggilan nyata ke backend API &amp; AI Generator</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsCancelModalOpen(false)}
+                    className="text-xs text-neutral-400 hover:text-neutral-700"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-neutral-800">
+                    <span className="text-[10px] font-bold text-amber-700 block uppercase">
+                      {cancelSurvey?.engine_source || 'AI Survey Generator'}
+                    </span>
+                    <p className="font-semibold text-xs mt-0.5">
+                      {cancelSurvey?.question_title || `Halo ${member?.name || 'Member'}, apa kendala yang membuat Anda mempertimbangkan pembatalan?`}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {cancelSurvey?.multiple_choice_options?.map((opt: any) => {
+                      const isChecked = cancelSelectedOptions.includes(opt.id);
+                      return (
+                        <div
+                          key={opt.id}
+                          onClick={() => {
+                            if (isChecked) {
+                              setCancelSelectedOptions(cancelSelectedOptions.filter((i) => i !== opt.id));
+                            } else {
+                              setCancelSelectedOptions([...cancelSelectedOptions, opt.id]);
+                            }
+                          }}
+                          className={`p-2.5 rounded-xl border text-xs cursor-pointer flex items-center gap-2 transition-all ${
+                            isChecked
+                              ? 'bg-neutral-900 text-white border-neutral-900'
+                              : 'bg-[#fafafa] hover:bg-white border-neutral-200 text-neutral-700'
+                          }`}
+                        >
+                          <div
+                            className={`w-3.5 h-3.5 rounded flex items-center justify-center text-[10px] border ${
+                              isChecked
+                                ? 'bg-orange-500 border-orange-500 text-white font-bold'
+                                : 'border-neutral-300 bg-white'
+                            }`}
+                          >
+                            {isChecked && '✓'}
+                          </div>
+                          <span className="font-medium text-[11px]">{opt.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-neutral-600 block mb-1">
+                      {cancelSurvey?.free_text_field?.label || 'Catatan Tambahan (Opsional)'}
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={cancelFreeText}
+                      onChange={(e) => setCancelFreeText(e.target.value)}
+                      placeholder={cancelSurvey?.free_text_field?.placeholder || 'Ceritakan kendala Anda...'}
+                      className="w-full p-2 text-xs border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-neutral-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setIsCancelModalOpen(false)}
+                    className="text-xs text-neutral-500 hover:text-neutral-800"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSubmittingFeedback || cancelSelectedOptions.length === 0}
+                    onClick={handleSubmitCancelFeedback}
+                    className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-bold disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {isSubmittingFeedback ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Mengirim...</span>
+                      </>
+                    ) : (
+                      <span>Kirim Feedback &rarr;</span>
+                    )}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-200">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <div className="text-center">
+                  <h4 className="text-sm font-bold text-neutral-900">
+                    Solusi Retensi Otomatis Diterbitkan!
+                  </h4>
+                  <p className="text-xs text-neutral-500 mt-1">
+                    Feedback Anda telah dicatat di merchant. Kami menawarkan solusi khusus:
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-neutral-900 text-white space-y-2 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="px-2 py-0.5 rounded bg-orange-500 text-white text-[9px] font-bold uppercase">
+                      {feedbackOfferResult.recommended_action || 'SOLUSI TERBAIK'}
+                    </span>
+                    <span className="text-[10px] text-emerald-400">Proteksi Margin Aktif</span>
+                  </div>
+                  <h5 className="font-bold text-sm text-white">{feedbackOfferResult.offer_title}</h5>
+                  <p className="text-[11px] text-neutral-300 leading-relaxed">
+                    {feedbackOfferResult.description || feedbackOfferResult.reasoning}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCancelModalOpen(false);
+                    setFeedbackOfferResult(null);
+                    setCurrentStep('SMART_OPTIONS');
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold"
+                >
+                  Lihat Penawaran Ini di Portal
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

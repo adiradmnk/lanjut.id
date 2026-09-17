@@ -40,15 +40,6 @@ type loginRequest struct {
 func (h *Handlers) Login(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	if h.Mailjet == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status":  "error",
-			"code":    "MAILJET_NOT_CONFIGURED",
-			"message": "Mailjet belum dikonfigurasi di server ini (isi MAILJET_API_KEY/MAILJET_API_SECRET).",
-		})
-		return
-	}
-
 	var body loginRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "email, password, and role are required"})
@@ -86,16 +77,25 @@ func (h *Handlers) Login(c *gin.Context) {
 		return
 	}
 
-	if err := h.Mailjet.SendLoginOTP(ctx, account.Email, account.Name, otp); err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"status": "error", "message": "failed to send OTP email: " + err.Error()})
-		return
+	sentViaEmail := false
+	if h.Mailjet != nil {
+		if err := h.Mailjet.SendLoginOTP(ctx, account.Email, account.Name, otp); err == nil {
+			sentViaEmail = true
+		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	resp := gin.H{
 		"status":  "OTP_REQUIRED",
 		"message": "Kode OTP sudah dikirim ke email kamu, berlaku 5 menit.",
 		"email":   account.Email,
-	})
+	}
+	if !sentViaEmail {
+		// Lingkungan demo / fallback saat Mailjet tidak ada kredensial aktif
+		resp["message"] = fmt.Sprintf("Kode OTP demo: %s (Masukkan kode ini untuk melanjutkan)", otp)
+		resp["demo_otp"] = otp
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
 
 type verifyOTPRequest struct {

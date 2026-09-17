@@ -6,6 +6,7 @@ import Dataset900AuditModal from '@/components/Dataset900AuditModal';
 import VisualAnalyticsTab from '@/components/merchant/VisualAnalyticsTab';
 import AiPredictionTab from '@/components/merchant/AiPredictionTab';
 import FutureScenariosTab from '@/components/merchant/FutureScenariosTab';
+import CancellationFeedbackDemoModal from '@/components/merchant/CancellationFeedbackDemoModal';
 import {
   Sparkles,
   Users,
@@ -100,6 +101,7 @@ export default function MerchantDashboardPage() {
   const [aiPromptQuery, setAiPromptQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'predict' | 'scenarios' | 'members' | 'retention' | 'capacity'>('overview');
   const [isDataset900Open, setIsDataset900Open] = useState<boolean>(false);
+  const [isFeedbackDemoOpen, setIsFeedbackDemoOpen] = useState<boolean>(false);
 
   // ML Churn Analytics State (anshkumar2311 integration)
   const [mlAnalytics, setMlAnalytics] = useState<any>({
@@ -362,6 +364,14 @@ export default function MerchantDashboardPage() {
 
           {/* Right Header Actions */}
           <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              onClick={() => setIsFeedbackDemoOpen(true)}
+              className="px-3 py-1.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer animate-pulse"
+              title="Demo alur integrasi pop-up feedback saat order/subscription dibatalkan"
+            >
+              <AlertTriangle className="w-3.5 h-3.5 text-white" />
+              <span>Demo Canceled Survey</span>
+            </button>
             <button
               onClick={() => setIsDataset900Open(true)}
               className="px-3 py-1.5 rounded-full bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
@@ -1033,6 +1043,14 @@ export default function MerchantDashboardPage() {
       <Dataset900AuditModal
         isOpen={isDataset900Open}
         onClose={() => setIsDataset900Open(false)}
+      />
+
+      {/* Live Demo: Order/Subscription Canceled Feedback Loop Modal */}
+      <CancellationFeedbackDemoModal
+        isOpen={isFeedbackDemoOpen}
+        onClose={() => setIsFeedbackDemoOpen(false)}
+        tenantId={selectedTenantId}
+        onFeedbackSaved={loadData}
       />
     </div>
   );
