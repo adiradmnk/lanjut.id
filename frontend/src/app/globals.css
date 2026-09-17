@@ -31,10 +31,20 @@
   --orange-coral: #E37434;
   --white-canvas: #FFFFFF;
 
+  /* Dashboard dark mode system tokens */
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #121215;
+  --card-foreground: #fafafa;
+  --primary: #007979;
+  --primary-foreground: #ffffff;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --border: rgba(255, 255, 255, 0.08);
+
   /* Meridian tokens mapped to palette */
   --bg: #ffffff;
   --text: #0a0a0a;
-  --muted: #1a1a1a;
   --blue: #007979;
   --blue-dark: #005f5f;
   --accent-light: #24B1B1;
