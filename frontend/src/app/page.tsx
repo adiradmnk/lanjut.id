@@ -71,56 +71,20 @@ export default function MeridianBentoLandingPage() {
         </div>
 
         {/* Header / Nav */}
-        <header className="nav">
-          {/* Left — glass pill of links */}
-          <nav className="nav__links" aria-label="Primary">
-            <button
-              type="button"
-              onClick={() => scrollToSection('pillars')}
-              className="nav__link"
-              style={{ animationDelay: '0.02s' }}
-            >
-              Platform
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('solutions')}
-              className="nav__link"
-              style={{ animationDelay: '0.08s' }}
-            >
-              Solutions
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('company')}
-              className="nav__link"
-              style={{ animationDelay: '0.14s' }}
-            >
-              Company
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('pricing')}
-              className="nav__link"
-              style={{ animationDelay: '0.2s' }}
-            >
-              Pricing
-            </button>
-          </nav>
-
-          {/* Center — logo from public/logo.png */}
-          <Link className="logo flex items-center" href="/" aria-label="LANJUT × BNI AEGIS">
+        <header className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-6 sm:px-12 sm:py-8">
+          {/* Left — logo from public/logo.png */}
+          <Link href="/" aria-label="LANJUT × BNI AEGIS" className="flex items-center">
             <Image
               src="/logo.png"
               alt="LANJUT Logo"
-              width={120}
-              height={32}
-              className="object-contain h-8 w-auto"
+              width={160}
+              height={44}
+              className="object-contain h-10 w-auto"
               priority
             />
           </Link>
 
-          {/* Right — Login button (replaced Book Demo) & Mobile Burger */}
+          {/* Right — Login button */}
           <div className="flex items-center gap-3">
             <Link
               href="/login"
@@ -140,75 +104,7 @@ export default function MeridianBentoLandingPage() {
               </span>
             </Link>
           </div>
-
-          {/* Mobile Burger */}
-          <button
-            className={`nav__burger ${menuOpen ? 'is-open' : ''}`}
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={menuOpen}
-            aria-controls="mobile-menu"
-            onClick={() => setMenuOpen(!menuOpen)}
-          >
-            <span />
-            <span />
-            <span />
-          </button>
         </header>
-
-        {/* Mobile Menu */}
-        <div
-          id="mobile-menu"
-          className="mobile-menu"
-          hidden={!menuOpen}
-        >
-          <div className="mobile-menu__links">
-            <button
-              type="button"
-              className="mobile-menu__link text-left"
-              onClick={() => scrollToSection('pillars')}
-            >
-              Platform (Architecture)
-            </button>
-            <button
-              type="button"
-              className="mobile-menu__link text-left"
-              onClick={() => scrollToSection('solutions')}
-            >
-              Solutions & Modules
-            </button>
-            <button
-              type="button"
-              className="mobile-menu__link text-left"
-              onClick={() => scrollToSection('company')}
-            >
-              Company & Ecosystem
-            </button>
-            <button
-              type="button"
-              className="mobile-menu__link text-left"
-              onClick={() => scrollToSection('pricing')}
-            >
-              Pricing & Impact
-            </button>
-          </div>
-          <Link
-            href="/login"
-            className="btn btn--nav w-full justify-center text-center"
-          >
-            <span>Login</span>
-            <span className="btn__icon">
-              <svg viewBox="0 0 20 20" fill="none">
-                <path
-                  d="M4 10h10.2M10.4 5.6 15.2 10l-4.8 4.4"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-          </Link>
-        </div>
 
         {/* Hero Section */}
         <main className="hero">
