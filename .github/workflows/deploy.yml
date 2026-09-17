@@ -78,12 +78,12 @@ jobs:
             echo "  - AI       : $NEEDS_AI"
             echo "  - Compose  : $NEEDS_COMPOSE"
 
-            PROJECT_DIR="${{ secrets.VPS_PROJECT_DIR || '/home/ilmora/Tidur-Malam-Minum-Es-teh-Satu-Gelas' }}"
+            PROJECT_DIR="${{ secrets.VPS_PROJECT_DIR || '/home/ilmora/lanjut.id' }}"
 
             # Setup direktori proyek jika belum ada
             if [ ! -d "$PROJECT_DIR" ]; then
               echo "📂 First time setup: Cloning repository..."
-              git clone https://github.com/adiradmnk/Tidur-Malam-Minum-Es-teh-Satu-Gelas.git "$PROJECT_DIR"
+              git clone https://github.com/adiradmnk/lanjut.id.git "$PROJECT_DIR"
               cd "$PROJECT_DIR"
               echo "🐳 Building all services for initial deployment..."
               docker compose build

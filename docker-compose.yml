@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: novamesh_postgres
+    container_name: lanjut_postgres
     restart: unless-stopped
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-lanjut}
@@ -23,7 +23,7 @@ services:
     build:
       context: ./ai
       dockerfile: Dockerfile
-    container_name: novamesh_ai
+    container_name: lanjut_ai
     restart: unless-stopped
     ports:
       - "${AI_PORT:-8000}:8000"
@@ -42,7 +42,7 @@ services:
     build:
       context: ./backend-go
       dockerfile: Dockerfile
-    container_name: novamesh_backend
+    container_name: lanjut_backend
     restart: unless-stopped
     ports:
       - "${BACKEND_PORT:-5001}:5001"
@@ -74,7 +74,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: novamesh_frontend
+    container_name: lanjut_frontend
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-3000}:3000"

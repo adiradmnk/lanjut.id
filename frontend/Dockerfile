@@ -13,7 +13,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-ENV NEXT_PUBLIC_BASE_PATH=/uihackathon
 RUN --mount=type=cache,target=/app/.next/cache \
     npm run build
 
