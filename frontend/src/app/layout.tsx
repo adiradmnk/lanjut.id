@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Meridian — Revenue Intelligence for SaaS",
-  description: "Meridian continuously analyzes product usage, customer behavior and commercial data to identify expansion opportunities, predict revenue risk, and recommend the highest-impact actions for your team.",
+  title: "Lanjut.id — Merchant & Payment Gateway",
+  description: "Ekosistem retensi merchant dan pemantauan pembayaran BNI Virtual Account.",
 };
 
 export default function RootLayout({
@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="id">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

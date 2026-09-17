@@ -206,6 +206,9 @@ export default function MerchantDashboardPage() {
                 <span className="text-orange-500">L</span>
               </div>
               <span className="text-lg font-black tracking-tight text-neutral-900">lanjut</span>
+              <span className="px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 text-[10px] font-bold uppercase tracking-wide">
+                Merchant
+              </span>
               
               {/* Dynamic Tenant Switcher (Multi-Tenant Selector) */}
               <div className="relative flex items-center">
@@ -282,18 +285,10 @@ export default function MerchantDashboardPage() {
               <span>Audit 900 Dataset</span>
             </button>
             <Link
-              href="/member?member_id=mbr-dina-01"
-              target="_blank"
-              className="px-3.5 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200/80 text-neutral-700 text-xs font-semibold flex items-center gap-1.5 transition-colors border border-neutral-200/60"
-            >
-              <span>User Portal</span>
-              <ExternalLink className="w-3.5 h-3.5 text-neutral-500" />
-            </Link>
-            <Link
-              href="/bni"
+              href="/login"
               className="px-3.5 py-1.5 rounded-full bg-[#005E6A] hover:bg-teal-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
             >
-              <span>BNI Dashboard</span>
+              <span>Kembali ke login</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
 
