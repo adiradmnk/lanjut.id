@@ -5,5 +5,8 @@
 INSERT INTO accounts (email, password_hash, role, tenant_id, name)
 VALUES
   ('owner@fitbody.id', crypt('demo1234', gen_salt('bf')), 'merchant', 'mch-fitbody-01', 'Owner FitBody Gym'),
-  ('rm@bni.co.id', crypt('demo1234', gen_salt('bf')), 'partner', NULL, 'RM BNI Ventures')
+  ('rm@bni.co.id', crypt('demo1234', gen_salt('bf')), 'partner', NULL, 'RM BNI Ventures'),
+  ('merchant@lanjut.id', crypt('demo1234', gen_salt('bf')), 'merchant', 'mch-fitbody-01', 'FitBody Merchant Staff'),
+  ('partner@lanjut.id', crypt('demo1234', gen_salt('bf')), 'partner', NULL, 'BNI Payment Partner')
 ON CONFLICT (email) DO NOTHING;
+

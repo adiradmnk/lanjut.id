@@ -263,19 +263,15 @@ export default function MerchantDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f5ebe2] text-[#1e293b] font-sans antialiased relative overflow-x-hidden p-3 sm:p-5 lg:p-7 flex items-center justify-center">
-      {/* Warm Ambient Glassmorphism Background Blobs */}
-      <div className="fixed -top-40 -left-40 w-[650px] h-[650px] bg-gradient-to-br from-[#f8d7c4]/60 via-[#f4cbbe]/40 to-transparent rounded-full blur-3xl pointer-events-none" />
-      <div className="fixed top-1/4 -right-40 w-[700px] h-[700px] bg-gradient-to-bl from-[#fde0ce]/50 via-[#f8d3c5]/35 to-transparent rounded-full blur-3xl pointer-events-none" />
-      <div className="fixed -bottom-40 left-1/3 w-[600px] h-[600px] bg-gradient-to-tr from-[#edd0c2]/50 via-[#fadfd3]/35 to-transparent rounded-full blur-3xl pointer-events-none" />
+    <div className="h-screen h-[100dvh] w-full bg-[#f8f5f1] text-[#1e293b] font-sans antialiased overflow-hidden flex flex-col lg:flex-row">
+      {/* Warm Ambient Background Gradients */}
+      <div className="fixed -top-40 -left-40 w-[650px] h-[650px] bg-gradient-to-br from-[#f8d7c4]/40 via-[#f4cbbe]/25 to-transparent rounded-full blur-3xl pointer-events-none" />
+      <div className="fixed top-1/4 -right-40 w-[700px] h-[700px] bg-gradient-to-bl from-[#fde0ce]/35 via-[#f8d3c5]/20 to-transparent rounded-full blur-3xl pointer-events-none" />
 
-      {/* Main Floating Glass Container */}
-      <div className="relative w-full max-w-[1520px] bg-[#fdfbf9]/85 backdrop-blur-2xl border border-white/80 rounded-[38px] shadow-[0_25px_70px_-15px_rgba(180,130,110,0.18),0_10px_30px_-5px_rgba(0,0,0,0.03)] p-6 lg:p-9 flex flex-col lg:flex-row gap-8">
-        
-        {/* =========================================================================
-            1. LEFT SIDEBAR
-           ========================================================================= */}
-        <aside className="w-full lg:w-56 shrink-0 flex flex-col justify-between">
+      {/* =========================================================================
+          1. LEFT SIDEBAR (Fit to Page, Full Height, Clean Separator)
+         ========================================================================= */}
+      <aside className="w-full lg:w-64 shrink-0 bg-[#fdfbf9]/95 backdrop-blur-md border-r border-neutral-200/80 p-6 flex flex-col justify-between h-auto lg:h-full overflow-y-auto z-20">
           <div>
             {/* Brand Logo & Name */}
             <div className="flex items-center gap-3 mb-8">
@@ -451,9 +447,9 @@ export default function MerchantDashboard() {
         </aside>
 
         {/* =========================================================================
-            2. MAIN CONTENT AREA (Plek Ketiplek Sesuai Desain Glassmorphism)
+            2. MAIN CONTENT AREA (Fit to Page, Full Height Scrollable)
            ========================================================================= */}
-        <main className="flex-1 flex flex-col gap-6">
+        <main className="flex-1 flex flex-col gap-6 p-6 sm:p-8 lg:p-10 h-full overflow-y-auto relative z-10">
           
           {/* Top Header Bar */}
           <header className="flex flex-wrap items-center justify-between gap-4">
@@ -916,7 +912,6 @@ export default function MerchantDashboard() {
           )}
 
         </main>
-      </div>
 
       {/* Audit 900 Dataset Modal */}
       <Dataset900AuditModal
