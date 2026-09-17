@@ -77,9 +77,9 @@ export default function MeridianBentoLandingPage() {
             <Image
               src="/logo.png"
               alt="LANJUT Logo"
-              width={160}
-              height={44}
-              className="object-contain h-10 w-auto"
+              width={200}
+              height={60}
+              className="object-contain h-14 sm:h-16 w-auto drop-shadow-md"
               priority
             />
           </Link>
@@ -344,19 +344,6 @@ export default function MeridianBentoLandingPage() {
       )}
 
 
-      <footer style={{ backgroundColor: '#071624', borderTop: '1px solid rgba(255,255,255,0.06)', padding: '36px var(--pad-x)' }}>
-        <div style={{ maxWidth: '1240px', margin: '0 auto' }} className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left text-xs sm:text-sm text-white/40">
-          <p>© 2026 LANJUT × Bank BNI Ecosystem. All rights reserved.</p>
-          <div className="flex items-center gap-5 sm:gap-6 flex-wrap justify-center">
-            <Link href="/demo" className="text-[#24B1B1] hover:underline">Interactive Demo Console</Link>
-            <button type="button" onClick={() => scrollToSection('problem')} className="text-white/70 hover:text-white transition-colors">The Dilemma</button>
-            <button type="button" onClick={() => scrollToSection('workflow')} className="text-white/70 hover:text-white transition-colors">Workflow</button>
-            <button type="button" onClick={() => scrollToSection('architecture-precision')} className="text-white/70 hover:text-white transition-colors">AI Precision</button>
-            <button type="button" onClick={() => scrollToSection('pillars')} className="text-white/70 hover:text-white transition-colors">Pillars</button>
-            <button type="button" onClick={() => scrollToSection('value-matrix')} className="text-white/70 hover:text-white transition-colors">Value Matrix</button>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
