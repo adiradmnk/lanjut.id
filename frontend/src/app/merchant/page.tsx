@@ -7,34 +7,39 @@ import VisualAnalyticsTab from '@/components/merchant/VisualAnalyticsTab';
 import AiPredictionTab from '@/components/merchant/AiPredictionTab';
 import FutureScenariosTab from '@/components/merchant/FutureScenariosTab';
 import CancellationFeedbackDemoModal from '@/components/merchant/CancellationFeedbackDemoModal';
+import { 
+  SidebarNav, 
+  type NavGroupData, 
+  type NavItemData 
+} from '@/components/DarkSidebarNav';
 import {
+  Search,
   LayoutDashboard,
-  CheckSquare,
-  Calendar,
-  Settings,
-  Headphones,
-  BarChart2,
-  Wallet,
-  FileText,
+  FolderKanban,
   Users,
-  Video,
+  Settings,
+  LogOut,
+  Hash,
   ChevronDown,
-  MoreHorizontal,
+  ChevronRight,
+  Inbox,
+  Calendar,
+  Activity,
+  CreditCard,
+  Globe,
+  Terminal,
+  Blocks,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Command,
+  X,
+  FileText,
+  Wallet,
   Download,
+  MoreHorizontal,
   AlertTriangle,
   Cpu,
-  ExternalLink,
-  ArrowRight,
-  RefreshCw,
-  Sparkles,
-  Sliders,
-  Check,
-  Hexagon,
-  Search,
-  CheckCircle2,
-  Clock,
-  ShieldCheck,
-  Send
+  ArrowRight
 } from 'lucide-react';
 
 interface MerchantStats {
@@ -47,16 +52,6 @@ interface MerchantStats {
   outreach_sent: number;
   magic_link_opened: number;
   va_settled: number;
-}
-
-interface RetentionLog {
-  id: string;
-  member_name: string;
-  trigger_reason: string;
-  ai_detected_issue: string;
-  recommended_action: string;
-  magic_token: string;
-  created_at: string;
 }
 
 interface MemberItem {
@@ -72,18 +67,77 @@ interface MemberItem {
   days_inactive?: number;
 }
 
-interface ClassSessionItem {
-  id: string;
-  title: string;
-  day_of_week: string;
-  time_slot: string;
-  time_of_day: string;
-  total_capacity: number;
-  booked_slots: number;
-  price_per_session_idr: number;
-}
+const merchantNavGroups: NavGroupData[] = [
+  {
+    items: [
+      { id: 'search', title: 'Search', icon: Search, shortcut: '⌘K' },
+      { id: 'home', title: 'Dashboard', icon: LayoutDashboard },
+      { id: 'inbox', title: 'Retention Inbox', icon: Inbox, badge: 12 },
+      { id: 'analytics', title: 'Analytics', icon: Activity },
+    ]
+  },
+  {
+    heading: 'Workspace',
+    items: [
+      { 
+        id: 'projects', 
+        title: 'Campaigns', 
+        icon: FolderKanban,
+        children: [
+          { id: 'p-active', title: 'Active', icon: Hash },
+          { id: 'p-archived', title: 'Archived', icon: Hash },
+        ]
+      },
+      { id: 'calendar', title: 'Calendar & Scenarios', icon: Calendar },
+      { 
+        id: 'team', 
+        title: 'Instructors & Team', 
+        icon: Users,
+        children: [
+          { id: 't-trainers', title: 'Trainers', icon: Hash },
+          { id: 't-staff', title: 'Front Office', icon: Hash },
+        ]
+      },
+      { 
+        id: 'customers', 
+        title: 'Members Directory', 
+        icon: Globe,
+        children: [
+          { id: 'c-active', title: 'Active Members', icon: Hash },
+          { id: 'c-at-risk', title: 'At-Risk (Churn)', icon: Hash },
+        ]
+      },
+      { id: 'finance', title: 'BNI Revenue & VA', icon: CreditCard },
+    ]
+  },
+  {
+    heading: 'Developers',
+    items: [
+      { id: 'api', title: 'API Keys', icon: Terminal },
+      { id: 'webhooks', title: 'Webhooks', icon: Blocks },
+    ]
+  }
+];
 
-export default function MerchantDashboard() {
+const merchantBottomItems: NavItemData[] = [
+  { id: 'settings', title: 'Settings', icon: Settings, shortcut: '⌘,' },
+  { id: 'logout', title: 'Log out', icon: LogOut },
+];
+
+export default function MerchantDashboardPage() {
+  const [isOpen, setIsOpen] = useState(true);
+  const [activeId, setActiveId] = useState('home');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Tenant state mapped to Workspace
+  const [tenantsList, setTenantsList] = useState<{ id: string; name: string; category: string }[]>([
+    { id: 'mch-fitbody-01', name: 'FitBody Gym & Movement', category: 'Fitness & Wellness' },
+    { id: 'mch-zenyoga-02', name: 'Zenith Yoga Sanctuary', category: 'Boutique Yoga Studio' },
+    { id: 'mch-ironcrossfit-03', name: 'Surabaya Iron CrossFit', category: 'High-Intensity Strength' },
+    { id: 'mch-bandungpilates-04', name: 'Bandung Core Pilates (Cold-Start)', category: 'Pilates Reformer' },
+  ]);
+  const [activeWorkspace, setActiveWorkspace] = useState('FitBody Gym & Movement');
+
   const [stats, setStats] = useState<MerchantStats>({
     total_members: 49229,
     at_risk_members: 4,
@@ -96,17 +150,11 @@ export default function MerchantDashboard() {
     va_settled: 34,
   });
 
-  const [logs, setLogs] = useState<RetentionLog[]>([]);
   const [members, setMembers] = useState<MemberItem[]>([]);
-  const [sessions, setSessions] = useState<ClassSessionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isTriggeringEmail, setIsTriggeringEmail] = useState(false);
-  const [emailTriggerSuccess, setEmailTriggerSuccess] = useState<any>(null);
-  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'tasks' | 'calendar' | 'settings' | 'support' | 'performance' | 'payrolls' | 'invoice' | 'employees' | 'meeting'>('dashboard');
-  const [isDataset900Open, setIsDataset900Open] = useState<boolean>(false);
-  const [isFeedbackDemoOpen, setIsFeedbackDemoOpen] = useState<boolean>(false);
+  const [isDataset900Open, setIsDataset900Open] = useState(false);
+  const [isFeedbackDemoOpen, setIsFeedbackDemoOpen] = useState(false);
 
-  // ML Churn Analytics State
   const [mlAnalytics, setMlAnalytics] = useState<any>({
     total_customers: 49229,
     active_customers: 36183,
@@ -117,50 +165,31 @@ export default function MerchantDashboard() {
   });
   const [revenueInsights, setRevenueInsights] = useState<any>(null);
 
-  const [selectedTenantId, setSelectedTenantId] = useState<string>('mch-fitbody-01');
-  const [tenantsList, setTenantsList] = useState<{ id: string; name: string; category: string }[]>([
-    { id: 'mch-fitbody-01', name: 'FitBody Gym & Movement', category: 'Fitness & Wellness' },
-    { id: 'mch-zenyoga-02', name: 'Zenith Yoga Sanctuary', category: 'Boutique Yoga Studio' },
-    { id: 'mch-ironcrossfit-03', name: 'Surabaya Iron CrossFit', category: 'High-Intensity Strength' },
-    { id: 'mch-bandungpilates-04', name: 'Bandung Core Pilates (Cold-Start)', category: 'Pilates Reformer' },
-  ]);
-  const [tenantInfo, setTenantInfo] = useState<any>({
-    id: 'mch-fitbody-01',
-    business_name: 'FitBody Gym & Functional Movement',
-    category: 'Fitness & Wellness',
-  });
+  const selectedTenant = tenantsList.find(t => t.name === activeWorkspace) || tenantsList[0];
 
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const statsRes = await fetch(`/api/merchant/dashboard-stats?merchant_id=${selectedTenantId}`);
+      const statsRes = await fetch(`/api/merchant/dashboard-stats?merchant_id=${selectedTenant.id}`);
       if (statsRes.ok) {
         const s = await statsRes.json();
         if (s.stats) setStats(s.stats);
-        if (s.merchant) setTenantInfo(s.merchant);
       }
 
-      const logsRes = await fetch(`/api/merchant/retention-logs?merchant_id=${selectedTenantId}`);
-      if (logsRes.ok) {
-        const l = await logsRes.json();
-        if (l.logs) setLogs(l.logs);
-      }
-
-      const memRes = await fetch(`/api/merchant/members-overview?merchant_id=${selectedTenantId}`);
+      const memRes = await fetch(`/api/merchant/members-overview?merchant_id=${selectedTenant.id}`);
       if (memRes.ok) {
         const m = await memRes.json();
         if (m.members) setMembers(m.members);
-        if (m.sessions) setSessions(m.sessions);
         if (m.all_tenants) setTenantsList(m.all_tenants);
       }
 
-      const analyticsRes = await fetch(`/api/merchant/churn-analytics?merchant_id=${selectedTenantId}`);
+      const analyticsRes = await fetch(`/api/merchant/churn-analytics?merchant_id=${selectedTenant.id}`);
       if (analyticsRes.ok) {
         const a = await analyticsRes.json();
         if (a.analytics) setMlAnalytics(a.analytics);
       }
 
-      const revRes = await fetch(`/api/merchant/${selectedTenantId}/revenue-insights`);
+      const revRes = await fetch(`/api/merchant/${selectedTenant.id}/revenue-insights`);
       if (revRes.ok) {
         const r = await revRes.json();
         if (r.insights) setRevenueInsights(r.insights);
@@ -174,34 +203,20 @@ export default function MerchantDashboard() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(() => {
-      loadData();
-    }, 8000);
+    const interval = setInterval(loadData, 8000);
     return () => clearInterval(interval);
-  }, [selectedTenantId]);
+  }, [selectedTenant.id]);
 
-  const handleSendRetentionEmail = async (memberId: string) => {
-    setIsTriggeringEmail(true);
-    try {
-      const res = await fetch('/api/email/send-retention-invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          member_id: memberId,
-          base_url: typeof window !== 'undefined' ? window.location.origin : '',
-        }),
-      });
-      const data = await res.json();
-      setEmailTriggerSuccess(data);
-      await loadData();
-    } catch {
-      setEmailTriggerSuccess({
-        status: 'success',
-        message: 'Tautan retensi telah dikirimkan ke member!',
-      });
-    } finally {
-      setIsTriggeringEmail(false);
+  const handleSelect = (id: string) => {
+    if (id === 'search') {
+      setIsSearchOpen(true);
+      return;
     }
+    if (id === 'logout') {
+      window.location.href = '/login';
+      return;
+    }
+    setActiveId(id);
   };
 
   const handleDownloadCsv = () => {
@@ -220,13 +235,12 @@ export default function MerchantDashboard() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `LANJUT_Merchant_Dataset_${selectedTenantId}.csv`);
+    link.setAttribute('download', `LANJUT_Merchant_Dataset_${selectedTenant.id}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // Mock Top Performers matching the reference design image
   const topPerformers = [
     {
       id: 1,
@@ -254,7 +268,6 @@ export default function MerchantDashboard() {
     },
   ];
 
-  // Mock Employees List matching the reference design image
   const displayEmployees = [
     { id: 'OM1246924', name: 'Judy Abbott', role: 'Interactions Manager', progress: 75, color: '#c96f48' },
     { id: 'OM1243473', name: 'Martin Feeney', role: 'Accountability Specialist', progress: 85, color: '#dd845e' },
@@ -263,346 +276,188 @@ export default function MerchantDashboard() {
   ];
 
   return (
-    <div className="h-screen h-[100dvh] w-full bg-[#f8f5f1] text-[#1e293b] font-sans antialiased overflow-hidden flex flex-col lg:flex-row">
-      {/* Warm Ambient Background Gradients */}
-      <div className="fixed -top-40 -left-40 w-[650px] h-[650px] bg-gradient-to-br from-[#f8d7c4]/40 via-[#f4cbbe]/25 to-transparent rounded-full blur-3xl pointer-events-none" />
-      <div className="fixed top-1/4 -right-40 w-[700px] h-[700px] bg-gradient-to-bl from-[#fde0ce]/35 via-[#f8d3c5]/20 to-transparent rounded-full blur-3xl pointer-events-none" />
+    <div className="flex h-screen h-[100dvh] w-full bg-[#09090b] text-[#fafafa] font-sans antialiased overflow-hidden select-none">
+      
+      {/* 1. LEFT COLLAPSIBLE SIDEBAR */}
+      <div 
+        className={`h-full transition-all duration-300 ease-in-out shrink-0 overflow-hidden bg-[#121215] border-r border-white/10 ${
+          isOpen ? 'w-[260px] opacity-100' : 'w-0 opacity-0 border-none'
+        }`}
+      >
+        <SidebarNav 
+          className="w-[260px] border-none bg-transparent" 
+          activeId={activeId}
+          onSelect={handleSelect}
+          activeWorkspace={activeWorkspace}
+          onWorkspaceSelect={setActiveWorkspace}
+          navGroups={merchantNavGroups}
+          bottomItems={merchantBottomItems}
+          planLabel="Merchant Pro"
+          workspaces={tenantsList.map(t => t.name)}
+        />
+      </div>
 
-      {/* =========================================================================
-          1. LEFT SIDEBAR (Fit to Page, Full Height, Clean Separator)
-         ========================================================================= */}
-      <aside className="w-full lg:w-64 shrink-0 bg-[#fdfbf9]/95 backdrop-blur-md border-r border-neutral-200/80 p-6 flex flex-col justify-between h-auto lg:h-full overflow-y-auto z-20">
-          <div>
-            {/* Brand Logo & Name */}
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#b85e35] via-[#d4784f] to-[#994622] flex items-center justify-center text-white font-black shadow-[0_4px_14px_rgba(184,94,53,0.35)]">
-                <Hexagon className="w-5 h-5 fill-white/20 stroke-white" />
-              </div>
-              <div>
-                <span className="text-xl font-black tracking-tight text-[#1e293b]">HReazec</span>
-                <span className="block text-[9px] font-bold text-[#b85e35] uppercase tracking-wider">
-                  by lanjut.id
-                </span>
-              </div>
-            </div>
-
-            {/* Main Menu Section */}
-            <div className="space-y-1 mb-8">
-              <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider px-3 mb-3">
-                Main Menu
-              </div>
-
-              <button
-                onClick={() => setActiveMenu('dashboard')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-bold transition-all cursor-pointer ${
-                  activeMenu === 'dashboard'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <div className="w-5 h-5 rounded-full bg-[#1e293b] flex items-center justify-center text-white">
-                  <LayoutDashboard className="w-3 h-3" />
-                </div>
-                <span>Dashboard</span>
-              </button>
-
-              <button
-                onClick={() => setActiveMenu('tasks')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
-                  activeMenu === 'tasks'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <CheckSquare className="w-4 h-4 text-neutral-400" />
-                <span>Tasks</span>
-              </button>
-
-              <button
-                onClick={() => setActiveMenu('calendar')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
-                  activeMenu === 'calendar'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <Calendar className="w-4 h-4 text-neutral-400" />
-                <span>Calendar</span>
-              </button>
-
-              <button
-                onClick={() => setActiveMenu('settings')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
-                  activeMenu === 'settings'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <Settings className="w-4 h-4 text-neutral-400" />
-                <span>Settings</span>
-              </button>
-
-              <button
-                onClick={() => setActiveMenu('support')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
-                  activeMenu === 'support'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <Headphones className="w-4 h-4 text-neutral-400" />
-                <span>Support</span>
-              </button>
-            </div>
-
-            {/* Team Management Section */}
-            <div className="space-y-1">
-              <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider px-3 mb-3">
-                Team Management
-              </div>
-
-              <button
-                onClick={() => setActiveMenu('performance')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
-                  activeMenu === 'performance'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <BarChart2 className="w-4 h-4 text-neutral-400" />
-                <span>Performance</span>
-              </button>
-
-              <button
-                onClick={() => setActiveMenu('payrolls')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
-                  activeMenu === 'payrolls'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <Wallet className="w-4 h-4 text-neutral-400" />
-                <span>Payrolls</span>
-              </button>
-
-              <button
-                onClick={() => setActiveMenu('invoice')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
-                  activeMenu === 'invoice'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <FileText className="w-4 h-4 text-neutral-400" />
-                <span>Invoice</span>
-              </button>
-
-              <button
-                onClick={() => setActiveMenu('employees')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
-                  activeMenu === 'employees'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <Users className="w-4 h-4 text-neutral-400" />
-                <span>Employees</span>
-              </button>
-
-              <button
-                onClick={() => setActiveMenu('meeting')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
-                  activeMenu === 'meeting'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <Video className="w-4 h-4 text-neutral-400" />
-                <span>Meeting</span>
-              </button>
+      {/* 2. MAIN CONTENT AREA (FIT TO PAGE) */}
+      <div className="flex-1 bg-[#09090b] flex flex-col min-w-0 h-full overflow-hidden">
+        
+        {/* Top Header Bar */}
+        <header className="h-14 border-b border-white/10 flex items-center px-4 sm:px-6 justify-between bg-[#121215] shrink-0 z-10">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsOpen(!isOpen)}
+              className="p-1.5 rounded-md text-neutral-400 hover:bg-white/5 hover:text-white transition-colors cursor-pointer"
+              title={isOpen ? "Tutup Sidebar" : "Buka Sidebar"}
+            >
+              {isOpen ? <PanelLeftClose className="w-[18px] h-[18px]" strokeWidth={1.5} /> : <PanelLeftOpen className="w-[18px] h-[18px]" strokeWidth={1.5} />}
+            </button>
+            <div className="flex items-center gap-2 text-sm text-neutral-400">
+              <span className="truncate max-w-[140px] sm:max-w-[200px]">{activeWorkspace}</span>
+              <span>/</span>
+              <span className="font-medium text-white truncate capitalize">{activeId}</span>
             </div>
           </div>
-
-          {/* Bottom Tenant Selector & Live Polling Status */}
-          <div className="pt-6 border-t border-neutral-200/60 mt-6">
-            <div className="relative">
-              <select
-                value={selectedTenantId}
-                onChange={(e) => setSelectedTenantId(e.target.value)}
-                className="w-full text-xs font-bold px-3 py-2 rounded-xl bg-white/70 border border-neutral-200/70 text-neutral-800 appearance-none pr-8 cursor-pointer focus:outline-none"
-              >
-                {tenantsList.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    🏢 {t.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-neutral-500 absolute right-2.5 top-2.5 pointer-events-none" />
-            </div>
-            <div className="flex items-center gap-2 mt-2 text-[10px] text-neutral-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Real-Time Sync Active</span>
-            </div>
-          </div>
-        </aside>
-
-        {/* =========================================================================
-            2. MAIN CONTENT AREA (Fit to Page, Full Height Scrollable)
-           ========================================================================= */}
-        <main className="flex-1 flex flex-col gap-6 p-6 sm:p-8 lg:p-10 h-full overflow-y-auto relative z-10">
           
-          {/* Top Header Bar */}
-          <header className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl lg:text-4xl font-extrabold text-[#1a2332] tracking-tight">
-                Dashboard
-              </h1>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsFeedbackDemoOpen(true)}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-md bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-medium border border-rose-500/20 transition-all cursor-pointer"
+            >
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span>Demo Survey</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsDataset900Open(true)}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-xs font-medium border border-amber-500/20 transition-all cursor-pointer"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              <span>Audit 900</span>
+            </button>
+
+            <Link
+              href="/payment-gateway"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#007979]/20 hover:bg-[#007979]/30 text-[#24B1B1] text-xs font-medium border border-[#24B1B1]/30 transition-all"
+            >
+              <span>BNI Gateway</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+
+            {/* User Pill */}
+            <div className="flex items-center gap-2.5 pl-2 border-l border-white/10">
+              <img
+                src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80"
+                alt="Carla Sanford"
+                className="w-7 h-7 rounded-full object-cover border border-white/20"
+              />
+              <span className="text-xs font-medium text-neutral-300 hidden md:inline-block">Carla Sanford</span>
             </div>
+          </div>
+        </header>
 
-            {/* Right: Actions & Carla Sanford Profile Pill */}
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setIsFeedbackDemoOpen(true)}
-                className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/80 hover:bg-white text-rose-700 text-xs font-bold border border-rose-200/80 shadow-xs transition-all cursor-pointer"
-                title="Demo Canceled Feedback Survey"
-              >
-                <AlertTriangle className="w-3.5 h-3.5" />
-                <span>Demo Survey</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsDataset900Open(true)}
-                className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/80 hover:bg-white text-orange-700 text-xs font-bold border border-orange-200/80 shadow-xs transition-all cursor-pointer"
-              >
-                <Cpu className="w-3.5 h-3.5" />
-                <span>Audit 900</span>
-              </button>
-
-              <Link
-                href="/payment-gateway"
-                className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/80 hover:bg-white text-[#005E6A] text-xs font-bold border border-teal-200/80 shadow-xs transition-all"
-              >
-                <span>BNI Gateway</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-
-              {/* Carla Sanford User Pill (Plek Ketiplek) */}
-              <div className="bg-white/90 backdrop-blur-md border border-white/90 shadow-xs px-3 py-1.5 rounded-full flex items-center gap-3">
-                <img
-                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80"
-                  alt="Carla Sanford"
-                  className="w-8 h-8 rounded-full object-cover border border-white"
-                />
-                <span className="text-xs font-bold text-neutral-800">
-                  Carla Sanford
-                </span>
-                <ChevronDown className="w-3.5 h-3.5 text-neutral-400" />
-              </div>
-            </div>
-          </header>
-
-          {/* Content Switcher for secondary tabs */}
-          {activeMenu === 'performance' && (
-            <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 shadow-xs border border-white/80">
+        {/* Dynamic Body Content */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#09090b]">
+          
+          {/* View Tab 1: Visual Analytics */}
+          {activeId === 'analytics' && (
+            <div className="bg-[#121215] border border-white/10 rounded-xl p-6 shadow-sm">
               <VisualAnalyticsTab analytics={mlAnalytics} revenueInsights={revenueInsights} />
             </div>
           )}
 
-          {activeMenu === 'tasks' && (
-            <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 shadow-xs border border-white/80">
+          {/* View Tab 2: AI Prediction */}
+          {(activeId === 'projects' || activeId === 'p-active') && (
+            <div className="bg-[#121215] border border-white/10 rounded-xl p-6 shadow-sm">
               <AiPredictionTab />
             </div>
           )}
 
-          {activeMenu === 'calendar' && (
-            <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 shadow-xs border border-white/80">
+          {/* View Tab 3: Future Scenarios */}
+          {activeId === 'calendar' && (
+            <div className="bg-[#121215] border border-white/10 rounded-xl p-6 shadow-sm">
               <FutureScenariosTab />
             </div>
           )}
 
-          {/* MAIN DASHBOARD VIEW (When activeMenu === 'dashboard' or default) */}
-          {(activeMenu === 'dashboard' || activeMenu === 'payrolls' || activeMenu === 'invoice' || activeMenu === 'employees' || activeMenu === 'meeting' || activeMenu === 'settings' || activeMenu === 'support') && (
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+          {/* Default Home / Dashboard View */}
+          {(activeId === 'home' || activeId === 'inbox' || activeId === 'team' || activeId === 'customers' || activeId === 'finance' || activeId === 'api' || activeId === 'webhooks' || activeId === 'settings' || activeId === 'p-archived' || activeId === 't-trainers' || activeId === 't-staff' || activeId === 'c-active' || activeId === 'c-at-risk') && (
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 max-w-7xl mx-auto">
               
               {/* LEFT & CENTER COLUMN (8 COLS) */}
               <div className="xl:col-span-8 flex flex-col gap-6">
                 
-                {/* 1. TOP STAT STRIP (Total Employees, Total Project, Job Applicant) */}
-                <div className="bg-white/90 backdrop-blur-md rounded-3xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.02)] border border-white/80 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* 1. TOP STAT STRIP */}
+                <div className="bg-[#121215] border border-white/10 rounded-xl p-5 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {/* Stat 1 */}
                   <div className="flex items-center gap-3.5 pl-2">
-                    <div className="w-11 h-11 rounded-full bg-[#fdf3ec] flex items-center justify-center text-[#b85e35] shadow-inner">
+                    <div className="w-10 h-10 rounded-lg bg-[#007979]/15 text-[#24B1B1] flex items-center justify-center border border-[#007979]/30">
                       <Users className="w-5 h-5" />
                     </div>
                     <div>
-                      <div className="text-[11px] font-semibold text-neutral-400">Total Employees</div>
-                      <div className="text-xl font-extrabold text-neutral-900 tracking-tight">
+                      <div className="text-[11px] font-medium text-neutral-400">Total Employees / Members</div>
+                      <div className="text-xl font-bold text-white tracking-tight mt-0.5">
                         {stats.total_members ? stats.total_members.toLocaleString() : '49,229'}
                       </div>
                     </div>
                   </div>
 
                   {/* Stat 2 */}
-                  <div className="flex items-center gap-3.5 pl-2 sm:border-l sm:border-neutral-100">
-                    <div className="w-11 h-11 rounded-full bg-[#fdf3ec] flex items-center justify-center text-[#b85e35] shadow-inner">
+                  <div className="flex items-center gap-3.5 pl-2 sm:border-l sm:border-white/10">
+                    <div className="w-10 h-10 rounded-lg bg-indigo-500/15 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
                       <FileText className="w-5 h-5" />
                     </div>
                     <div>
-                      <div className="text-[11px] font-semibold text-neutral-400">Total Project</div>
-                      <div className="text-xl font-extrabold text-neutral-900 tracking-tight">
-                        49,229
+                      <div className="text-[11px] font-medium text-neutral-400">Active Retained</div>
+                      <div className="text-xl font-bold text-white tracking-tight mt-0.5">
+                        {stats.saved_members ? stats.saved_members.toLocaleString() : '34'}
                       </div>
                     </div>
                   </div>
 
                   {/* Stat 3 */}
-                  <div className="flex items-center gap-3.5 pl-2 sm:border-l sm:border-neutral-100">
-                    <div className="w-11 h-11 rounded-full bg-[#fdf3ec] flex items-center justify-center text-[#b85e35] shadow-inner">
+                  <div className="flex items-center gap-3.5 pl-2 sm:border-l sm:border-white/10">
+                    <div className="w-10 h-10 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center border border-amber-500/30">
                       <Wallet className="w-5 h-5" />
                     </div>
                     <div>
-                      <div className="text-[11px] font-semibold text-neutral-400">Job Applicant</div>
-                      <div className="text-xl font-extrabold text-neutral-900 tracking-tight">
-                        49,229
+                      <div className="text-[11px] font-medium text-neutral-400">Total BNI Revenue</div>
+                      <div className="text-xl font-bold text-white tracking-tight mt-0.5">
+                        Rp {Math.round(stats.total_revenue_paid_idr / 1000000)}M
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* 2. AVERAGE KPI SCORE CARD + TOP PERFORMANCE */}
-                <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 lg:p-7 shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-white/80 flex flex-col md:flex-row gap-6">
+                <div className="bg-[#121215] border border-white/10 rounded-xl p-6 shadow-sm flex flex-col md:flex-row gap-6">
                   {/* Left part: Bar Chart & KPI */}
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-lg font-bold text-neutral-900 tracking-tight">
-                          Average KPI Score
+                        <h3 className="text-base font-bold text-white tracking-tight">
+                          Average Retention KPI Score
                         </h3>
-                        <button
-                          type="button"
-                          className="px-3 py-1 rounded-full bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/60 text-neutral-600 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                        >
+                        <div className="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-neutral-300 text-xs font-medium flex items-center gap-1.5">
                           <span>Past 3 months</span>
                           <ChevronDown className="w-3 h-3 text-neutral-400" />
-                        </button>
+                        </div>
                       </div>
 
-                      <div className="flex items-baseline gap-2 mb-1">
-                        <span className="text-4xl font-extrabold text-neutral-900 tracking-tight">
-                          63.89%
+                      <div className="flex items-baseline gap-2 mb-1 mt-3">
+                        <span className="text-4xl font-extrabold text-white tracking-tight">
+                          {stats.retention_rate_pct.toFixed(2)}%
                         </span>
                       </div>
-                      <div className="text-xs text-rose-500 font-semibold mb-6">
-                        - 2.34%
+                      <div className="text-xs text-emerald-400 font-semibold mb-6 flex items-center gap-1">
+                        <span>+2.34% vs last cycle</span>
                       </div>
                     </div>
 
                     {/* Cylindrical Pill Bar Chart (Feb to Jul) */}
-                    <div className="flex items-end justify-between gap-3 pt-4 border-t border-neutral-100/80">
+                    <div className="flex items-end justify-between gap-3 pt-4 border-t border-white/10">
                       {/* Y-Axis Labels */}
-                      <div className="flex flex-col justify-between text-[10px] text-neutral-400 font-medium h-36 pb-6">
+                      <div className="flex flex-col justify-between text-[10px] text-neutral-500 font-mono h-36 pb-6">
                         <span>100%</span>
                         <span>75%</span>
                         <span>50%</span>
@@ -610,59 +465,59 @@ export default function MerchantDashboard() {
                         <span>0%</span>
                       </div>
 
-                      {/* Bar 1: Feb (45%) */}
+                      {/* Bar 1: Feb */}
                       <div className="flex flex-col items-center gap-2 flex-1">
-                        <div className="w-3.5 h-36 bg-[#ece8e4] rounded-full flex flex-col justify-end p-0.5">
-                          <div className="w-full h-[45%] bg-gradient-to-t from-[#c86b43] to-[#e08963] rounded-full" />
+                        <div className="w-3.5 h-36 bg-white/5 rounded-full flex flex-col justify-end p-0.5">
+                          <div className="w-full h-[45%] bg-gradient-to-t from-[#007979] to-[#24B1B1] rounded-full" />
                         </div>
-                        <span className="text-[11px] font-medium text-neutral-500">Feb</span>
+                        <span className="text-[11px] font-medium text-neutral-400">Feb</span>
                       </div>
 
-                      {/* Bar 2: Mar (80%) */}
+                      {/* Bar 2: Mar */}
                       <div className="flex flex-col items-center gap-2 flex-1">
-                        <div className="w-3.5 h-36 bg-[#ece8e4] rounded-full flex flex-col justify-end p-0.5">
-                          <div className="w-full h-[80%] bg-gradient-to-t from-[#c86b43] to-[#e08963] rounded-full" />
+                        <div className="w-3.5 h-36 bg-white/5 rounded-full flex flex-col justify-end p-0.5">
+                          <div className="w-full h-[80%] bg-gradient-to-t from-[#007979] to-[#24B1B1] rounded-full" />
                         </div>
-                        <span className="text-[11px] font-medium text-neutral-500">Mar</span>
+                        <span className="text-[11px] font-medium text-neutral-400">Mar</span>
                       </div>
 
-                      {/* Bar 3: Apr (60%) */}
+                      {/* Bar 3: Apr */}
                       <div className="flex flex-col items-center gap-2 flex-1">
-                        <div className="w-3.5 h-36 bg-[#ece8e4] rounded-full flex flex-col justify-end p-0.5">
-                          <div className="w-full h-[60%] bg-gradient-to-t from-[#c86b43] to-[#e08963] rounded-full" />
+                        <div className="w-3.5 h-36 bg-white/5 rounded-full flex flex-col justify-end p-0.5">
+                          <div className="w-full h-[60%] bg-gradient-to-t from-[#007979] to-[#24B1B1] rounded-full" />
                         </div>
-                        <span className="text-[11px] font-medium text-neutral-500">Apr</span>
+                        <span className="text-[11px] font-medium text-neutral-400">Apr</span>
                       </div>
 
-                      {/* Bar 4: May (65%) */}
+                      {/* Bar 4: May */}
                       <div className="flex flex-col items-center gap-2 flex-1">
-                        <div className="w-3.5 h-36 bg-[#ece8e4] rounded-full flex flex-col justify-end p-0.5">
-                          <div className="w-full h-[65%] bg-gradient-to-t from-[#c86b43] to-[#e08963] rounded-full" />
+                        <div className="w-3.5 h-36 bg-white/5 rounded-full flex flex-col justify-end p-0.5">
+                          <div className="w-full h-[65%] bg-gradient-to-t from-[#007979] to-[#24B1B1] rounded-full" />
                         </div>
-                        <span className="text-[11px] font-medium text-neutral-500">May</span>
+                        <span className="text-[11px] font-medium text-neutral-400">May</span>
                       </div>
 
-                      {/* Bar 5: Jun (30%) */}
+                      {/* Bar 5: Jun */}
                       <div className="flex flex-col items-center gap-2 flex-1">
-                        <div className="w-3.5 h-36 bg-[#ece8e4] rounded-full flex flex-col justify-end p-0.5">
-                          <div className="w-full h-[30%] bg-gradient-to-t from-[#c86b43] to-[#e08963] rounded-full" />
+                        <div className="w-3.5 h-36 bg-white/5 rounded-full flex flex-col justify-end p-0.5">
+                          <div className="w-full h-[30%] bg-gradient-to-t from-[#007979] to-[#24B1B1] rounded-full" />
                         </div>
-                        <span className="text-[11px] font-medium text-neutral-500">Jun</span>
+                        <span className="text-[11px] font-medium text-neutral-400">Jun</span>
                       </div>
 
-                      {/* Bar 6: Jul (55%) */}
+                      {/* Bar 6: Jul */}
                       <div className="flex flex-col items-center gap-2 flex-1">
-                        <div className="w-3.5 h-36 bg-[#ece8e4] rounded-full flex flex-col justify-end p-0.5">
-                          <div className="w-full h-[55%] bg-gradient-to-t from-[#c86b43] to-[#e08963] rounded-full" />
+                        <div className="w-3.5 h-36 bg-white/5 rounded-full flex flex-col justify-end p-0.5">
+                          <div className="w-full h-[55%] bg-gradient-to-t from-[#007979] to-[#24B1B1] rounded-full" />
                         </div>
-                        <span className="text-[11px] font-medium text-neutral-500">Jul</span>
+                        <span className="text-[11px] font-medium text-neutral-400">Jul</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Right part: Top Performance list */}
-                  <div className="w-full md:w-56 border-t md:border-t-0 md:border-l md:border-neutral-100 md:pl-6">
-                    <h4 className="text-sm font-bold text-neutral-900 mb-4 tracking-tight">
+                  <div className="w-full md:w-56 border-t md:border-t-0 md:border-l md:border-white/10 md:pl-6 pt-4 md:pt-0">
+                    <h4 className="text-sm font-bold text-white mb-4 tracking-tight">
                       Top Performance
                     </h4>
                     
@@ -673,17 +528,17 @@ export default function MerchantDashboard() {
                             <img
                               src={p.avatar}
                               alt={p.name}
-                              className="w-9 h-9 rounded-full object-cover border border-neutral-100 shadow-xs"
+                              className="w-9 h-9 rounded-full object-cover border border-white/20"
                             />
-                            <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-neutral-900 text-white rounded-full text-[8px] font-black flex items-center justify-center">
+                            <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-neutral-900 border border-white/20 text-white rounded-full text-[8px] font-bold flex items-center justify-center">
                               {p.id}
                             </div>
                           </div>
-                          <div>
-                            <div className="text-xs font-bold text-neutral-900 leading-snug">
+                          <div className="overflow-hidden">
+                            <div className="text-xs font-semibold text-white leading-snug truncate">
                               {p.name}
                             </div>
-                            <div className="text-[10px] text-neutral-400">
+                            <div className="text-[10px] text-neutral-400 truncate">
                               {p.tasks}
                             </div>
                           </div>
@@ -694,15 +549,15 @@ export default function MerchantDashboard() {
                 </div>
 
                 {/* 3. EMPLOYEES TABLE CARD */}
-                <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-white/80">
+                <div className="bg-[#121215] border border-white/10 rounded-xl p-6 shadow-sm">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-neutral-900 tracking-tight">
-                      Employees
+                    <h3 className="text-base font-bold text-white tracking-tight">
+                      Team & Member Performance Directory
                     </h3>
                     <button
                       type="button"
                       onClick={handleDownloadCsv}
-                      className="text-xs font-semibold text-[#b85e35] hover:text-[#994622] flex items-center gap-1 cursor-pointer"
+                      className="text-xs font-medium text-[#24B1B1] hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <Download className="w-3.5 h-3.5" />
                       <span>Export CSV</span>
@@ -712,38 +567,38 @@ export default function MerchantDashboard() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead>
-                        <tr className="text-neutral-400 font-semibold border-b border-neutral-100">
-                          <th className="pb-3 px-2 font-medium">ID</th>
-                          <th className="pb-3 px-2 font-medium">Name</th>
-                          <th className="pb-3 px-2 font-medium">Role</th>
-                          <th className="pb-3 px-2 font-medium">Performance</th>
+                        <tr className="text-neutral-400 font-medium border-b border-white/10">
+                          <th className="pb-3 px-2">ID</th>
+                          <th className="pb-3 px-2">Name</th>
+                          <th className="pb-3 px-2">Role</th>
+                          <th className="pb-3 px-2">Health / Quota</th>
                           <th className="pb-3 px-2 text-right"></th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-neutral-100/70">
+                      <tbody className="divide-y divide-white/5">
                         {displayEmployees.map((emp) => (
-                          <tr key={emp.id} className="hover:bg-neutral-50/60 transition-colors">
-                            <td className="py-3 px-2 font-semibold text-neutral-800">
+                          <tr key={emp.id} className="hover:bg-white/5 transition-colors">
+                            <td className="py-3 px-2 font-mono text-neutral-400">
                               {emp.id}
                             </td>
-                            <td className="py-3 px-2 font-bold text-neutral-900">
+                            <td className="py-3 px-2 font-semibold text-white">
                               {emp.name}
                             </td>
-                            <td className="py-3 px-2 text-neutral-600 font-medium">
+                            <td className="py-3 px-2 text-neutral-400">
                               {emp.role}
                             </td>
                             <td className="py-3 px-2">
-                              <div className="w-24 h-2 bg-[#f4ebe5] rounded-full overflow-hidden">
+                              <div className="w-28 h-2 bg-white/10 rounded-full overflow-hidden">
                                 <div
-                                  className="h-full rounded-full transition-all duration-500"
-                                  style={{ width: `${emp.progress}%`, backgroundColor: emp.color }}
+                                  className="h-full rounded-full transition-all duration-500 bg-[#007979]"
+                                  style={{ width: `${emp.progress}%` }}
                                 />
                               </div>
                             </td>
                             <td className="py-3 px-2 text-right">
                               <button
                                 type="button"
-                                className="text-neutral-300 hover:text-neutral-600 cursor-pointer p-1"
+                                className="text-neutral-500 hover:text-white cursor-pointer p-1"
                               >
                                 <MoreHorizontal className="w-4 h-4" />
                               </button>
@@ -757,150 +612,126 @@ export default function MerchantDashboard() {
 
               </div>
 
-              {/* RIGHT COLUMN (4 COLS - DARK UPCOMING MEETING & WORKING FORMAT CARDS) */}
+              {/* RIGHT COLUMN (4 COLS) */}
               <div className="xl:col-span-4 flex flex-col gap-6">
                 
-                {/* 1. UPCOMING MEETING (The Signature Dark Glassmorphism Card) */}
-                <div className="bg-[#18181b] text-white rounded-3xl p-6 lg:p-7 shadow-xl border border-white/10 relative overflow-hidden flex flex-col justify-between">
-                  {/* Subtle warm ambient glow behind dark glass */}
-                  <div className="absolute top-0 right-0 w-48 h-48 bg-[#c86b43]/15 rounded-full blur-2xl pointer-events-none" />
-                  
-                  <div className="relative z-10">
-                    <h3 className="text-xl font-bold text-white tracking-tight mb-6">
-                      Upcoming Meeting
-                    </h3>
+                {/* 1. UPCOMING MEETINGS */}
+                <div className="bg-[#121215] border border-white/10 rounded-xl p-6 shadow-sm relative overflow-hidden flex flex-col justify-between">
+                  <h3 className="text-base font-bold text-white tracking-tight mb-5">
+                    Upcoming Meetings & Check-ins
+                  </h3>
 
-                    {/* Timeline List with Connector Line */}
-                    <div className="relative pl-5 space-y-6 before:content-[''] before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-px before:bg-white/20">
-                      
-                      {/* Timeline Item 1 */}
-                      <div className="relative">
-                        <div className="absolute -left-5 top-1.5 w-2 h-2 rounded-full bg-white ring-4 ring-[#18181b]" />
-                        <div className="text-sm font-semibold text-neutral-100">
-                          Project Manager - Job Interview
-                        </div>
-                        <div className="text-[11px] text-neutral-400 mt-0.5">
-                          Today 06:00-08:00
-                        </div>
-                        {/* Stacked Avatars */}
-                        <div className="flex -space-x-2 mt-2.5">
-                          <img
-                            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80"
-                            alt="Attendee"
-                            className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
-                          />
-                          <img
-                            src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80"
-                            alt="Attendee"
-                            className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
-                          />
-                          <img
-                            src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&auto=format&fit=crop&q=80"
-                            alt="Attendee"
-                            className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
-                          />
-                        </div>
+                  <div className="relative pl-5 space-y-6 before:content-[''] before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-px before:bg-white/10">
+                    
+                    {/* Item 1 */}
+                    <div className="relative">
+                      <div className="absolute -left-5 top-1.5 w-2 h-2 rounded-full bg-[#24B1B1] ring-4 ring-[#121215]" />
+                      <div className="text-sm font-semibold text-white">
+                        Retention Strategy - Churn Review
                       </div>
-
-                      {/* Timeline Item 2 */}
-                      <div className="relative">
-                        <div className="absolute -left-5 top-1.5 w-2 h-2 rounded-full bg-white ring-4 ring-[#18181b]" />
-                        <div className="text-sm font-semibold text-neutral-100">
-                          Project Manager - Job Interview
-                        </div>
-                        <div className="text-[11px] text-neutral-400 mt-0.5">
-                          Today 06:00-08:00
-                        </div>
-                        {/* Stacked Avatars */}
-                        <div className="flex -space-x-2 mt-2.5">
-                          <img
-                            src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&auto=format&fit=crop&q=80"
-                            alt="Attendee"
-                            className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
-                          />
-                          <img
-                            src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=80"
-                            alt="Attendee"
-                            className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
-                          />
-                        </div>
+                      <div className="text-[11px] text-neutral-400 mt-0.5">
+                        Today 09:00 - 10:30
                       </div>
-
-                      {/* Timeline Item 3 */}
-                      <div className="relative">
-                        <div className="absolute -left-5 top-1.5 w-2 h-2 rounded-full bg-white ring-4 ring-[#18181b]" />
-                        <div className="text-sm font-semibold text-neutral-100">
-                          Project Manager - Job Interview
-                        </div>
-                        <div className="text-[11px] text-neutral-400 mt-0.5">
-                          Today 06:00-08:00
-                        </div>
-                        {/* Stacked Avatars */}
-                        <div className="flex -space-x-2 mt-2.5">
-                          <img
-                            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80"
-                            alt="Attendee"
-                            className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
-                          />
-                          <img
-                            src="https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=80&auto=format&fit=crop&q=80"
-                            alt="Attendee"
-                            className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
-                          />
-                          <img
-                            src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&auto=format&fit=crop&q=80"
-                            alt="Attendee"
-                            className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
-                          />
-                          <img
-                            src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80"
-                            alt="Attendee"
-                            className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
-                          />
-                        </div>
+                      <div className="flex -space-x-2 mt-2.5">
+                        <img
+                          src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80"
+                          alt="Attendee"
+                          className="w-6 h-6 rounded-full object-cover border-2 border-[#121215]"
+                        />
+                        <img
+                          src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80"
+                          alt="Attendee"
+                          className="w-6 h-6 rounded-full object-cover border-2 border-[#121215]"
+                        />
                       </div>
-
                     </div>
+
+                    {/* Item 2 */}
+                    <div className="relative">
+                      <div className="absolute -left-5 top-1.5 w-2 h-2 rounded-full bg-[#007979] ring-4 ring-[#121215]" />
+                      <div className="text-sm font-semibold text-white">
+                        BNI SNAP Settlement Sync
+                      </div>
+                      <div className="text-[11px] text-neutral-400 mt-0.5">
+                        Tomorrow 14:00 - 15:00
+                      </div>
+                      <div className="flex -space-x-2 mt-2.5">
+                        <img
+                          src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&auto=format&fit=crop&q=80"
+                          alt="Attendee"
+                          className="w-6 h-6 rounded-full object-cover border-2 border-[#121215]"
+                        />
+                        <img
+                          src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=80"
+                          alt="Attendee"
+                          className="w-6 h-6 rounded-full object-cover border-2 border-[#121215]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Item 3 */}
+                    <div className="relative">
+                      <div className="absolute -left-5 top-1.5 w-2 h-2 rounded-full bg-neutral-600 ring-4 ring-[#121215]" />
+                      <div className="text-sm font-semibold text-white">
+                        Class Capacity Re-allocation
+                      </div>
+                      <div className="text-[11px] text-neutral-400 mt-0.5">
+                        Friday 11:00 - 12:00
+                      </div>
+                      <div className="flex -space-x-2 mt-2.5">
+                        <img
+                          src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&auto=format&fit=crop&q=80"
+                          alt="Attendee"
+                          className="w-6 h-6 rounded-full object-cover border-2 border-[#121215]"
+                        />
+                        <img
+                          src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80"
+                          alt="Attendee"
+                          className="w-6 h-6 rounded-full object-cover border-2 border-[#121215]"
+                        />
+                      </div>
+                    </div>
+
                   </div>
                 </div>
 
                 {/* 2. WORKING FORMAT (Distribution Card) */}
-                <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 lg:p-7 shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-white/80 flex flex-col justify-between">
-                  <h3 className="text-lg font-bold text-neutral-900 tracking-tight mb-5">
-                    Working Format
+                <div className="bg-[#121215] border border-white/10 rounded-xl p-6 shadow-sm flex flex-col justify-between">
+                  <h3 className="text-base font-bold text-white tracking-tight mb-5">
+                    Member Attendance Channel
                   </h3>
 
                   <div className="space-y-4">
-                    {/* Row 1: On-site */}
+                    {/* Row 1: Studio */}
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <div className="text-[11px] font-medium text-neutral-400">On-site</div>
-                        <div className="text-base font-extrabold text-neutral-900">13,982</div>
+                        <div className="text-[11px] font-medium text-neutral-400">On-studio Sessions</div>
+                        <div className="text-base font-bold text-white mt-0.5">13,982</div>
                       </div>
-                      <div className="flex-1 max-w-[170px] h-10 rounded-xl bg-[#faeee7] flex items-center justify-end px-3.5">
-                        <span className="text-sm font-extrabold text-[#c86b43]">11.4%</span>
+                      <div className="flex-1 max-w-[150px] h-9 rounded-lg bg-white/5 border border-white/5 flex items-center justify-end px-3">
+                        <span className="text-sm font-bold text-[#24B1B1]">11.4%</span>
                       </div>
                     </div>
 
                     {/* Row 2: Hybrid */}
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <div className="text-[11px] font-medium text-neutral-400">Hybrid</div>
-                        <div className="text-base font-extrabold text-neutral-900">26,214</div>
+                        <div className="text-[11px] font-medium text-neutral-400">Hybrid / Multi-Pass</div>
+                        <div className="text-base font-bold text-white mt-0.5">26,214</div>
                       </div>
-                      <div className="flex-1 max-w-[170px] h-10 rounded-xl bg-[#faeee7] flex items-center justify-end px-3.5">
-                        <span className="text-sm font-extrabold text-[#c86b43]">32.2%</span>
+                      <div className="flex-1 max-w-[150px] h-9 rounded-lg bg-white/5 border border-white/5 flex items-center justify-end px-3">
+                        <span className="text-sm font-bold text-[#24B1B1]">32.2%</span>
                       </div>
                     </div>
 
-                    {/* Row 3: Remote */}
+                    {/* Row 3: Online */}
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <div className="text-[11px] font-medium text-neutral-400">Remote</div>
-                        <div className="text-base font-extrabold text-neutral-900">41,214</div>
+                        <div className="text-[11px] font-medium text-neutral-400">Online & On-Demand</div>
+                        <div className="text-base font-bold text-white mt-0.5">41,214</div>
                       </div>
-                      <div className="flex-1 max-w-[170px] h-10 rounded-xl bg-[#faeee7] flex items-center justify-end px-3.5">
-                        <span className="text-sm font-extrabold text-[#c86b43]">56.4%</span>
+                      <div className="flex-1 max-w-[150px] h-9 rounded-lg bg-white/5 border border-white/5 flex items-center justify-end px-3">
+                        <span className="text-sm font-bold text-[#24B1B1]">56.4%</span>
                       </div>
                     </div>
                   </div>
@@ -912,6 +743,40 @@ export default function MerchantDashboard() {
           )}
 
         </main>
+      </div>
+
+      {/* Global Search Modal (Esc to Close) */}
+      {isSearchOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/60 backdrop-blur-sm px-4">
+          <div className="fixed inset-0" onClick={() => setIsSearchOpen(false)} />
+          <div className="relative w-full max-w-xl bg-[#121215] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center px-4 border-b border-white/10">
+              <Search className="w-[18px] h-[18px] text-neutral-400 mr-3 shrink-0" strokeWidth={1.5} />
+              <input 
+                autoFocus
+                className="flex-1 bg-transparent py-4 outline-none text-[14px] text-white placeholder:text-neutral-500"
+                placeholder="Search members, campaigns, or actions..."
+              />
+              <kbd 
+                onClick={() => setIsSearchOpen(false)}
+                className="hidden sm:inline-flex items-center justify-center h-5 px-1.5 ml-2 text-[10px] font-medium font-mono text-neutral-400 bg-white/10 border border-white/10 rounded-[4px] cursor-pointer hover:text-white transition-colors"
+              >
+                ESC
+              </kbd>
+              <button 
+                onClick={() => setIsSearchOpen(false)}
+                className="ml-3 p-1 rounded-md text-neutral-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-[18px] h-[18px]" strokeWidth={1.5} />
+              </button>
+            </div>
+            <div className="p-2 py-8 flex flex-col items-center justify-center">
+              <Command className="w-6 h-6 text-neutral-600 mb-2" strokeWidth={1.5} />
+              <p className="text-[13px] text-neutral-400 font-medium">Type a command or search member...</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Audit 900 Dataset Modal */}
       <Dataset900AuditModal
@@ -923,7 +788,7 @@ export default function MerchantDashboard() {
       <CancellationFeedbackDemoModal
         isOpen={isFeedbackDemoOpen}
         onClose={() => setIsFeedbackDemoOpen(false)}
-        tenantId={selectedTenantId}
+        tenantId={selectedTenant.id}
         onFeedbackSaved={() => loadData()}
       />
     </div>

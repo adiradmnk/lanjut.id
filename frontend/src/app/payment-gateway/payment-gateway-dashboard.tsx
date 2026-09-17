@@ -3,55 +3,115 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
+  SidebarNav, 
+  type NavGroupData,
+  type NavItemData
+} from '@/components/DarkSidebarNav';
+import { 
   Search, 
   LayoutDashboard, 
-  CheckSquare, 
-  Calendar, 
-  Settings, 
-  Headphones, 
-  BarChart2, 
-  Wallet, 
-  FileText, 
+  FolderKanban, 
   Users, 
-  Video, 
+  Settings, 
+  LogOut,
+  Hash,
   ChevronDown, 
-  MoreHorizontal, 
-  Download, 
-  AlertTriangle, 
-  Cpu, 
-  ExternalLink, 
-  ArrowRight, 
-  RefreshCw, 
-  Sparkles, 
-  Hexagon, 
-  CheckCircle2, 
-  Clock, 
-  ShieldCheck, 
-  TrendingUp, 
-  Copy, 
-  Check, 
-  Terminal, 
-  Blocks,
+  ChevronRight,
+  Inbox,
+  Calendar,
+  Activity,
   CreditCard,
+  Globe,
+  Terminal,
+  Blocks,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Command,
+  X,
+  FileText,
+  Wallet,
+  Download,
+  MoreHorizontal,
+  AlertTriangle,
+  Cpu,
+  ArrowRight,
+  RefreshCw,
+  Sparkles,
+  CheckCircle2,
+  Clock,
+  ShieldCheck,
+  TrendingUp,
+  Copy,
+  Check,
   Building2,
-  Activity
+  ExternalLink
 } from 'lucide-react';
 import { 
   formatRupiah, 
   parseMerchants, 
   parsePayments, 
   parsePortfolio, 
-  paymentStatus, 
   type PaymentStatus,
   type Merchant,
   type RetentionPayment
 } from './payment-data';
 
+const gatewayNavGroups: NavGroupData[] = [
+  {
+    items: [
+      { id: 'search', title: 'Search Gateway', icon: Search, shortcut: '⌘K' },
+      { id: 'home', title: 'Overview', icon: LayoutDashboard },
+      { id: 'supervised-merchants', title: 'Supervised Merchants', icon: Building2, badge: 18 },
+      { id: 'portfolio-health', title: 'Portfolio Health', icon: Activity },
+    ]
+  },
+  {
+    heading: 'BNI SNAP & Settlement',
+    items: [
+      { 
+        id: 'settlements', 
+        title: 'Settlements & VA', 
+        icon: CreditCard,
+        children: [
+          { id: 's-settled', title: 'Settled Transactions', icon: Hash },
+          { id: 's-pending', title: 'Pending Settlement', icon: Hash },
+          { id: 's-failed', title: 'Failed & Dispute', icon: Hash },
+        ]
+      },
+      { id: 'audit-logs', title: 'Retention Audits', icon: FileText },
+      { 
+        id: 'merchants-dir', 
+        title: 'Merchant Directory', 
+        icon: Globe,
+        children: [
+          { id: 'm-gyms', title: 'Fitness & Gyms', icon: Hash },
+          { id: 'm-saas', title: 'SaaS Platforms', icon: Hash },
+          { id: 'm-edtech', title: 'EdTech & Courses', icon: Hash },
+        ]
+      },
+      { id: 'rm-support', title: 'RM Support Queue', icon: Users, badge: 3 },
+    ]
+  },
+  {
+    heading: 'Developer Hub',
+    items: [
+      { id: 'snap-credentials', title: 'SNAP API Keys', icon: Terminal },
+      { id: 'snap-webhooks', title: 'Webhook Endpoints', icon: Blocks },
+    ]
+  }
+];
+
+const gatewayBottomItems: NavItemData[] = [
+  { id: 'settings', title: 'Gateway Config', icon: Settings, shortcut: '⌘,' },
+  { id: 'logout', title: 'Log out', icon: LogOut },
+];
+
 export default function PaymentGatewayDashboard() {
-  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'tasks' | 'calendar' | 'settings' | 'support' | 'performance' | 'payrolls' | 'invoice' | 'employees' | 'meeting'>('dashboard');
+  const [activeNav, setActiveNav] = useState('home');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [selectedMerchantId, setSelectedMerchantId] = useState('mch-fitbody-01');
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | PaymentStatus>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
 
@@ -105,9 +165,29 @@ export default function PaymentGatewayDashboard() {
 
   useEffect(() => {
     loadData();
-    const timer = setInterval(loadData, 8000);
+    const timer = setInterval(loadData, 10000);
     return () => clearInterval(timer);
   }, [selectedMerchantId]);
+
+  // Keyboard shortcut for ⌘K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchModalOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleNavSelect = (id: string) => {
+    if (id === 'search') {
+      setSearchModalOpen(true);
+      return;
+    }
+    setActiveNav(id);
+  };
 
   const selectedMerchant = merchants.find(m => m.id === selectedMerchantId) || {
     id: 'mch-fitbody-01',
@@ -122,7 +202,6 @@ export default function PaymentGatewayDashboard() {
     setTimeout(() => setCopiedKey(false), 2000);
   };
 
-  // Mock Top Performers matching the reference design image
   const topPerformers = [
     {
       id: 1,
@@ -150,326 +229,190 @@ export default function PaymentGatewayDashboard() {
     },
   ];
 
-  // Mock Employees List matching the reference design image
-  const displayEmployees = [
-    { id: 'OM1246924', name: 'Judy Abbott', role: 'Interactions Manager', progress: 75, color: '#c96f48' },
-    { id: 'OM1243473', name: 'Martin Feeney', role: 'Accountability Specialist', progress: 85, color: '#dd845e' },
-    { id: 'OM4637343', name: 'Ellen Streich', role: 'Mobility Supervisor', progress: 55, color: '#c96f48' },
-    { id: 'OM1535524', name: 'Ellis Lubowitz', role: 'Product Security Engineer', progress: 40, color: '#e8a183' },
-  ];
-
   return (
-    <div className="h-screen h-[100dvh] w-full bg-[#f8f5f1] text-[#1e293b] font-sans antialiased overflow-hidden flex flex-col lg:flex-row">
-      {/* Warm Ambient Background Gradients */}
-      <div className="fixed -top-40 -left-40 w-[650px] h-[650px] bg-gradient-to-br from-[#f8d7c4]/40 via-[#f4cbbe]/25 to-transparent rounded-full blur-3xl pointer-events-none" />
-      <div className="fixed top-1/4 -right-40 w-[700px] h-[700px] bg-gradient-to-bl from-[#fde0ce]/35 via-[#f8d3c5]/20 to-transparent rounded-full blur-3xl pointer-events-none" />
+    <div className="h-screen h-[100dvh] w-full bg-[#09090b] text-neutral-200 font-sans antialiased overflow-hidden flex flex-col lg:flex-row">
+      
+      {/* 1. COLLAPSIBLE SIDEBAR */}
+      <div 
+        className={`h-full transition-all duration-300 ease-in-out shrink-0 overflow-hidden bg-[#121215] border-r border-white/10 ${
+          !sidebarCollapsed ? 'w-[260px] opacity-100' : 'w-0 opacity-0 border-none'
+        }`}
+      >
+        <SidebarNav
+          className="w-[260px] border-none bg-transparent"
+          activeId={activeNav}
+          onSelect={handleNavSelect}
+          navGroups={gatewayNavGroups}
+          bottomItems={gatewayBottomItems}
+          activeWorkspace="BNI Ecosystem Gateway"
+          planLabel="Partner Portal v2.4"
+          workspaces={['BNI Ecosystem Gateway', 'FitBody Gym', 'Sandbox Gateway']}
+        />
+      </div>
 
-      {/* =========================================================================
-          1. LEFT SIDEBAR (Fit to Page, Full Height)
-         ========================================================================= */}
-      <aside className="w-full lg:w-64 shrink-0 bg-[#fdfbf9]/95 backdrop-blur-md border-r border-neutral-200/80 p-6 flex flex-col justify-between h-auto lg:h-full overflow-y-auto z-20">
-          <div>
-            {/* Brand Logo & Name */}
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#b85e35] via-[#d4784f] to-[#994622] flex items-center justify-center text-white font-black shadow-[0_4px_14px_rgba(184,94,53,0.35)]">
-                <Hexagon className="w-5 h-5 fill-white/20 stroke-white" />
-              </div>
-              <div>
-                <span className="text-xl font-black tracking-tight text-[#1e293b]">HReazec</span>
-                <span className="block text-[9px] font-bold text-[#b85e35] uppercase tracking-wider">
-                  BNI Gateway
-                </span>
-              </div>
-            </div>
-
-            {/* Main Menu Section */}
-            <div className="space-y-1 mb-8">
-              <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider px-3 mb-3">
-                Main Menu
-              </div>
-
-              <button
-                onClick={() => setActiveMenu('dashboard')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-bold transition-all cursor-pointer ${
-                  activeMenu === 'dashboard'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <div className="w-5 h-5 rounded-full bg-[#1e293b] flex items-center justify-center text-white">
-                  <LayoutDashboard className="w-3 h-3" />
-                </div>
-                <span>Dashboard</span>
-              </button>
-
-              <button
-                onClick={() => setActiveMenu('tasks')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
-                  activeMenu === 'tasks'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <CheckSquare className="w-4 h-4 text-neutral-400" />
-                <span>Tasks</span>
-              </button>
-
-              <button
-                onClick={() => setActiveMenu('calendar')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
-                  activeMenu === 'calendar'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <Calendar className="w-4 h-4 text-neutral-400" />
-                <span>Calendar</span>
-              </button>
-
-              <button
-                onClick={() => setActiveMenu('settings')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
-                  activeMenu === 'settings'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <Settings className="w-4 h-4 text-neutral-400" />
-                <span>Settings</span>
-              </button>
-
-              <button
-                onClick={() => setActiveMenu('support')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
-                  activeMenu === 'support'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <Headphones className="w-4 h-4 text-neutral-400" />
-                <span>Support</span>
-              </button>
-            </div>
-
-            {/* Team Management Section */}
-            <div className="space-y-1">
-              <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider px-3 mb-3">
-                Team Management
-              </div>
-
-              <button
-                onClick={() => setActiveMenu('performance')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
-                  activeMenu === 'performance'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <BarChart2 className="w-4 h-4 text-neutral-400" />
-                <span>Performance</span>
-              </button>
-
-              <button
-                onClick={() => setActiveMenu('payrolls')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
-                  activeMenu === 'payrolls'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <Wallet className="w-4 h-4 text-neutral-400" />
-                <span>Payrolls</span>
-              </button>
-
-              <button
-                onClick={() => setActiveMenu('invoice')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
-                  activeMenu === 'invoice'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <FileText className="w-4 h-4 text-neutral-400" />
-                <span>Invoice</span>
-              </button>
-
-              <button
-                onClick={() => setActiveMenu('employees')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
-                  activeMenu === 'employees'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <Users className="w-4 h-4 text-neutral-400" />
-                <span>Employees</span>
-              </button>
-
-              <button
-                onClick={() => setActiveMenu('meeting')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm transition-all cursor-pointer ${
-                  activeMenu === 'meeting'
-                    ? 'bg-[#eddcd0]/90 text-[#1e293b] font-bold shadow-xs border border-white/60'
-                    : 'text-neutral-500 hover:text-neutral-900 hover:bg-black/5 font-semibold'
-                }`}
-              >
-                <Video className="w-4 h-4 text-neutral-400" />
-                <span>Meeting</span>
-              </button>
+      {/* 2. MAIN VIEWPORT */}
+      <main className="flex-1 flex flex-col h-full overflow-hidden bg-[#09090b] border-l border-white/5 relative z-10">
+        
+        {/* TOP BAR */}
+        <header className="h-14 border-b border-white/10 px-6 flex items-center justify-between shrink-0 bg-[#0c0c0e]/80 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="p-1.5 rounded-md hover:bg-white/5 text-neutral-400 hover:text-neutral-200 transition-colors cursor-pointer"
+              title="Toggle Sidebar"
+            >
+              {sidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+            </button>
+            <div className="flex items-center gap-2 text-xs font-medium text-neutral-400">
+              <span className="text-neutral-200 font-semibold">Payment Gateway</span>
+              <span>/</span>
+              <span className="capitalize text-[#24B1B1] font-semibold">{activeNav.replace('-', ' ')}</span>
             </div>
           </div>
 
-          {/* Bottom Merchant Supervised Switcher */}
-          <div className="pt-6 border-t border-neutral-200/60 mt-6">
-            <div className="relative">
+          <div className="flex items-center gap-3">
+            {/* Merchant Supervised Switcher */}
+            <div className="relative hidden md:block">
               <select
                 value={selectedMerchantId}
                 onChange={(e) => setSelectedMerchantId(e.target.value)}
-                className="w-full text-xs font-bold px-3 py-2 rounded-xl bg-white/70 border border-neutral-200/70 text-neutral-800 appearance-none pr-8 cursor-pointer focus:outline-none"
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#18181b] border border-white/10 text-neutral-200 appearance-none pr-8 cursor-pointer focus:outline-none focus:border-[#007979]"
               >
                 {merchants.map((m) => (
-                  <option key={m.id} value={m.id}>
+                  <option key={m.id} value={m.id} className="bg-[#18181b] text-neutral-200">
                     🏢 {m.name}
                   </option>
                 ))}
               </select>
-              <ChevronDown className="w-3.5 h-3.5 text-neutral-500 absolute right-2.5 top-2.5 pointer-events-none" />
+              <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2.5 top-2.5 pointer-events-none" />
             </div>
-            <div className="flex items-center gap-2 mt-2 text-[10px] text-neutral-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>BNI SNAP Gateway Live</span>
+
+            {/* SNAP Key Copy */}
+            <button
+              type="button"
+              onClick={copyCredential}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#18181b] hover:bg-white/10 text-neutral-300 text-xs font-medium border border-white/10 transition-colors cursor-pointer"
+              title="Salin SNAP Secret Key"
+            >
+              {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-neutral-400" />}
+              <span className="hidden sm:inline">{copiedKey ? 'Tersalin!' : 'SNAP Key'}</span>
+            </button>
+
+            {/* Switch to Merchant Dashboard */}
+            <Link
+              href="/merchant"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#007979]/20 hover:bg-[#007979]/30 text-[#24B1B1] text-xs font-semibold border border-[#007979]/40 transition-colors"
+            >
+              <span>Merchant View</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+
+            {/* Refresh Live Data */}
+            <button
+              type="button"
+              onClick={loadData}
+              disabled={isRefreshing}
+              className="p-1.5 rounded-lg bg-[#18181b] hover:bg-white/10 border border-white/10 text-neutral-400 hover:text-neutral-200 transition-colors cursor-pointer"
+              title="Refresh Data"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#24B1B1]' : ''}`} />
+            </button>
+          </div>
+        </header>
+
+        {/* SCROLLABLE MAIN BODY */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          
+          {/* TOP STATS STRIP */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-[#121215] border border-white/10 rounded-xl p-4 flex flex-col justify-between">
+              <div className="flex items-center justify-between text-neutral-400 text-xs mb-2">
+                <span>Supervised Merchants</span>
+                <Building2 className="w-4 h-4 text-[#24B1B1]" />
+              </div>
+              <div className="text-2xl font-bold text-white tracking-tight">
+                {merchants.length > 0 ? merchants.length : 18}
+              </div>
+              <div className="text-[11px] text-emerald-400 mt-2 flex items-center gap-1">
+                <span>↑ 100% active</span>
+                <span className="text-neutral-500">across Jabodetabek</span>
+              </div>
+            </div>
+
+            <div className="bg-[#121215] border border-white/10 rounded-xl p-4 flex flex-col justify-between">
+              <div className="flex items-center justify-between text-neutral-400 text-xs mb-2">
+                <span>Total Settled (30d)</span>
+                <CreditCard className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="text-2xl font-bold text-white tracking-tight">
+                {portfolio?.total_volume ? formatRupiah(portfolio.total_volume) : 'Rp 148.500.000'}
+              </div>
+              <div className="text-[11px] text-emerald-400 mt-2 flex items-center gap-1">
+                <span>↑ 18.4%</span>
+                <span className="text-neutral-500">vs last month</span>
+              </div>
+            </div>
+
+            <div className="bg-[#121215] border border-white/10 rounded-xl p-4 flex flex-col justify-between">
+              <div className="flex items-center justify-between text-neutral-400 text-xs mb-2">
+                <span>AI Retention Success</span>
+                <Activity className="w-4 h-4 text-cyan-400" />
+              </div>
+              <div className="text-2xl font-bold text-white tracking-tight">
+                {portfolio?.retention_rate ? `${portfolio.retention_rate}%` : '89.4%'}
+              </div>
+              <div className="text-[11px] text-emerald-400 mt-2 flex items-center gap-1">
+                <span>+4.2%</span>
+                <span className="text-neutral-500">churn prevented</span>
+              </div>
+            </div>
+
+            <div className="bg-[#121215] border border-white/10 rounded-xl p-4 flex flex-col justify-between">
+              <div className="flex items-center justify-between text-neutral-400 text-xs mb-2">
+                <span>SNAP API Gateway</span>
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="text-2xl font-bold text-white tracking-tight">
+                99.98%
+              </div>
+              <div className="text-[11px] text-neutral-400 mt-2 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
+                <span>BNI SNAP v2.0 Operational</span>
+              </div>
             </div>
           </div>
-        </aside>
 
-        {/* =========================================================================
-            2. MAIN CONTENT AREA (Fit to Page, Full Height Scrollable)
-           ========================================================================= */}
-        <main className="flex-1 flex flex-col gap-6 p-6 sm:p-8 lg:p-10 h-full overflow-y-auto relative z-10">
-          
-          {/* Top Header Bar */}
-          <header className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl lg:text-4xl font-extrabold text-[#1a2332] tracking-tight">
-                Dashboard
-              </h1>
-            </div>
-
-            {/* Right: Actions & Carla Sanford Profile Pill */}
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={copyCredential}
-                className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/80 hover:bg-white text-neutral-700 text-xs font-bold border border-neutral-200/80 shadow-xs transition-all cursor-pointer"
-                title="Salin SNAP Secret Key"
-              >
-                {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-neutral-500" />}
-                <span>{copiedKey ? 'Tersalin!' : 'Kredensial SNAP'}</span>
-              </button>
-
-              <Link
-                href="/merchant"
-                className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/80 hover:bg-white text-[#b85e35] text-xs font-bold border border-[#f0d4c6] shadow-xs transition-all"
-              >
-                <span>Merchant Dashboard</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-
-              {/* Carla Sanford User Pill (Plek Ketiplek) */}
-              <div className="bg-white/90 backdrop-blur-md border border-white/90 shadow-xs px-3 py-1.5 rounded-full flex items-center gap-3">
-                <img
-                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80"
-                  alt="Carla Sanford"
-                  className="w-8 h-8 rounded-full object-cover border border-white"
-                />
-                <span className="text-xs font-bold text-neutral-800">
-                  Carla Sanford
-                </span>
-                <ChevronDown className="w-3.5 h-3.5 text-neutral-400" />
-              </div>
-            </div>
-          </header>
-
-          {/* MAIN DASHBOARD VIEW (When activeMenu === 'dashboard' or default) */}
+          {/* MAIN 2-COLUMN GRID */}
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
             
-            {/* LEFT & CENTER COLUMN (8 COLS) */}
+            {/* LEFT 8-COL: KPI Bar Chart & Merchant Activity */}
             <div className="xl:col-span-8 flex flex-col gap-6">
               
-              {/* 1. TOP STAT STRIP (Total Employees, Total Project, Job Applicant) */}
-              <div className="bg-white/90 backdrop-blur-md rounded-3xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.02)] border border-white/80 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* Stat 1 */}
-                <div className="flex items-center gap-3.5 pl-2">
-                  <div className="w-11 h-11 rounded-full bg-[#fdf3ec] flex items-center justify-center text-[#b85e35] shadow-inner">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-[11px] font-semibold text-neutral-400">Total Employees</div>
-                    <div className="text-xl font-extrabold text-neutral-900 tracking-tight">
-                      49,229
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stat 2 */}
-                <div className="flex items-center gap-3.5 pl-2 sm:border-l sm:border-neutral-100">
-                  <div className="w-11 h-11 rounded-full bg-[#fdf3ec] flex items-center justify-center text-[#b85e35] shadow-inner">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-[11px] font-semibold text-neutral-400">Total Project</div>
-                    <div className="text-xl font-extrabold text-neutral-900 tracking-tight">
-                      49,229
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stat 3 */}
-                <div className="flex items-center gap-3.5 pl-2 sm:border-l sm:border-neutral-100">
-                  <div className="w-11 h-11 rounded-full bg-[#fdf3ec] flex items-center justify-center text-[#b85e35] shadow-inner">
-                    <Wallet className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-[11px] font-semibold text-neutral-400">Job Applicant</div>
-                    <div className="text-xl font-extrabold text-neutral-900 tracking-tight">
-                      49,229
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. AVERAGE KPI SCORE CARD + TOP PERFORMANCE */}
-              <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 lg:p-7 shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-white/80 flex flex-col md:flex-row gap-6">
-                {/* Left part: Bar Chart & KPI */}
+              {/* Average KPI Score Card */}
+              <div className="bg-[#121215] border border-white/10 rounded-xl p-6 flex flex-col md:flex-row gap-6">
                 <div className="flex-1 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-lg font-bold text-neutral-900 tracking-tight">
-                        Average KPI Score
+                      <h3 className="text-sm font-semibold text-white tracking-tight">
+                        Gateway Average KPI Score
                       </h3>
-                      <button
-                        type="button"
-                        className="px-3 py-1 rounded-full bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/60 text-neutral-600 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                      >
-                        <span>Past 3 months</span>
-                        <ChevronDown className="w-3 h-3 text-neutral-400" />
-                      </button>
-                    </div>
-
-                    <div className="flex items-baseline gap-2 mb-1">
-                      <span className="text-4xl font-extrabold text-neutral-900 tracking-tight">
-                        63.89%
+                      <span className="text-xs text-neutral-400 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10">
+                        Past 6 months
                       </span>
                     </div>
-                    <div className="text-xs text-rose-500 font-semibold mb-6">
-                      - 2.34%
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span className="text-3xl font-extrabold text-white tracking-tight">
+                        94.8%
+                      </span>
+                      <span className="text-xs text-emerald-400 font-semibold">
+                        +3.2% vs target
+                      </span>
                     </div>
                   </div>
 
-                  {/* Cylindrical Pill Bar Chart (Feb to Jul) */}
-                  <div className="flex items-end justify-between gap-3 pt-4 border-t border-neutral-100/80">
-                    {/* Y-Axis Labels */}
-                    <div className="flex flex-col justify-between text-[10px] text-neutral-400 font-medium h-36 pb-6">
+                  {/* Monthly Cylindrical Bar Chart */}
+                  <div className="flex items-end justify-between gap-3 pt-6 border-t border-white/5">
+                    <div className="flex flex-col justify-between text-[10px] text-neutral-500 font-medium h-32 pb-4">
                       <span>100%</span>
                       <span>75%</span>
                       <span>50%</span>
@@ -477,80 +420,50 @@ export default function PaymentGatewayDashboard() {
                       <span>0%</span>
                     </div>
 
-                    {/* Bar 1: Feb (45%) */}
-                    <div className="flex flex-col items-center gap-2 flex-1">
-                      <div className="w-3.5 h-36 bg-[#ece8e4] rounded-full flex flex-col justify-end p-0.5">
-                        <div className="w-full h-[45%] bg-gradient-to-t from-[#c86b43] to-[#e08963] rounded-full" />
+                    {[
+                      { month: 'Feb', pct: '65%' },
+                      { month: 'Mar', pct: '82%' },
+                      { month: 'Apr', pct: '74%' },
+                      { month: 'May', pct: '88%' },
+                      { month: 'Jun', pct: '91%' },
+                      { month: 'Jul', pct: '95%' },
+                    ].map((bar) => (
+                      <div key={bar.month} className="flex flex-col items-center gap-2 flex-1">
+                        <div className="w-3.5 h-32 bg-white/5 rounded-full flex flex-col justify-end p-0.5">
+                          <div 
+                            className="w-full bg-gradient-to-t from-[#007979] to-[#24B1B1] rounded-full transition-all duration-500"
+                            style={{ height: bar.pct }}
+                          />
+                        </div>
+                        <span className="text-[11px] font-medium text-neutral-400">{bar.month}</span>
                       </div>
-                      <span className="text-[11px] font-medium text-neutral-500">Feb</span>
-                    </div>
-
-                    {/* Bar 2: Mar (80%) */}
-                    <div className="flex flex-col items-center gap-2 flex-1">
-                      <div className="w-3.5 h-36 bg-[#ece8e4] rounded-full flex flex-col justify-end p-0.5">
-                        <div className="w-full h-[80%] bg-gradient-to-t from-[#c86b43] to-[#e08963] rounded-full" />
-                      </div>
-                      <span className="text-[11px] font-medium text-neutral-500">Mar</span>
-                    </div>
-
-                    {/* Bar 3: Apr (60%) */}
-                    <div className="flex flex-col items-center gap-2 flex-1">
-                      <div className="w-3.5 h-36 bg-[#ece8e4] rounded-full flex flex-col justify-end p-0.5">
-                        <div className="w-full h-[60%] bg-gradient-to-t from-[#c86b43] to-[#e08963] rounded-full" />
-                      </div>
-                      <span className="text-[11px] font-medium text-neutral-500">Apr</span>
-                    </div>
-
-                    {/* Bar 4: May (65%) */}
-                    <div className="flex flex-col items-center gap-2 flex-1">
-                      <div className="w-3.5 h-36 bg-[#ece8e4] rounded-full flex flex-col justify-end p-0.5">
-                        <div className="w-full h-[65%] bg-gradient-to-t from-[#c86b43] to-[#e08963] rounded-full" />
-                      </div>
-                      <span className="text-[11px] font-medium text-neutral-500">May</span>
-                    </div>
-
-                    {/* Bar 5: Jun (30%) */}
-                    <div className="flex flex-col items-center gap-2 flex-1">
-                      <div className="w-3.5 h-36 bg-[#ece8e4] rounded-full flex flex-col justify-end p-0.5">
-                        <div className="w-full h-[30%] bg-gradient-to-t from-[#c86b43] to-[#e08963] rounded-full" />
-                      </div>
-                      <span className="text-[11px] font-medium text-neutral-500">Jun</span>
-                    </div>
-
-                    {/* Bar 6: Jul (55%) */}
-                    <div className="flex flex-col items-center gap-2 flex-1">
-                      <div className="w-3.5 h-36 bg-[#ece8e4] rounded-full flex flex-col justify-end p-0.5">
-                        <div className="w-full h-[55%] bg-gradient-to-t from-[#c86b43] to-[#e08963] rounded-full" />
-                      </div>
-                      <span className="text-[11px] font-medium text-neutral-500">Jul</span>
-                    </div>
+                    ))}
                   </div>
                 </div>
 
-                {/* Right part: Top Performance list */}
-                <div className="w-full md:w-60 border-t md:border-t-0 md:border-l md:border-neutral-100 md:pl-6">
-                  <h4 className="text-sm font-bold text-neutral-900 mb-4 tracking-tight">
-                    Top Performance
+                {/* Top Performance List */}
+                <div className="w-full md:w-64 border-t md:border-t-0 md:border-l md:border-white/10 md:pl-6">
+                  <h4 className="text-xs font-semibold text-white mb-4 uppercase tracking-wider text-neutral-400">
+                    Top Supervised Merchants
                   </h4>
-                  
-                  <div className="space-y-3.5">
+                  <div className="space-y-3">
                     {topPerformers.map((p) => (
-                      <div key={p.id} className="flex items-center gap-3">
-                        <div className="relative">
+                      <div key={p.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                        <div className="relative shrink-0">
                           <img
                             src={p.avatar}
                             alt={p.name}
-                            className="w-9 h-9 rounded-full object-cover border border-neutral-100 shadow-xs"
+                            className="w-8 h-8 rounded-full object-cover border border-white/10"
                           />
-                          <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-neutral-900 text-white rounded-full text-[8px] font-black flex items-center justify-center">
+                          <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#007979] text-white rounded-full text-[8px] font-bold flex items-center justify-center">
                             {p.id}
                           </div>
                         </div>
                         <div className="overflow-hidden">
-                          <div className="text-xs font-bold text-neutral-900 leading-snug truncate">
+                          <div className="text-xs font-semibold text-neutral-200 truncate">
                             {p.name}
                           </div>
-                          <div className="text-[10px] text-neutral-400 truncate">
+                          <div className="text-[11px] text-emerald-400 truncate font-mono">
                             {p.tasks}
                           </div>
                         </div>
@@ -560,15 +473,20 @@ export default function PaymentGatewayDashboard() {
                 </div>
               </div>
 
-              {/* 3. EMPLOYEES TABLE CARD */}
-              <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-white/80">
+              {/* Transactions & Supervised Table */}
+              <div className="bg-[#121215] border border-white/10 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-neutral-900 tracking-tight">
-                    Employees
-                  </h3>
+                  <div>
+                    <h3 className="text-sm font-semibold text-white tracking-tight">
+                      Supervised Retention & VA Settlements
+                    </h3>
+                    <p className="text-xs text-neutral-400 mt-0.5">
+                      Selected: <span className="text-[#24B1B1] font-medium">{selectedMerchant.name}</span>
+                    </p>
+                  </div>
                   <button
                     type="button"
-                    className="text-xs font-semibold text-[#b85e35] hover:text-[#994622] flex items-center gap-1 cursor-pointer"
+                    className="text-xs font-medium text-neutral-300 hover:text-white px-2.5 py-1 rounded-md bg-white/5 border border-white/10 flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>Export CSV</span>
@@ -578,44 +496,51 @@ export default function PaymentGatewayDashboard() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="text-neutral-400 font-semibold border-b border-neutral-100">
-                        <th className="pb-3 px-2 font-medium">ID</th>
-                        <th className="pb-3 px-2 font-medium">Name</th>
-                        <th className="pb-3 px-2 font-medium">Role</th>
-                        <th className="pb-3 px-2 font-medium">Performance</th>
-                        <th className="pb-3 px-2 text-right"></th>
+                      <tr className="text-neutral-400 border-b border-white/10 text-[11px] uppercase tracking-wider">
+                        <th className="pb-3 px-2 font-medium">Tx ID / VA</th>
+                        <th className="pb-3 px-2 font-medium">Member</th>
+                        <th className="pb-3 px-2 font-medium">Package</th>
+                        <th className="pb-3 px-2 font-medium">Amount</th>
+                        <th className="pb-3 px-2 font-medium">Status</th>
+                        <th className="pb-3 px-2 text-right font-medium">Channel</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-neutral-100/70">
-                      {displayEmployees.map((emp) => (
-                        <tr key={emp.id} className="hover:bg-neutral-50/60 transition-colors">
-                          <td className="py-3 px-2 font-semibold text-neutral-800">
-                            {emp.id}
+                    <tbody className="divide-y divide-white/5">
+                      {payments.slice(0, 5).map((pay) => (
+                        <tr key={pay.id} className="hover:bg-white/5 transition-colors">
+                          <td className="py-3 px-2 font-mono text-neutral-300 font-medium">
+                            {pay.id.substring(0, 10)}...
                           </td>
-                          <td className="py-3 px-2 font-bold text-neutral-900">
-                            {emp.name}
+                          <td className="py-3 px-2 font-medium text-neutral-200">
+                            {pay.memberName}
                           </td>
-                          <td className="py-3 px-2 text-neutral-600 font-medium">
-                            {emp.role}
+                          <td className="py-3 px-2 text-neutral-400">
+                            BNI Retention Plan
+                          </td>
+                          <td className="py-3 px-2 font-mono font-medium text-neutral-200">
+                            {pay.amount ? formatRupiah(pay.amount) : 'Rp 0'}
                           </td>
                           <td className="py-3 px-2">
-                            <div className="w-24 h-2 bg-[#f4ebe5] rounded-full overflow-hidden">
-                              <div
-                                className="h-full rounded-full transition-all duration-500"
-                                style={{ width: `${emp.progress}%`, backgroundColor: emp.color }}
-                              />
-                            </div>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${
+                              pay.status === 'paid' || pay.status === 'SETTLED'
+                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                            }`}>
+                              {pay.status}
+                            </span>
                           </td>
-                          <td className="py-3 px-2 text-right">
-                            <button
-                              type="button"
-                              className="text-neutral-300 hover:text-neutral-600 cursor-pointer p-1"
-                            >
-                              <MoreHorizontal className="w-4 h-4" />
-                            </button>
+                          <td className="py-3 px-2 text-right text-neutral-400 font-mono text-[11px]">
+                            BNI SNAP VA
                           </td>
                         </tr>
                       ))}
+                      {payments.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="py-6 text-center text-neutral-500">
+                            Belum ada riwayat transaksi settlement untuk merchant ini.
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -623,151 +548,96 @@ export default function PaymentGatewayDashboard() {
 
             </div>
 
-            {/* RIGHT COLUMN (4 COLS - DARK UPCOMING MEETING & WORKING FORMAT CARDS) */}
+            {/* RIGHT 4-COL: Upcoming Gateway Syncs & Distribution */}
             <div className="xl:col-span-4 flex flex-col gap-6">
               
-              {/* 1. UPCOMING MEETING (The Signature Dark Glassmorphism Card) */}
-              <div className="bg-[#18181b] text-white rounded-3xl p-6 lg:p-7 shadow-xl border border-white/10 relative overflow-hidden flex flex-col justify-between">
-                {/* Subtle warm ambient glow behind dark glass */}
-                <div className="absolute top-0 right-0 w-48 h-48 bg-[#c86b43]/15 rounded-full blur-2xl pointer-events-none" />
-                
-                <div className="relative z-10">
-                  <h3 className="text-xl font-bold text-white tracking-tight mb-6">
-                    Upcoming Meeting
-                  </h3>
+              {/* Upcoming Gateway Syncs & Audits */}
+              <div className="bg-[#121215] border border-white/10 rounded-xl p-6">
+                <h3 className="text-sm font-semibold text-white tracking-tight mb-4 flex items-center justify-between">
+                  <span>Scheduled Syncs & Audits</span>
+                  <Clock className="w-4 h-4 text-neutral-400" />
+                </h3>
 
-                  {/* Timeline List with Connector Line */}
-                  <div className="relative pl-5 space-y-6 before:content-[''] before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-px before:bg-white/20">
-                    
-                    {/* Timeline Item 1 */}
-                    <div className="relative">
-                      <div className="absolute -left-5 top-1.5 w-2 h-2 rounded-full bg-white ring-4 ring-[#18181b]" />
-                      <div className="text-sm font-semibold text-neutral-100">
-                        Project Manager - Job Interview
-                      </div>
-                      <div className="text-[11px] text-neutral-400 mt-0.5">
-                        Today 06:00-08:00
-                      </div>
-                      {/* Stacked Avatars */}
-                      <div className="flex -space-x-2 mt-2.5">
-                        <img
-                          src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80"
-                          alt="Attendee"
-                          className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
-                        />
-                        <img
-                          src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80"
-                          alt="Attendee"
-                          className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
-                        />
-                        <img
-                          src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&auto=format&fit=crop&q=80"
-                          alt="Attendee"
-                          className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
-                        />
-                      </div>
+                <div className="relative pl-4 space-y-5 before:content-[''] before:absolute before:left-1 before:top-2 before:bottom-2 before:w-px before:bg-white/10">
+                  <div className="relative">
+                    <div className="absolute -left-4 top-1.5 w-2 h-2 rounded-full bg-[#007979] ring-4 ring-[#121215]" />
+                    <div className="text-xs font-semibold text-neutral-200">
+                      BNI SNAP Auto-Reconciliation
                     </div>
-
-                    {/* Timeline Item 2 */}
-                    <div className="relative">
-                      <div className="absolute -left-5 top-1.5 w-2 h-2 rounded-full bg-white ring-4 ring-[#18181b]" />
-                      <div className="text-sm font-semibold text-neutral-100">
-                        Project Manager - Job Interview
-                      </div>
-                      <div className="text-[11px] text-neutral-400 mt-0.5">
-                        Today 06:00-08:00
-                      </div>
-                      {/* Stacked Avatars */}
-                      <div className="flex -space-x-2 mt-2.5">
-                        <img
-                          src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&auto=format&fit=crop&q=80"
-                          alt="Attendee"
-                          className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
-                        />
-                        <img
-                          src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=80"
-                          alt="Attendee"
-                          className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
-                        />
-                      </div>
+                    <div className="text-[11px] text-neutral-400 mt-0.5">
+                      Tonight 23:59 WIB • Batch #4429
                     </div>
+                    <span className="inline-block mt-1 text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                      Auto Settled
+                    </span>
+                  </div>
 
-                    {/* Timeline Item 3 */}
-                    <div className="relative">
-                      <div className="absolute -left-5 top-1.5 w-2 h-2 rounded-full bg-white ring-4 ring-[#18181b]" />
-                      <div className="text-sm font-semibold text-neutral-100">
-                        Project Manager - Job Interview
-                      </div>
-                      <div className="text-[11px] text-neutral-400 mt-0.5">
-                        Today 06:00-08:00
-                      </div>
-                      {/* Stacked Avatars */}
-                      <div className="flex -space-x-2 mt-2.5">
-                        <img
-                          src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80"
-                          alt="Attendee"
-                          className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
-                        />
-                        <img
-                          src="https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=80&auto=format&fit=crop&q=80"
-                          alt="Attendee"
-                          className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
-                        />
-                        <img
-                          src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&auto=format&fit=crop&q=80"
-                          alt="Attendee"
-                          className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
-                        />
-                        <img
-                          src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80"
-                          alt="Attendee"
-                          className="w-6 h-6 rounded-full object-cover border-2 border-[#18181b]"
-                        />
-                      </div>
+                  <div className="relative">
+                    <div className="absolute -left-4 top-1.5 w-2 h-2 rounded-full bg-[#24B1B1] ring-4 ring-[#121215]" />
+                    <div className="text-xs font-semibold text-neutral-200">
+                      AI Churn Detector Periodic Run
                     </div>
+                    <div className="text-[11px] text-neutral-400 mt-0.5">
+                      Every 6 hours • Gemini AI Model 2.0
+                    </div>
+                    <span className="inline-block mt-1 text-[10px] text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                      Risk Engine Live
+                    </span>
+                  </div>
 
+                  <div className="relative">
+                    <div className="absolute -left-4 top-1.5 w-2 h-2 rounded-full bg-neutral-600 ring-4 ring-[#121215]" />
+                    <div className="text-xs font-semibold text-neutral-200">
+                      Merchant Portfolio RM Review
+                    </div>
+                    <div className="text-[11px] text-neutral-400 mt-0.5">
+                      Friday 14:00 WIB • Zoom Video Sync
+                    </div>
+                    <span className="inline-block mt-1 text-[10px] text-neutral-400 bg-white/5 px-2 py-0.5 rounded border border-white/10">
+                      RM Team
+                    </span>
                   </div>
                 </div>
               </div>
 
-              {/* 2. WORKING FORMAT (Distribution Card) */}
-              <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 lg:p-7 shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-white/80 flex flex-col justify-between">
-                <h3 className="text-lg font-bold text-neutral-900 tracking-tight mb-5">
-                  Working Format
+              {/* Segment Distribution */}
+              <div className="bg-[#121215] border border-white/10 rounded-xl p-6">
+                <h3 className="text-sm font-semibold text-white tracking-tight mb-4">
+                  Merchant Segment Distribution
                 </h3>
 
-                <div className="space-y-4">
-                  {/* Row 1: On-site */}
-                  <div className="flex items-center justify-between gap-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-[11px] font-medium text-neutral-400">On-site</div>
-                      <div className="text-base font-extrabold text-neutral-900">13,982</div>
+                      <div className="text-xs font-medium text-neutral-300">Fitness & Gyms</div>
+                      <div className="text-[11px] text-neutral-500">12 Merchants</div>
                     </div>
-                    <div className="flex-1 max-w-[170px] h-10 rounded-xl bg-[#faeee7] flex items-center justify-end px-3.5">
-                      <span className="text-sm font-extrabold text-[#c86b43]">11.4%</span>
+                    <div className="w-32 h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full bg-[#007979] rounded-full" style={{ width: '65%' }} />
                     </div>
+                    <span className="text-xs font-mono font-medium text-neutral-300">65%</span>
                   </div>
 
-                  {/* Row 2: Hybrid */}
-                  <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-[11px] font-medium text-neutral-400">Hybrid</div>
-                      <div className="text-base font-extrabold text-neutral-900">26,214</div>
+                      <div className="text-xs font-medium text-neutral-300">SaaS & Subs</div>
+                      <div className="text-[11px] text-neutral-500">4 Merchants</div>
                     </div>
-                    <div className="flex-1 max-w-[170px] h-10 rounded-xl bg-[#faeee7] flex items-center justify-end px-3.5">
-                      <span className="text-sm font-extrabold text-[#c86b43]">32.2%</span>
+                    <div className="w-32 h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full bg-[#24B1B1] rounded-full" style={{ width: '22%' }} />
                     </div>
+                    <span className="text-xs font-mono font-medium text-neutral-300">22%</span>
                   </div>
 
-                  {/* Row 3: Remote */}
-                  <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-[11px] font-medium text-neutral-400">Remote</div>
-                      <div className="text-base font-extrabold text-neutral-900">41,214</div>
+                      <div className="text-xs font-medium text-neutral-300">EdTech / Courses</div>
+                      <div className="text-[11px] text-neutral-500">2 Merchants</div>
                     </div>
-                    <div className="flex-1 max-w-[170px] h-10 rounded-xl bg-[#faeee7] flex items-center justify-end px-3.5">
-                      <span className="text-sm font-extrabold text-[#c86b43]">56.4%</span>
+                    <div className="w-32 h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: '13%' }} />
                     </div>
+                    <span className="text-xs font-mono font-medium text-neutral-300">13%</span>
                   </div>
                 </div>
               </div>
@@ -776,7 +646,57 @@ export default function PaymentGatewayDashboard() {
 
           </div>
 
-        </main>
+        </div>
+
+      </main>
+
+      {/* ⌘K SEARCH MODAL */}
+      {searchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="w-full max-w-lg bg-[#18181b] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="flex items-center px-4 py-3 border-b border-white/10">
+              <Search className="w-4 h-4 text-neutral-400 mr-3" />
+              <input
+                type="text"
+                autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari merchant, virtual account, atau transaksi..."
+                className="w-full bg-transparent text-sm text-neutral-200 placeholder-neutral-500 focus:outline-none"
+              />
+              <button 
+                onClick={() => setSearchModalOpen(false)}
+                className="p-1 rounded hover:bg-white/10 text-neutral-400 hover:text-neutral-200 text-xs transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="p-2 max-h-80 overflow-y-auto">
+              <div className="text-[11px] font-semibold text-neutral-500 px-3 py-1.5 uppercase tracking-wider">
+                Merchants
+              </div>
+              {merchants.map((m) => (
+                <div 
+                  key={m.id}
+                  onClick={() => {
+                    setSelectedMerchantId(m.id);
+                    setSearchModalOpen(false);
+                  }}
+                  className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/5 cursor-pointer text-xs transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-[#24B1B1]" />
+                    <span className="text-neutral-200 font-medium">{m.name}</span>
+                  </div>
+                  <span className="text-neutral-500 font-mono text-[10px]">{m.id}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
