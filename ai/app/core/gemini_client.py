@@ -7,6 +7,9 @@ from typing import Dict, Any, Optional
 logger = logging.getLogger(__name__)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+# gemini-1.5-flash was retired by Google (404 on v1beta generateContent) — override via
+# GEMINI_MODEL if the API key's project needs a different current model.
+DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 
 try:
     import google.generativeai as genai
@@ -23,7 +26,7 @@ class GeminiEngine:
         return bool(GEMINI_API_KEY and HAS_GENAI)
 
     @classmethod
-    def generate_json(cls, prompt: str, system_instruction: Optional[str] = None, model_name: str = "gemini-1.5-flash") -> Optional[Dict[str, Any]]:
+    def generate_json(cls, prompt: str, system_instruction: Optional[str] = None, model_name: str = DEFAULT_GEMINI_MODEL) -> Optional[Dict[str, Any]]:
         """
         Memanggil Gemini API untuk menghasilkan output JSON murni terstruktur.
         Mengembalikan None jika terjadi error/timeout/API key tidak ada.
@@ -51,7 +54,7 @@ class GeminiEngine:
             return None
 
     @classmethod
-    def generate_text(cls, prompt: str, system_instruction: Optional[str] = None, model_name: str = "gemini-1.5-flash") -> Optional[str]:
+    def generate_text(cls, prompt: str, system_instruction: Optional[str] = None, model_name: str = DEFAULT_GEMINI_MODEL) -> Optional[str]:
         """
         Memanggil Gemini API untuk menghasilkan teks penjelasan naratif yang kaya konteks.
         """

@@ -15,6 +15,7 @@ except ImportError:
     genai = None
     HAS_GENAI = False
 
+from app.core.gemini_client import DEFAULT_GEMINI_MODEL
 from app.core.schemas import ExtractedBusinessRules
 from app.core.tactics_kb import DynamicTacticsSynthesizer
 from app.core.sanitizer import PIISanitizer
@@ -106,7 +107,7 @@ class RetentionAgent:
 
         if self.api_key and HAS_GENAI:
             try:
-                model = genai.GenerativeModel("gemini-1.5-flash")
+                model = genai.GenerativeModel(DEFAULT_GEMINI_MODEL)
                 prompt = f"""
                 Anda adalah Enterprise Retention Strategic Advisor untuk mitra merchant perbankan BNI.
                 Berikan rekomendasi retensi terstruktur dalam format JSON murni.

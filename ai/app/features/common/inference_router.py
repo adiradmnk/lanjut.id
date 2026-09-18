@@ -9,14 +9,14 @@ from pydantic import BaseModel
 from typing import Optional
 import time
 
-from app.core.gemini_client import GeminiEngine
+from app.core.gemini_client import GeminiEngine, DEFAULT_GEMINI_MODEL
 
 router = APIRouter()
 
 
 class InferenceRequest(BaseModel):
     prompt: str
-    model_type: str = "gemini-1.5-flash"
+    model_type: str = DEFAULT_GEMINI_MODEL
     max_tokens: int = 150
     context: Optional[str] = None
 
