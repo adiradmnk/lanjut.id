@@ -52,6 +52,15 @@ export default function RukitaDemoPage() {
   const [checkoutMember,setCheckoutMember] = useState("");
   const [toast,setToast] = useState<string|null>(null);
 
+  // Pre-checkout AI chat gate: the booking form no longer submits straight away — it opens a
+  // short chat about the picked room first, and only the "Konfirmasi Booking" button inside
+  // that chat actually calls checkout.
+  const [chatOpen,setChatOpen] = useState(false);
+  const [hasChatted,setHasChatted] = useState(false);
+  const [chatMessages,setChatMessages] = useState<{role:"user"|"assistant";text:string}[]>([]);
+  const [chatInput,setChatInput] = useState("");
+  const [chatSending,setChatSending] = useState(false);
+
   // Pop-up Survey State (Triggers 3 seconds after page opens)
   const [showSurveyModal, setShowSurveyModal] = useState(false);
   const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
@@ -87,10 +96,16 @@ export default function RukitaDemoPage() {
   function selectRoom(room:Room) {
     if(locked)return;
     setSelectedRoom(room);setResult(null);setPaid(false);setError(null);setNotice(null);
+    setHasChatted(false);setChatMessages([]);
     document.getElementById("booking")?.scrollIntoView({behavior:"smooth",block:"center"});
   }
-  async function checkout(event:FormEvent<HTMLFormElement>) {
+  function checkout(event:FormEvent<HTMLFormElement>) {
     event.preventDefault();if(locked)return;
+    if(!hasChatted){setChatOpen(true);return;}
+    submitBooking();
+  }
+  async function submitBooking() {
+    if(locked)return;
     setLoading(true);setError(null);setNotice(null);setPaid(false);
     try {
       const id=memberId.trim();if(!id)throw new Error("Isi ID penghuni terlebih dahulu.");
@@ -101,6 +116,22 @@ export default function RukitaDemoPage() {
       setCheckoutMember(session.member.id);setResult(data);
     }catch(e){setError(e instanceof Error?e.message:"Pembayaran belum dapat dibuat.");}
     finally{setLoading(false);}
+  }
+  async function sendChatMessage() {
+    const text=chatInput.trim();if(!text||chatSending)return;
+    setChatMessages(prev=>[...prev,{role:"user",text}]);
+    setChatInput("");setChatSending(true);
+    try {
+      const history=chatMessages.map(m=>({role:m.role,content:m.text}));
+      const data=await request<{reply:string}>("/api/member/rukita-chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({room_title:selectedRoom.title,room_price_idr:selectedRoom.price,room_meta:{size:selectedRoom.size,floor:selectedRoom.floor,tag:selectedRoom.tag},message:text,history})});
+      setChatMessages(prev=>[...prev,{role:"assistant",text:data.reply}]);
+    }catch(e){
+      setChatMessages(prev=>[...prev,{role:"assistant",text:e instanceof Error?e.message:"Maaf, terjadi kendala menghubungi asisten AI."}]);
+    }finally{setChatSending(false);}
+  }
+  function confirmBookingFromChat() {
+    setHasChatted(true);setChatOpen(false);
+    submitBooking();
   }
   async function checkPayment() {
     if(!result)return;setLoading(true);setError(null);setNotice(null);
@@ -306,6 +337,49 @@ export default function RukitaDemoPage() {
               </div>
             </form>
           )}
+        </div>
+      </div>
+    )}
+
+    {chatOpen && (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(10,20,15,0.55)", zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}>
+        <div style={{ background: "#fff", borderRadius: "16px", padding: "20px", maxWidth: "440px", width: "100%", maxHeight: "80vh", display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <div>
+              <h3 style={{ fontSize: "15px", fontWeight: 700, color: "#163b3a" }}>Tanya dulu sebelum booking</h3>
+              <p style={{ fontSize: "11px", color: "#6e7b63", marginTop: "4px" }}>
+                Ngobrol sama asisten AI soal {selectedRoom.title} sebelum lanjut booking.
+              </p>
+            </div>
+            <button onClick={() => setChatOpen(false)} style={{ background: "#f4f5f0", border: "none", borderRadius: "50%", width: "28px", height: "28px", display: "grid", placeItems: "center", color: "#68716a", cursor: "pointer", marginLeft: "12px", flexShrink: 0 }} aria-label="Tutup">
+              <X size={15} />
+            </button>
+          </div>
+
+          <div style={{ flex: 1, overflowY: "auto", margin: "16px 0", display: "flex", flexDirection: "column", gap: "10px", minHeight: "140px" }}>
+            {chatMessages.length === 0 && (
+              <p style={{ fontSize: "12px", color: "#8a938c" }}>Contoh: "Kamar ini cocok untuk 2 orang gak?" atau "Ada dapur bersama?"</p>
+            )}
+            {chatMessages.map((m, i) => (
+              <div key={i} style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "85%", background: m.role === "user" ? "#163b3a" : "#f4f5f0", color: m.role === "user" ? "#fff" : "#163b3a", borderRadius: "10px", padding: "8px 12px", fontSize: "13px" }}>
+                {m.text}
+              </div>
+            ))}
+            {chatSending && <p style={{ fontSize: "12px", color: "#8a938c" }}>Asisten sedang mengetik...</p>}
+          </div>
+
+          <form onSubmit={(e) => { e.preventDefault(); sendChatMessage(); }} style={{ display: "flex", gap: "8px" }}>
+            <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Tulis pertanyaan..." disabled={chatSending}
+              style={{ flex: 1, border: "1px solid #e2e5df", borderRadius: "8px", padding: "8px 10px", fontSize: "13px" }} />
+            <button type="submit" disabled={chatSending || !chatInput.trim()} style={{ background: "#163b3a", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 14px", fontSize: "13px", cursor: "pointer", opacity: chatSending || !chatInput.trim() ? 0.5 : 1 }}>
+              Kirim
+            </button>
+          </form>
+
+          <button onClick={confirmBookingFromChat} disabled={loading}
+            style={{ marginTop: "12px", background: "#009c96", color: "#fff", border: "none", borderRadius: "8px", padding: "10px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+            {loading ? "Memproses..." : "Konfirmasi & Lanjutkan Booking"}
+          </button>
         </div>
       </div>
     )}

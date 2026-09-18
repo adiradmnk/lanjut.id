@@ -9,6 +9,7 @@ from app.features.chatbot.router import router as chatbot_router
 from app.features.retention.router import router as retention_router
 from app.features.lifecycle.router import router as lifecycle_router
 from app.features.analytics.router import router as analytics_router
+from app.features.bookingchat.router import router as bookingchat_router
 from app.routers import documents
 
 app = FastAPI(
@@ -34,6 +35,7 @@ app.include_router(retention_router, prefix=f"{settings.API_V1_STR}/retention", 
 app.include_router(lifecycle_router, prefix=f"{settings.API_V1_STR}/lifecycle", tags=["Fitur 4: Lifecycle & Banking RM Health"])
 app.include_router(documents.router, prefix=f"{settings.API_V1_STR}/documents", tags=["Guidebook Document Parsing"])
 app.include_router(analytics_router, prefix=f"{settings.API_V1_STR}/analytics", tags=["Fitur 5: Merchant Analytics Query Agent"])
+app.include_router(bookingchat_router, prefix=f"{settings.API_V1_STR}/booking-chat", tags=["Fitur 6: Rukita Booking Chat"])
 
 if __name__ == "__main__":
     import uvicorn

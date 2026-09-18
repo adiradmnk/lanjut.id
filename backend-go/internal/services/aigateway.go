@@ -1176,3 +1176,57 @@ func (a *AIGateway) GenerateAnalyticsReport(ctx context.Context, in AnalyticsRep
 	}
 	return &out, nil
 }
+
+// BookingChatInput is a prospective tenant's message in the Rukita pre-checkout chat, plus
+// the real room they picked and the conversation so far.
+type BookingChatInput struct {
+	RoomTitle    string
+	RoomPriceIDR int64
+	RoomMeta     map[string]any
+	Message      string
+	History      []map[string]string
+}
+
+// BookingChat calls the sidecar's /api/v1/booking-chat/query endpoint (Gemini, grounded on
+// the real room the tenant picked) so a prospective tenant can ask questions before
+// submitting a booking, instead of the form submitting immediately.
+func (a *AIGateway) BookingChat(ctx context.Context, in BookingChatInput) (string, error) {
+	reqBody := map[string]any{
+		"room_title":     in.RoomTitle,
+		"room_price_idr": in.RoomPriceIDR,
+		"room_meta":      in.RoomMeta,
+		"message":        in.Message,
+		"history":        in.History,
+	}
+	bodyJSON, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("marshal request: %w", err)
+	}
+
+	reqCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, a.baseURL+"/api/v1/booking-chat/query", bytes.NewReader(bodyJSON))
+	if err != nil {
+		return "", fmt.Errorf("build request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := a.slowClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("ai sidecar unreachable: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("ai sidecar returned status %d", resp.StatusCode)
+	}
+
+	var out struct {
+		Reply string `json:"reply"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return "", fmt.Errorf("decode booking chat response: %w", err)
+	}
+	return out.Reply, nil
+}

@@ -35,6 +35,7 @@ func Register(r *gin.Engine, h *handlers.Handlers) {
 		api.GET("/member/receipt/:trxId", h.GetReceipt)
 		api.POST("/member/receipt/:trxId/feedback", h.SubmitReceiptFeedback)
 		api.POST("/member/request-human-help", h.RequestHumanHelp)
+		api.POST("/member/rukita-chat", h.BookingChat)
 
 		api.GET("/merchant/:tenantId/dashboard", h.MerchantDashboard)
 		api.GET("/merchant/:tenantId/at-risk-members", h.MerchantAtRiskMembers)

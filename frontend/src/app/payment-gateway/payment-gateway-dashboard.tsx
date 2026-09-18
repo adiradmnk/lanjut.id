@@ -47,10 +47,11 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { 
-  formatRupiah, 
-  parseMerchants, 
-  parsePayments, 
-  parsePortfolio, 
+  formatRupiah,
+  parseMerchants,
+  parsePayments,
+  parsePortfolio,
+  paymentStatusLabel,
   type PaymentStatus,
   type Merchant,
   type RetentionPayment
@@ -76,28 +77,9 @@ function buildGatewayNavGroups(supervisedMerchantsCount: number): NavGroupData[]
     {
       heading: 'BNI SNAP & Settlement',
       items: [
-        {
-          id: 'settlements',
-          title: 'Settlements & VA',
-          icon: CreditCard,
-          children: [
-            { id: 's-settled', title: 'Settled Transactions', icon: Hash },
-            { id: 's-pending', title: 'Pending Settlement', icon: Hash },
-            { id: 's-failed', title: 'Failed & Dispute', icon: Hash },
-          ]
-        },
-        { id: 'audit-logs', title: 'Retention Audits', icon: FileText },
-        {
-          id: 'merchants-dir',
-          title: 'Merchant Directory',
-          icon: Globe,
-          children: [
-            { id: 'm-gyms', title: 'Fitness & Gyms', icon: Hash },
-            { id: 'm-saas', title: 'SaaS Platforms', icon: Hash },
-            { id: 'm-edtech', title: 'EdTech & Courses', icon: Hash },
-          ]
-        },
-        { id: 'rm-support', title: 'RM Support Queue', icon: Users },
+        { id: 'settlements', title: 'Settlements & VA', icon: CreditCard },
+        { id: 'audit-logs', title: 'Gateway Audit Logs', icon: FileText },
+        { id: 'merchants-dir', title: 'Merchant Directory', icon: Globe },
       ]
     },
     {
@@ -110,7 +92,6 @@ function buildGatewayNavGroups(supervisedMerchantsCount: number): NavGroupData[]
 }
 
 const gatewayBottomItems: NavItemData[] = [
-  { id: 'settings', title: 'Gateway Config', icon: Settings, shortcut: '⌘,' },
   { id: 'logout', title: 'Log out', icon: LogOut },
 ];
 
@@ -129,6 +110,7 @@ export default function PaymentGatewayDashboard() {
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [payments, setPayments] = useState<RetentionPayment[]>([]);
   const [merchantInsights, setMerchantInsights] = useState<any>(null);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
   const loadData = async () => {
     setIsRefreshing(true);
@@ -164,6 +146,13 @@ export default function PaymentGatewayDashboard() {
       if (insRes.ok) {
         const insData = await insRes.json();
         setMerchantInsights(insData);
+      }
+
+      // 5. Fetch real gateway audit logs (REQUEST/RESPONSE/WEBHOOK trail)
+      const logsRes = await fetch('/api/bni/gateway-logs');
+      if (logsRes.ok) {
+        const logsData = await logsRes.json();
+        setAuditLogs(Array.isArray(logsData.logs) ? logsData.logs : []);
       }
     } catch (e) {
       console.warn('Gagal memuat data gateway:', e);
@@ -418,8 +407,142 @@ export default function PaymentGatewayDashboard() {
             </div>
           )}
 
+          {/* Supervised Merchants — real merchant list */}
+          {activeNav === 'supervised-merchants' && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <h1 className="text-xl font-bold text-white">Supervised Merchants</h1>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {merchants.length === 0 ? (
+                  <p className="text-sm text-neutral-500">Belum ada merchant.</p>
+                ) : (
+                  merchants.map(m => (
+                    <div key={m.id} className="bg-[#212121] border border-white/10 rounded-xl p-4">
+                      <div className="font-semibold text-white">{m.name}</div>
+                      <div className="text-xs text-neutral-400 mt-1">{m.category || '—'}</div>
+                      <div className="text-[10px] text-neutral-600 font-mono mt-2">{m.id}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Settlements & VA — real payments/retention logs */}
+          {activeNav === 'settlements' && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <h1 className="text-xl font-bold text-white">Settlements & VA</h1>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-white/5 text-neutral-500 uppercase text-[10px] tracking-wider">
+                      <th className="text-left py-3 font-medium">Member</th>
+                      <th className="text-left py-3 font-medium">Jumlah</th>
+                      <th className="text-left py-3 font-medium">Status</th>
+                      <th className="text-left py-3 font-medium">Waktu</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {payments.length === 0 ? (
+                      <tr><td colSpan={4} className="py-6 text-center text-neutral-500">Belum ada data settlement.</td></tr>
+                    ) : (
+                      payments.map(p => (
+                        <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3 pr-4 text-white">{p.memberName}</td>
+                          <td className="py-3 pr-4 font-mono text-neutral-300">{formatRupiah(p.amount)}</td>
+                          <td className="py-3 pr-4 text-neutral-400">{paymentStatusLabel(p.status)}</td>
+                          <td className="py-3 text-neutral-500">{p.timestamp}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Gateway Audit Logs — real request/response/webhook trail */}
+          {activeNav === 'audit-logs' && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <h1 className="text-xl font-bold text-white">Gateway Audit Logs</h1>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-white/5 text-neutral-500 uppercase text-[10px] tracking-wider">
+                      <th className="text-left py-3 font-medium">Transaction</th>
+                      <th className="text-left py-3 font-medium">Provider</th>
+                      <th className="text-left py-3 font-medium">Direction</th>
+                      <th className="text-left py-3 font-medium">Waktu</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {auditLogs.length === 0 ? (
+                      <tr><td colSpan={4} className="py-6 text-center text-neutral-500">Belum ada log gateway.</td></tr>
+                    ) : (
+                      auditLogs.map((l: any) => (
+                        <tr key={l.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3 pr-4 font-mono text-white">{l.transaction_id}</td>
+                          <td className="py-3 pr-4 text-neutral-300">{l.provider}</td>
+                          <td className="py-3 pr-4 text-neutral-400">{l.direction}</td>
+                          <td className="py-3 text-neutral-500">{l.created_at}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Merchant Directory — real merchants grouped by category */}
+          {activeNav === 'merchants-dir' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <h1 className="text-xl font-bold text-white">Merchant Directory</h1>
+              {merchants.length === 0 ? (
+                <p className="text-sm text-neutral-500">Belum ada merchant.</p>
+              ) : (
+                Object.entries(
+                  merchants.reduce((acc: Record<string, Merchant[]>, m) => {
+                    const cat = m.category || 'Lainnya';
+                    (acc[cat] = acc[cat] || []).push(m);
+                    return acc;
+                  }, {})
+                ).map(([category, items]) => (
+                  <div key={category}>
+                    <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">{category}</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {items.map(m => (
+                        <div key={m.id} className="bg-[#212121] border border-white/10 rounded-xl p-3">
+                          <div className="text-sm font-medium text-white">{m.name}</div>
+                          <div className="text-[10px] text-neutral-600 font-mono mt-1">{m.id}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* Webhook Endpoints — real registered endpoint */}
+          {activeNav === 'snap-webhooks' && (
+            <div className="bg-[#212121] border border-white/10 rounded-xl p-6 space-y-4 animate-in fade-in duration-200">
+              <h2 className="text-base font-bold text-white">BNI Webhook Endpoints</h2>
+              <p className="text-xs text-neutral-400">
+                Endpoint resmi yang menerima notifikasi pelunasan Virtual Account BNI secara real-time.
+              </p>
+              <div className="p-3 bg-[#171717] border border-white/10 rounded-lg font-mono text-xs text-white flex items-center justify-between">
+                <span>https://api.lanjut.id/webhook/bni-payment</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white/5 text-neutral-400 border border-white/10">Registered</span>
+              </div>
+              <div className="p-3 bg-[#171717] border border-white/10 rounded-lg font-mono text-xs text-white flex items-center justify-between">
+                <span>https://api.lanjut.id/api/bni/va-webhook</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white/5 text-neutral-400 border border-white/10">Registered</span>
+              </div>
+            </div>
+          )}
+
           {/* Fallback placeholder for all other nav items */}
-          {activeNav !== 'home' && activeNav !== 'portfolio-health' && (
+          {!['home', 'portfolio-health', 'supervised-merchants', 'settlements', 'audit-logs', 'merchants-dir', 'snap-webhooks'].includes(activeNav) && (
             <div className="flex flex-col items-center justify-center min-h-[60vh] border border-dashed border-white/10 rounded-2xl p-12 text-center">
               <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white mb-4">
                 <Cpu className="w-6 h-6 text-white" />
