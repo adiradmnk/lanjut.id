@@ -59,6 +59,11 @@ func Register(r *gin.Engine, h *handlers.Handlers) {
 
 		api.GET("/merchant/:tenantId/transactions", h.ListMerchantTransactions)
 
+		api.POST("/merchant/:tenantId/analytics-sessions", h.CreateAnalyticsSession)
+		api.GET("/merchant/:tenantId/analytics-sessions", h.ListAnalyticsSessions)
+		api.GET("/merchant/:tenantId/analytics-sessions/:sessionId/messages", h.GetAnalyticsSessionMessages)
+		api.POST("/merchant/:tenantId/analytics-sessions/:sessionId/messages", h.PostAnalyticsMessage)
+
 		api.GET("/merchant/:tenantId/pending-offers", h.ListPendingOffers)
 		api.POST("/merchant/:tenantId/offers/:offerId/approve", h.ApproveOffer)
 		api.POST("/merchant/:tenantId/offers/:offerId/reject", h.RejectOffer)

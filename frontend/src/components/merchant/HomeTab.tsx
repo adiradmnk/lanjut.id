@@ -119,7 +119,7 @@ export default function HomeTab({
             <CreditCard className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="text-2xl font-bold text-white font-mono mt-2">
-            Rp {(stats.total_revenue_paid_idr || 49229000).toLocaleString('id-ID')}
+            Rp {(stats.total_revenue_paid_idr || 0).toLocaleString('id-ID')}
           </div>
           <div className="text-xs text-neutral-400 mt-1">
             <button

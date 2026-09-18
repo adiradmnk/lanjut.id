@@ -42,24 +42,13 @@ interface FinanceTabProps {
   bniCompanyCode?: string;
 }
 
-const MOCK_TRANSACTIONS: TransactionItem[] = [
-  { trx_id: 'TRX-BNI-901', merchant_id: 'mch-fitbody-01', member_id: 'MBR-0421', session_id: 'ses-1', session_title: 'Pilates Reformer Morning', amount: 150000, bni_va_number: '9888000100421', bni_signature: 'sig_valid', status: 'PAID', created_at: '2026-09-17T06:00:00Z', paid_at: '2026-09-17T06:05:12Z', customer_name: 'Dina Kusuma' },
-  { trx_id: 'TRX-BNI-902', merchant_id: 'mch-fitbody-01', member_id: 'MBR-0317', session_id: 'ses-2', session_title: 'Yoga Flow Evening — Studio A', amount: 200000, bni_va_number: '9888000100317', bni_signature: 'sig_valid', status: 'PENDING', created_at: '2026-09-17T17:00:00Z', customer_name: 'Budi Santoso' },
-  { trx_id: 'TRX-BNI-903', merchant_id: 'mch-fitbody-01', member_id: 'MBR-0589', session_id: 'ses-3', session_title: 'CrossFit WOD Intensity', amount: 175000, bni_va_number: '9888000100589', bni_signature: 'sig_valid', status: 'EXPIRED', created_at: '2026-09-16T19:00:00Z', customer_name: 'Citra Lestari' },
-  { trx_id: 'TRX-BNI-904', merchant_id: 'mch-fitbody-01', member_id: 'MBR-0112', session_id: 'ses-4', session_title: 'Zumba Cardio Weekend', amount: 120000, bni_va_number: '9888000100112', bni_signature: 'sig_valid', status: 'PAID', created_at: '2026-09-16T10:00:00Z', paid_at: '2026-09-16T10:12:44Z', customer_name: 'Eko Prasetyo' },
-  { trx_id: 'TRX-BNI-905', merchant_id: 'mch-fitbody-01', member_id: 'MBR-0899', session_id: 'ses-5', session_title: 'Strength & Conditioning', amount: 250000, bni_va_number: '9888000100899', bni_signature: 'sig_valid', status: 'PAID', created_at: '2026-09-15T08:00:00Z', paid_at: '2026-09-15T08:04:19Z', customer_name: 'Farida Hanum' },
-  { trx_id: 'TRX-BNI-906', merchant_id: 'mch-fitbody-01', member_id: 'MBR-0744', session_id: 'ses-6', session_title: 'Pilates Reformer Evening', amount: 150000, bni_va_number: '9888000100744', bni_signature: 'sig_valid', status: 'EXPIRED', created_at: '2026-09-15T18:00:00Z', customer_name: 'Gunawan Halim' },
-  { trx_id: 'TRX-BNI-907', merchant_id: 'mch-fitbody-01', member_id: 'MBR-0231', session_id: 'ses-7', session_title: 'Barre Core Sculpting', amount: 160000, bni_va_number: '9888000100231', bni_signature: 'sig_valid', status: 'PAID', created_at: '2026-09-14T07:30:00Z', paid_at: '2026-09-14T07:33:02Z', customer_name: 'Hana Wijaya' },
-  { trx_id: 'TRX-BNI-908', merchant_id: 'mch-fitbody-01', member_id: 'MBR-0655', session_id: 'ses-8', session_title: 'Functional Boxing Fit', amount: 180000, bni_va_number: '9888000100655', bni_signature: 'sig_valid', status: 'PENDING', created_at: '2026-09-14T16:00:00Z', customer_name: 'Ivan Kurniawan' },
-];
-
 export default function FinanceTab({
   tenantId,
   tenantName,
   bniAccountNumber = '0129883492',
   bniCompanyCode = '8241',
 }: FinanceTabProps) {
-  const [transactions, setTransactions] = useState<TransactionItem[]>(MOCK_TRANSACTIONS);
+  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Record<string, boolean>>({});
 

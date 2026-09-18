@@ -7,6 +7,7 @@ import ThinkingState from '@/components/ui/thinking';
 interface VisualAnalyticsTabProps {
   analytics: any;
   revenueInsights?: any;
+  tenantId: string;
 }
 
 interface Message {
@@ -22,108 +23,13 @@ const SAMPLE_PROMPTS = [
   'tren VA settlement 30 hari terakhir',
 ];
 
-const AI_RESPONSES: Record<string, string[]> = {
-  default: [
-    '📊 **Analisis Pendapatan — September 2026**',
-    '',
-    '• Total VA Settled: **Rp 49.229.000** (+12% dari bulan lalu)',
-    '• Member aktif: **36.183** dari 49.229 total member',
-    '• Retention rate bulan ini: **92.0%** — meningkat 3.2 poin',
-    '• Rata-rata nilai transaksi per member: **Rp 1.360.000**',
-    '',
-    '⚠️ **Risiko yang Terdeteksi**',
-    '',
-    '• **4 member** dengan VA expired — perlu outreach segera',
-    '• Sesi **19:00–21:00 WIB** overbooked, perlu penambahan slot',
-    '• Burn rate member baru bulan pertama masih 28% — perlu onboarding lebih kuat',
-    '',
-    '💡 **Rekomendasi AI**',
-    '',
-    '1. Tambahkan slot sesi pagi **06:00 WIB** (utilisasi saat ini hanya 18%)',
-    '2. Kirim reminder VA otomatis **24 jam sebelum expiry** untuk kurangi silent cancel',
-    '3. Terapkan diskon off-peak **10%** untuk sesi Selasa–Kamis pagi',
-    '4. Buat program onboarding 30 hari untuk member baru agar burn rate naik ke 60%+',
-    '',
-    '**Kesimpulan:** Ekosistem sehat secara keseluruhan. Fokus utama: konversi 4 member at-risk dan optimasi slot sepi.',
-  ],
-  churn: [
-    '🔍 **Analisis Member Berisiko Churn — September 2026**',
-    '',
-    '• Total member teridentifikasi berisiko: **4 orang (HIGH RISK)**',
-    '• Kategori risiko: 3× Silent Cancellation, 1× Passive Non-Renewal',
-    '',
-    '📋 **Detail Member**',
-    '',
-    '1. **Dina Kusuma** — VA expired, kuota 2/8 tersisa, inaktif 21 hari',
-    '2. **Eko Prasetyo** — masa aktif habis 3 hari lagi, belum perpanjang',
-    '3. **Farida Hanum** — VA expired 2× berturut-turut, signal price friction',
-    '4. **Gunawan Halim** — absen 18 hari, kuota tersisa 6/10',
-    '',
-    '💡 **Tindakan yang Direkomendasikan**',
-    '',
-    '• Kirim penawaran **Freeze 30 hari gratis** untuk Dina & Gunawan',
-    '• Tawarkan **downgrade paket** ke 4 sesi untuk Farida (price sensitivity)',
-    '• Aktifkan reminder otomatis untuk Eko H-3 sebelum masa aktif habis',
-    '',
-    '**Proyeksi:** Jika ketiga intervensi berhasil, retained revenue +**Rp 1.275.000**',
-  ],
-  retensi: [
-    '🎯 **Strategi Retensi — Sesi Pagi**',
-    '',
-    '• Utilisasi sesi pagi (06:00–09:00): hanya **18%** kapasitas',
-    '• Sesi malam (19:00–21:00): **103%** — overbooked hampir tiap hari',
-    '',
-    '📦 **Paket Rekomendasi**',
-    '',
-    '1. **"Early Bird Pass"** — Rp 120.000/sesi (diskon 20% dari harga normal)',
-    '   → Target: member yang selama ini pilih malam karena harga sama',
-    '',
-    '2. **"Shift Reward"** — poin bonus 2× untuk member yang pindah ke sesi pagi',
-    '   → Cocok untuk member dengan sisa kuota >4',
-    '',
-    '3. **"Duo Morning"** — bawa 1 teman, keduanya dapat 1 sesi gratis',
-    '   → Viral loop + mengisi kapasitas pagi sekaligus',
-    '',
-    '**Estimasi dampak:** Kapasitas pagi naik ke 55–65% dalam 30 hari.',
-    '**Margin tetap aman:** Di atas floor BNI Rp 50.000/sesi ✓',
-  ],
-  va: [
-    '💳 **Tren VA Settlement — 30 Hari Terakhir**',
-    '',
-    '• Total VA dibuat: **182 transaksi**',
-    '• VA settled (PAID): **171** (93.9%)',
-    '• VA expired tanpa bayar: **8** (4.4%)',
-    '• VA failed/error: **3** (1.7%)',
-    '',
-    '📈 **Tren Mingguan**',
-    '',
-    '• Minggu 1 (1–7 Sep): 44 VA, settlement rate 91.0%',
-    '• Minggu 2 (8–14 Sep): 48 VA, settlement rate 94.2%',
-    '• Minggu 3 (15–21 Sep): 52 VA, settlement rate 96.1% ← tertinggi',
-    '• Minggu 4 (22–30 Sep): 38 VA, settlement rate 92.1%',
-    '',
-    '⚠️ **Pola yang Dicatat**',
-    '',
-    '• VA yang dibuat >20:00 WIB memiliki expired rate 3× lebih tinggi',
-    '• Reminder notifikasi jam 09:00 keesokan hari terbukti efektif +14%',
-    '',
-    '**Rekomendasi:** Batasi pembuatan VA tanpa reminder jika user aktif <30 hari.',
-  ],
-};
-
-function getAiResponse(query: string): string[] {
-  const q = query.toLowerCase();
-  if (q.includes('churn') || q.includes('risiko') || q.includes('berhenti')) return AI_RESPONSES.churn;
-  if (q.includes('retensi') || q.includes('strategi') || q.includes('pagi')) return AI_RESPONSES.retensi;
-  if (q.includes('va') || q.includes('settlement') || q.includes('virtual account')) return AI_RESPONSES.va;
-  return AI_RESPONSES.default;
-}
-
-export default function VisualAnalyticsTab({ analytics, revenueInsights }: VisualAnalyticsTabProps) {
+export default function VisualAnalyticsTab({ analytics, revenueInsights, tenantId }: VisualAnalyticsTabProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [phase, setPhase] = useState<'idle' | 'thinking' | 'streaming'>('idle');
   const [thinkingKey, setThinkingKey] = useState(0);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -139,9 +45,39 @@ export default function VisualAnalyticsTab({ analytics, revenueInsights }: Visua
     setMessages([]);
     setInput('');
     setPhase('idle');
+    setSessionId(null);
+    setSendError(null);
   };
 
-  const handleSend = (text?: string) => {
+  // Streams the AI's markdown report line-by-line into the chat, matching the original
+  // scripted-demo's pacing but fed by a real backend response instead of canned text.
+  const streamLines = (lines: string[]) => {
+    setPhase('streaming');
+    const assistantMsg: Message = { role: 'assistant', content: '', lines: [] };
+    setMessages(prev => [...prev, assistantMsg]);
+
+    if (lines.length === 0) {
+      setPhase('idle');
+      return;
+    }
+
+    lines.forEach((line, i) => {
+      setTimeout(() => {
+        setMessages(prev => {
+          const updated = [...prev];
+          const last = { ...updated[updated.length - 1] };
+          last.lines = [...(last.lines ?? []), line];
+          updated[updated.length - 1] = last;
+          return updated;
+        });
+        if (i === lines.length - 1) {
+          setTimeout(() => setPhase('idle'), 200);
+        }
+      }, i * 160);
+    });
+  };
+
+  const handleSend = async (text?: string) => {
     const query = text ?? input;
     if (!query.trim() || phase !== 'idle') return;
 
@@ -150,30 +86,32 @@ export default function VisualAnalyticsTab({ analytics, revenueInsights }: Visua
     setInput('');
     setPhase('thinking');
     setThinkingKey(k => k + 1);
+    setSendError(null);
 
-    const responseLines = getAiResponse(query);
+    try {
+      let activeSessionId = sessionId;
+      if (!activeSessionId) {
+        const sessionRes = await fetch(`/api/merchant/${tenantId}/analytics-sessions`, { method: 'POST' });
+        if (!sessionRes.ok) throw new Error('Gagal membuat sesi analisis.');
+        const sessionData = await sessionRes.json();
+        activeSessionId = sessionData.session?.id;
+        if (!activeSessionId) throw new Error('Sesi analisis tidak valid.');
+        setSessionId(activeSessionId);
+      }
 
-    // After thinking duration, start streaming lines
-    setTimeout(() => {
-      setPhase('streaming');
-      const assistantMsg: Message = { role: 'assistant', content: '', lines: [] };
-      setMessages(prev => [...prev, assistantMsg]);
-
-      responseLines.forEach((line, i) => {
-        setTimeout(() => {
-          setMessages(prev => {
-            const updated = [...prev];
-            const last = { ...updated[updated.length - 1] };
-            last.lines = [...(last.lines ?? []), line];
-            updated[updated.length - 1] = last;
-            return updated;
-          });
-          if (i === responseLines.length - 1) {
-            setTimeout(() => setPhase('idle'), 200);
-          }
-        }, i * 160);
+      const res = await fetch(`/api/merchant/${tenantId}/analytics-sessions/${activeSessionId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
       });
-    }, 4200);
+      if (!res.ok) throw new Error('AI analytics engine gagal merespons.');
+      const data = await res.json();
+      const reportMarkdown: string = data.assistant_message?.content || 'Tidak ada respons dari AI.';
+      streamLines(reportMarkdown.split('\n'));
+    } catch (err: any) {
+      setSendError(err?.message || 'Gagal menghubungi AI analytics engine.');
+      setPhase('idle');
+    }
   };
 
   const renderLine = (line: string, i: number) => {
@@ -336,6 +274,9 @@ export default function VisualAnalyticsTab({ analytics, revenueInsights }: Visua
       {/* Bottom Input Area ala Claude Code */}
       <div className="shrink-0 p-5 sm:px-12 border-t border-white/8 bg-[#171717]/95 backdrop-blur">
         <div className="max-w-3xl mx-auto">
+          {sendError && (
+            <p className="text-xs text-red-400 mb-2 font-mono">{sendError}</p>
+          )}
           <div className="flex items-center gap-3 bg-[#212121] border border-white/12 focus-within:border-[#24B1B1] rounded-2xl px-4 py-3.5 transition-all shadow-xl">
             <span className="text-neutral-500 font-mono text-sm pl-1">&gt;</span>
             <input

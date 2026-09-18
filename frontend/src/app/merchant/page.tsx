@@ -73,30 +73,39 @@ interface MemberItem {
   days_inactive?: number;
 }
 
-const merchantNavGroups: NavGroupData[] = [
-  {
-    items: [
-      { id: 'search', title: 'Search', icon: Search, shortcut: '⌘K' },
-      { id: 'home', title: 'Dashboard', icon: LayoutDashboard },
-      { id: 'inbox', title: 'Retention Inbox', icon: Inbox, badge: 12 },
-      { id: 'analytics', title: 'Analytics', icon: Activity, hasAddAction: true },
-    ]
-  },
-  {
-    heading: 'Workspace',
-    items: [
-      { id: 'business-logic', title: 'Business Logic', icon: Cpu, hasAddAction: true },
-      { id: 'finance', title: 'BNI Revenue & VA', icon: CreditCard },
-    ]
-  },
-  {
-    heading: 'Developers',
-    items: [
-      { id: 'api', title: 'API Keys', icon: Terminal },
-      { id: 'webhooks', title: 'Webhooks', icon: Blocks },
-    ]
-  }
-];
+// Retention Inbox badge reflects the real at-risk member count once loaded (see
+// buildMerchantNavGroups below) — no static/fabricated number.
+function buildMerchantNavGroups(atRiskMemberCount: number): NavGroupData[] {
+  return [
+    {
+      items: [
+        { id: 'search', title: 'Search', icon: Search, shortcut: '⌘K' },
+        { id: 'home', title: 'Dashboard', icon: LayoutDashboard },
+        {
+          id: 'inbox',
+          title: 'Retention Inbox',
+          icon: Inbox,
+          badge: atRiskMemberCount > 0 ? atRiskMemberCount : undefined,
+        },
+        { id: 'analytics', title: 'Analytics', icon: Activity, hasAddAction: true },
+      ]
+    },
+    {
+      heading: 'Workspace',
+      items: [
+        { id: 'business-logic', title: 'Business Logic', icon: Cpu, hasAddAction: true },
+        { id: 'finance', title: 'BNI Revenue & VA', icon: CreditCard },
+      ]
+    },
+    {
+      heading: 'Developers',
+      items: [
+        { id: 'api', title: 'API Keys', icon: Terminal },
+        { id: 'webhooks', title: 'Webhooks', icon: Blocks },
+      ]
+    }
+  ];
+}
 
 const merchantBottomItems: NavItemData[] = [
   { id: 'settings', title: 'Settings', icon: Settings, shortcut: '⌘,' },
@@ -118,15 +127,15 @@ export default function MerchantDashboardPage() {
   const [activeWorkspace, setActiveWorkspace] = useState('FitBody Gym & Movement');
 
   const [stats, setStats] = useState<MerchantStats>({
-    total_members: 49229,
-    at_risk_members: 4,
-    saved_members: 34,
-    retention_rate_pct: 92.0,
-    total_revenue_paid_idr: 49229000,
-    avg_quota_utilization_pct: 84,
-    outreach_sent: 38,
-    magic_link_opened: 36,
-    va_settled: 34,
+    total_members: 0,
+    at_risk_members: 0,
+    saved_members: 0,
+    retention_rate_pct: 0,
+    total_revenue_paid_idr: 0,
+    avg_quota_utilization_pct: 0,
+    outreach_sent: 0,
+    magic_link_opened: 0,
+    va_settled: 0,
   });
 
   const [members, setMembers] = useState<MemberItem[]>([]);
@@ -134,14 +143,7 @@ export default function MerchantDashboardPage() {
   const [isDataset900Open, setIsDataset900Open] = useState(false);
   const [isFeedbackDemoOpen, setIsFeedbackDemoOpen] = useState(false);
 
-  const [mlAnalytics, setMlAnalytics] = useState<any>({
-    total_customers: 49229,
-    active_customers: 36183,
-    churned_customers: 13046,
-    churn_rate_pct: 26.5,
-    model_accuracy_pct: 82.4,
-    ai_features_count: 15,
-  });
+  const [mlAnalytics, setMlAnalytics] = useState<any>(null);
   const [revenueInsights, setRevenueInsights] = useState<any>(null);
 
   const selectedTenant = tenantsList.find(t => t.name === activeWorkspace) || tenantsList[0];
@@ -269,7 +271,7 @@ export default function MerchantDashboardPage() {
           onSelect={handleSelect}
           activeWorkspace={activeWorkspace}
           onWorkspaceSelect={setActiveWorkspace}
-          navGroups={merchantNavGroups}
+          navGroups={buildMerchantNavGroups(stats.at_risk_members)}
           bottomItems={merchantBottomItems}
           planLabel="Merchant Pro"
           workspaces={tenantsList.map(t => t.name)}
@@ -321,6 +323,7 @@ export default function MerchantDashboardPage() {
             <VisualAnalyticsTab
               analytics={mlAnalytics}
               revenueInsights={revenueInsights}
+              tenantId={selectedTenant.id}
             />
           )}
 
@@ -365,18 +368,21 @@ export default function MerchantDashboardPage() {
               <div className="space-y-3 pt-2">
                 <div>
                   <label className="text-[11px] font-mono uppercase text-neutral-400">Merchant Client ID</label>
-                  <div className="mt-1 flex items-center justify-between p-2.5 rounded-lg bg-[#171717] border border-white/10 font-mono text-xs text-white">
-                    <span>bni_client_live_fitbody01_99882</span>
-                    <span className="text-[10px] text-neutral-500 uppercase">Active</span>
+                  <div className="mt-1 flex items-center justify-between p-2.5 rounded-lg bg-[#171717] border border-white/10 font-mono text-xs text-neutral-500">
+                    <span>Belum diprovisikan</span>
+                    <span className="text-[10px] text-neutral-500 uppercase">Not configured</span>
                   </div>
                 </div>
                 <div>
                   <label className="text-[11px] font-mono uppercase text-neutral-400">HMAC Secret Key</label>
-                  <div className="mt-1 flex items-center justify-between p-2.5 rounded-lg bg-[#171717] border border-white/10 font-mono text-xs text-white">
-                    <span>••••••••••••••••••••••••••••••••</span>
-                    <span className="text-[10px] text-emerald-400 uppercase">Configured</span>
+                  <div className="mt-1 flex items-center justify-between p-2.5 rounded-lg bg-[#171717] border border-white/10 font-mono text-xs text-neutral-500">
+                    <span>Belum diprovisikan</span>
+                    <span className="text-[10px] text-neutral-500 uppercase">Not configured</span>
                   </div>
                 </div>
+                <p className="text-[11px] text-neutral-500 pt-1">
+                  Hubungi tim LANJUT untuk provisioning kredensial BNI Open Banking SNAP sandbox/production untuk merchant ini.
+                </p>
               </div>
             </div>
           )}
@@ -392,8 +398,8 @@ export default function MerchantDashboardPage() {
               </p>
               <div className="p-3 bg-[#171717] border border-white/10 rounded-lg font-mono text-xs text-white flex items-center justify-between">
                 <span>https://api.lanjut.id/webhook/bni-payment</span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  HTTP 200 OK
+                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white/5 text-neutral-400 border border-white/10">
+                  Registered
                 </span>
               </div>
             </div>

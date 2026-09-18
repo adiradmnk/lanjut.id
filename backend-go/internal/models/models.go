@@ -278,3 +278,23 @@ type SmartOption struct {
 	AvailableSlots     int     `json:"available_slots"`
 	ActionLabel        string  `json:"action_label"`
 }
+
+// AnalyticsSession is one merchant-owner conversation with the AI analytics query agent —
+// a Claude-Code-style side chat over that tenant's real transaction + feedback data. See
+// migrations/0017_analytics_sessions.sql.
+type AnalyticsSession struct {
+	ID        string `json:"id"`
+	TenantID  string `json:"tenant_id"`
+	Title     string `json:"title"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+}
+
+// AnalyticsMessage is one turn (role "user" or "assistant") in an AnalyticsSession.
+type AnalyticsMessage struct {
+	ID        string `json:"id"`
+	SessionID string `json:"session_id"`
+	Role      string `json:"role"`
+	Content   string `json:"content"`
+	CreatedAt string `json:"created_at"`
+}

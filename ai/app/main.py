@@ -8,6 +8,7 @@ from app.features.guidebook.router import router as guidebook_router
 from app.features.chatbot.router import router as chatbot_router
 from app.features.retention.router import router as retention_router
 from app.features.lifecycle.router import router as lifecycle_router
+from app.features.analytics.router import router as analytics_router
 from app.routers import documents
 
 app = FastAPI(
@@ -32,6 +33,7 @@ app.include_router(chatbot_router, prefix=f"{settings.API_V1_STR}/chatbot", tags
 app.include_router(retention_router, prefix=f"{settings.API_V1_STR}/retention", tags=["Fitur 3: Retention & Churn Scoring"])
 app.include_router(lifecycle_router, prefix=f"{settings.API_V1_STR}/lifecycle", tags=["Fitur 4: Lifecycle & Banking RM Health"])
 app.include_router(documents.router, prefix=f"{settings.API_V1_STR}/documents", tags=["Guidebook Document Parsing"])
+app.include_router(analytics_router, prefix=f"{settings.API_V1_STR}/analytics", tags=["Fitur 5: Merchant Analytics Query Agent"])
 
 if __name__ == "__main__":
     import uvicorn

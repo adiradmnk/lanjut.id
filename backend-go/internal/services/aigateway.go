@@ -1093,3 +1093,68 @@ func (a *AIGateway) EvaluateSMECreditDSS(ctx context.Context, merchantID, mercha
 		},
 	}, nil
 }
+
+// AnalyticsReportInput is a merchant's free-text analytics question plus the tenant's own
+// real transaction/feedback rows and this session's prior turns, sent as-is to the sidecar
+// so the report is grounded in that data rather than invented.
+type AnalyticsReportInput struct {
+	MerchantName string
+	Category     string
+	Query        string
+	Transactions []map[string]any
+	Feedback     []map[string]any
+	History      []map[string]string
+}
+
+// AnalyticsReportResult is one AI-generated turn in an analytics chat session.
+type AnalyticsReportResult struct {
+	Title          string `json:"title"`
+	ReportMarkdown string `json:"report_markdown"`
+	Source         string `json:"source"`
+}
+
+// GenerateAnalyticsReport calls the sidecar's /api/v1/analytics/query endpoint (Gemini,
+// prompted not to fabricate numbers, with a deterministic real-aggregate fallback when the
+// sidecar or Gemini is unavailable — see ai/app/features/analytics/agent.py). This backs the
+// merchant dashboard's Claude-Code-style Analytics chat sessions.
+func (a *AIGateway) GenerateAnalyticsReport(ctx context.Context, in AnalyticsReportInput) (*AnalyticsReportResult, error) {
+	reqBody := map[string]any{
+		"merchant_name": in.MerchantName,
+		"category":      in.Category,
+		"query":         in.Query,
+		"transactions":  in.Transactions,
+		"feedback":      in.Feedback,
+		"history":       in.History,
+	}
+
+	bodyJSON, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("marshal request: %w", err)
+	}
+
+	reqCtx, cancel := context.WithTimeout(ctx, 25*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost,
+		a.baseURL+"/api/v1/analytics/query", bytes.NewReader(bodyJSON))
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := a.slowClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ai sidecar unreachable: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("ai sidecar returned status %d", resp.StatusCode)
+	}
+
+	var out AnalyticsReportResult
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, fmt.Errorf("decode analytics query response: %w", err)
+	}
+	return &out, nil
+}

@@ -56,50 +56,58 @@ import {
   type RetentionPayment
 } from './payment-data';
 
-const gatewayNavGroups: NavGroupData[] = [
-  {
-    items: [
-      { id: 'search', title: 'Search Gateway', icon: Search, shortcut: '⌘K' },
-      { id: 'home', title: 'Overview', icon: LayoutDashboard },
-      { id: 'supervised-merchants', title: 'Supervised Merchants', icon: Building2, badge: 18 },
-      { id: 'portfolio-health', title: 'Portfolio Health', icon: Activity },
-    ]
-  },
-  {
-    heading: 'BNI SNAP & Settlement',
-    items: [
-      { 
-        id: 'settlements', 
-        title: 'Settlements & VA', 
-        icon: CreditCard,
-        children: [
-          { id: 's-settled', title: 'Settled Transactions', icon: Hash },
-          { id: 's-pending', title: 'Pending Settlement', icon: Hash },
-          { id: 's-failed', title: 'Failed & Dispute', icon: Hash },
-        ]
-      },
-      { id: 'audit-logs', title: 'Retention Audits', icon: FileText },
-      { 
-        id: 'merchants-dir', 
-        title: 'Merchant Directory', 
-        icon: Globe,
-        children: [
-          { id: 'm-gyms', title: 'Fitness & Gyms', icon: Hash },
-          { id: 'm-saas', title: 'SaaS Platforms', icon: Hash },
-          { id: 'm-edtech', title: 'EdTech & Courses', icon: Hash },
-        ]
-      },
-      { id: 'rm-support', title: 'RM Support Queue', icon: Users, badge: 3 },
-    ]
-  },
-  {
-    heading: 'Developer Hub',
-    items: [
-      { id: 'snap-credentials', title: 'SNAP API Keys', icon: Terminal },
-      { id: 'snap-webhooks', title: 'Webhook Endpoints', icon: Blocks },
-    ]
-  }
-];
+// Supervised Merchants badge reflects the real merchant count once loaded (see
+// buildGatewayNavGroups below) — no static/fabricated number.
+function buildGatewayNavGroups(supervisedMerchantsCount: number): NavGroupData[] {
+  return [
+    {
+      items: [
+        { id: 'search', title: 'Search Gateway', icon: Search, shortcut: '⌘K' },
+        { id: 'home', title: 'Overview', icon: LayoutDashboard },
+        {
+          id: 'supervised-merchants',
+          title: 'Supervised Merchants',
+          icon: Building2,
+          badge: supervisedMerchantsCount > 0 ? supervisedMerchantsCount : undefined,
+        },
+        { id: 'portfolio-health', title: 'Portfolio Health', icon: Activity },
+      ]
+    },
+    {
+      heading: 'BNI SNAP & Settlement',
+      items: [
+        {
+          id: 'settlements',
+          title: 'Settlements & VA',
+          icon: CreditCard,
+          children: [
+            { id: 's-settled', title: 'Settled Transactions', icon: Hash },
+            { id: 's-pending', title: 'Pending Settlement', icon: Hash },
+            { id: 's-failed', title: 'Failed & Dispute', icon: Hash },
+          ]
+        },
+        { id: 'audit-logs', title: 'Retention Audits', icon: FileText },
+        {
+          id: 'merchants-dir',
+          title: 'Merchant Directory',
+          icon: Globe,
+          children: [
+            { id: 'm-gyms', title: 'Fitness & Gyms', icon: Hash },
+            { id: 'm-saas', title: 'SaaS Platforms', icon: Hash },
+            { id: 'm-edtech', title: 'EdTech & Courses', icon: Hash },
+          ]
+        },
+        { id: 'rm-support', title: 'RM Support Queue', icon: Users },
+      ]
+    },
+    {
+      heading: 'Developer Hub',
+      items: [
+        { id: 'snap-webhooks', title: 'Webhook Endpoints', icon: Blocks },
+      ]
+    }
+  ];
+}
 
 const gatewayBottomItems: NavItemData[] = [
   { id: 'settings', title: 'Gateway Config', icon: Settings, shortcut: '⌘,' },
@@ -113,7 +121,6 @@ export default function PaymentGatewayDashboard() {
   const [selectedMerchantId, setSelectedMerchantId] = useState('mch-fitbody-01');
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [copiedKey, setCopiedKey] = useState(false);
   const [uploadDone, setUploadDone] = useState(false);
 
   // Live Data States
@@ -196,40 +203,6 @@ export default function PaymentGatewayDashboard() {
     category: 'Fitness & Wellness'
   };
 
-  const copyCredential = () => {
-    const dynamicKey = `bni_snap_${selectedMerchant.id.replace(/-/g, '_')}_${btoa(selectedMerchant.id).substring(0, 10).toLowerCase()}`;
-    navigator.clipboard.writeText(dynamicKey);
-    setCopiedKey(true);
-    setTimeout(() => setCopiedKey(false), 2000);
-  };
-
-  const topPerformers = [
-    {
-      id: 1,
-      name: 'FitBody Gym & Movement',
-      tasks: 'Rp 11.900.000 VA Settled',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 2,
-      name: 'Zenith Yoga Sanctuary',
-      tasks: 'Rp 8.450.000 VA Settled',
-      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 3,
-      name: 'Surabaya Iron CrossFit',
-      tasks: 'Rp 6.200.000 VA Settled',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 4,
-      name: 'Bandung Core Pilates',
-      tasks: 'Rp 4.800.000 VA Settled',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-    },
-  ];
-
   return (
     <div className="flex h-screen h-[100dvh] w-full bg-[#171717] text-[#fafafa] font-sans antialiased overflow-hidden select-none">
       
@@ -243,7 +216,7 @@ export default function PaymentGatewayDashboard() {
           className="w-[260px] border-none bg-[#171717]"
           activeId={activeNav}
           onSelect={handleNavSelect}
-          navGroups={gatewayNavGroups}
+          navGroups={buildGatewayNavGroups(merchants.length)}
           bottomItems={gatewayBottomItems}
           activeWorkspace="BNI Ecosystem Gateway"
           planLabel="Partner Portal v2.4"
