@@ -7,9 +7,10 @@ from typing import Dict, Any, Optional
 logger = logging.getLogger(__name__)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-# gemini-1.5-flash was retired by Google (404 on v1beta generateContent) — override via
-# GEMINI_MODEL if the API key's project needs a different current model.
-DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+# gemini-1.5-flash and gemini-2.0-flash were both retired by Google (404 on generateContent,
+# the latter's error explicitly points to gemini-3.6-flash) — override via GEMINI_MODEL if
+# the API key's project needs a different current model.
+DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
 try:
     import google.generativeai as genai
