@@ -113,7 +113,12 @@ export default function BusinessLogicTab({ tenantId, tenantName, tenantCategory 
         body: formData,
       });
 
-      const data = await res.json();
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error(`Server tidak merespons dengan format yang diharapkan (HTTP ${res.status}). Coba lagi atau gunakan file yang lebih kecil.`);
+      }
       if (res.ok && data.status === 'success') {
         setUploadStatus('SUCCESS');
         setUploadMessage(`Berhasil dianalisis! Dokumen "${file.name}" telah mengkonfigurasi ulang baseline aturan bisnis Anda.`);

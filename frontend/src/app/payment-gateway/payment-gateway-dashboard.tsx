@@ -366,6 +366,38 @@ export default function PaymentGatewayDashboard() {
                 </div>
               </div>
 
+              {/* Health Rating Composition - real, computed from merchants[].health.creditHealthRating */}
+              {merchants.length > 0 && (() => {
+                const counts: Record<string, number> = {};
+                merchants.forEach(m => {
+                  const rating = m.health?.creditHealthRating || m.health?.credit_health_rating || 'BELUM DIEVALUASI';
+                  counts[rating] = (counts[rating] || 0) + 1;
+                });
+                const entries = Object.entries(counts);
+                const colors: Record<string, string> = {
+                  PRIME: 'bg-emerald-500', WATCHLIST_LOW: 'bg-emerald-500',
+                  WATCHLIST_MEDIUM: 'bg-yellow-500', WATCHLIST: 'bg-yellow-500',
+                  HIGH_ALERT: 'bg-red-500', WATCHLIST_HIGH: 'bg-red-500',
+                };
+                return (
+                  <div className="space-y-2">
+                    <span className="text-xs text-neutral-400 font-medium">Komposisi Kesehatan Portofolio</span>
+                    <div className="h-2.5 w-full flex rounded-full overflow-hidden bg-neutral-800">
+                      {entries.map(([rating, count]) => (
+                        <div key={rating} style={{ width: `${(count / merchants.length) * 100}%` }} className={colors[rating] || 'bg-neutral-500'} title={`${rating}: ${count}`} />
+                      ))}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-neutral-500 font-mono pt-1">
+                      {entries.map(([rating, count]) => (
+                        <span key={rating} className="flex items-center gap-1.5">
+                          <span className={`w-1.5 h-1.5 rounded-full ${colors[rating] || 'bg-neutral-500'}`} /> {rating} ({count})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Merchant Health Table - real merchant list from /api/bni/merchant-list */}
               <div className="pt-2">
                 <div className="pb-3 flex items-center justify-between border-b border-white/5">
