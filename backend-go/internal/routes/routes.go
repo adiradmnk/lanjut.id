@@ -82,6 +82,7 @@ func Register(r *gin.Engine, h *handlers.Handlers) {
 		api.GET("/bni/dashboard", h.BNIDashboard)
 		api.GET("/bni/portfolio-health", h.GetBNIPortfolioHealth)
 		api.GET("/bni/merchant-list", h.GetBNIMerchantList)
+		api.GET("/bni/gateway-logs", h.GetPaymentGatewayAuditLogs)
 		api.GET("/bni/tenants/:tenantId/insights", h.GetTenantInsights)
 	}
 

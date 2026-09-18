@@ -1,20 +1,26 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  CreditCard, 
-  Download, 
-  RefreshCw, 
   CheckCircle2, 
   Clock, 
   AlertCircle, 
-  Search, 
-  ArrowUpRight,
-  ShieldCheck,
-  Building2
+  ChevronUp, 
+  ChevronDown,
+  Download,
+  RefreshCw
 } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 
-interface TransactionItem {
+export interface TransactionItem {
   trx_id: string;
   merchant_id: string;
   member_id: string;
@@ -36,16 +42,30 @@ interface FinanceTabProps {
   bniCompanyCode?: string;
 }
 
+const MOCK_TRANSACTIONS: TransactionItem[] = [
+  { trx_id: 'TRX-BNI-901', merchant_id: 'mch-fitbody-01', member_id: 'MBR-0421', session_id: 'ses-1', session_title: 'Pilates Reformer Morning', amount: 150000, bni_va_number: '9888000100421', bni_signature: 'sig_valid', status: 'PAID', created_at: '2026-09-17T06:00:00Z', paid_at: '2026-09-17T06:05:12Z', customer_name: 'Dina Kusuma' },
+  { trx_id: 'TRX-BNI-902', merchant_id: 'mch-fitbody-01', member_id: 'MBR-0317', session_id: 'ses-2', session_title: 'Yoga Flow Evening — Studio A', amount: 200000, bni_va_number: '9888000100317', bni_signature: 'sig_valid', status: 'PENDING', created_at: '2026-09-17T17:00:00Z', customer_name: 'Budi Santoso' },
+  { trx_id: 'TRX-BNI-903', merchant_id: 'mch-fitbody-01', member_id: 'MBR-0589', session_id: 'ses-3', session_title: 'CrossFit WOD Intensity', amount: 175000, bni_va_number: '9888000100589', bni_signature: 'sig_valid', status: 'EXPIRED', created_at: '2026-09-16T19:00:00Z', customer_name: 'Citra Lestari' },
+  { trx_id: 'TRX-BNI-904', merchant_id: 'mch-fitbody-01', member_id: 'MBR-0112', session_id: 'ses-4', session_title: 'Zumba Cardio Weekend', amount: 120000, bni_va_number: '9888000100112', bni_signature: 'sig_valid', status: 'PAID', created_at: '2026-09-16T10:00:00Z', paid_at: '2026-09-16T10:12:44Z', customer_name: 'Eko Prasetyo' },
+  { trx_id: 'TRX-BNI-905', merchant_id: 'mch-fitbody-01', member_id: 'MBR-0899', session_id: 'ses-5', session_title: 'Strength & Conditioning', amount: 250000, bni_va_number: '9888000100899', bni_signature: 'sig_valid', status: 'PAID', created_at: '2026-09-15T08:00:00Z', paid_at: '2026-09-15T08:04:19Z', customer_name: 'Farida Hanum' },
+  { trx_id: 'TRX-BNI-906', merchant_id: 'mch-fitbody-01', member_id: 'MBR-0744', session_id: 'ses-6', session_title: 'Pilates Reformer Evening', amount: 150000, bni_va_number: '9888000100744', bni_signature: 'sig_valid', status: 'EXPIRED', created_at: '2026-09-15T18:00:00Z', customer_name: 'Gunawan Halim' },
+  { trx_id: 'TRX-BNI-907', merchant_id: 'mch-fitbody-01', member_id: 'MBR-0231', session_id: 'ses-7', session_title: 'Barre Core Sculpting', amount: 160000, bni_va_number: '9888000100231', bni_signature: 'sig_valid', status: 'PAID', created_at: '2026-09-14T07:30:00Z', paid_at: '2026-09-14T07:33:02Z', customer_name: 'Hana Wijaya' },
+  { trx_id: 'TRX-BNI-908', merchant_id: 'mch-fitbody-01', member_id: 'MBR-0655', session_id: 'ses-8', session_title: 'Functional Boxing Fit', amount: 180000, bni_va_number: '9888000100655', bni_signature: 'sig_valid', status: 'PENDING', created_at: '2026-09-14T16:00:00Z', customer_name: 'Ivan Kurniawan' },
+];
+
 export default function FinanceTab({
   tenantId,
   tenantName,
   bniAccountNumber = '0129883492',
   bniCompanyCode = '8241',
 }: FinanceTabProps) {
-  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PAID' | 'PENDING'>('ALL');
+  const [transactions, setTransactions] = useState<TransactionItem[]>(MOCK_TRANSACTIONS);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Record<string, boolean>>({});
+
+  // Sorting
+  const [sortField, setSortField] = useState<keyof TransactionItem>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const fetchTransactions = async () => {
     setIsLoading(true);
@@ -53,7 +73,7 @@ export default function FinanceTab({
       const res = await fetch(`/api/merchant/${tenantId}/transactions`);
       if (res.ok) {
         const data = await res.json();
-        if (data.transactions) {
+        if (data.transactions && data.transactions.length > 0) {
           setTransactions(data.transactions);
         }
       }
@@ -70,27 +90,9 @@ export default function FinanceTab({
     return () => clearInterval(interval);
   }, [tenantId]);
 
-  const filtered = transactions.filter(t => {
-    const matchStatus = statusFilter === 'ALL' || t.status === statusFilter;
-    const matchSearch = 
-      t.trx_id.toLowerCase().includes(search.toLowerCase()) ||
-      t.bni_va_number.includes(search) ||
-      t.session_title.toLowerCase().includes(search.toLowerCase()) ||
-      t.member_id.toLowerCase().includes(search.toLowerCase());
-    return matchStatus && matchSearch;
-  });
-
-  const totalSettled = transactions
-    .filter(t => t.status === 'PAID')
-    .reduce((acc, curr) => acc + (curr.amount || 0), 0);
-
-  const pendingSettlement = transactions
-    .filter(t => t.status === 'PENDING')
-    .reduce((acc, curr) => acc + (curr.amount || 0), 0);
-
   const handleExportCsv = () => {
     const header = 'Transaction_ID,Member_ID,Session_Title,BNI_VA_Number,Amount_IDR,Status,Created_At,Paid_At\n';
-    const rows = transactions.map(t => 
+    const rows = sortedTransactions.map(t => 
       `"${t.trx_id}","${t.member_id}","${t.session_title}","${t.bni_va_number}",${t.amount},"${t.status}","${t.created_at}","${t.paid_at || '-'}"`
     ).join('\n');
 
@@ -104,183 +106,233 @@ export default function FinanceTab({
     document.body.removeChild(link);
   };
 
+  // Sort Logic
+  const sortedTransactions = useMemo(() => {
+    return [...transactions].sort((a, b) => {
+      const valA = a[sortField] ?? '';
+      const valB = b[sortField] ?? '';
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [transactions, sortField, sortOrder]);
+
+  const toggleSort = (field: keyof TransactionItem) => {
+    if (sortField === field) {
+      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
+
+  const isAllSelected = sortedTransactions.length > 0 &&
+    sortedTransactions.every(t => selectedIds[t.trx_id]);
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds({});
+    } else {
+      const next: Record<string, boolean> = {};
+      sortedTransactions.forEach(t => {
+        next[t.trx_id] = true;
+      });
+      setSelectedIds(next);
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#212121] border border-white/10 rounded-xl p-5">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-              BNI SNAP Direct Integration
-            </span>
-            <span className="text-xs text-neutral-400">Virtual Account Settlement Engine</span>
-          </div>
-          <h1 className="text-lg font-bold text-white mt-1">
-            Riwayat Transaksi & Rekonsiliasi VA ({tenantName})
-          </h1>
-          <p className="text-xs text-neutral-400 mt-0.5">
-            Nomor Rekening Escrow BNI: <strong className="text-white font-mono">{bniAccountNumber}</strong> (Company Code: {bniCompanyCode})
-          </p>
+    <div className="space-y-4">
+      {/* Action Header - Borderless & Clean */}
+      <div className="flex items-center justify-between pb-2 border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm font-semibold text-white">Riwayat Transaksi Virtual Account</h2>
+          <span className="text-[11px] text-neutral-500 font-mono">
+            {sortedTransactions.length} transaksi
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={fetchTransactions}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-medium text-neutral-300 hover:text-white transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1 text-xs text-neutral-400 hover:text-white transition-colors cursor-pointer"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
           <button
             onClick={handleExportCsv}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-black hover:bg-neutral-200 text-xs font-semibold transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1 text-xs text-neutral-400 hover:text-white transition-colors cursor-pointer font-medium"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-3 h-3" />
             Export CSV
           </button>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-[#212121] border border-white/10 rounded-xl p-4">
-          <span className="text-[11px] font-medium text-neutral-400 uppercase tracking-wider">
-            Total Dana Lunas (Settled)
-          </span>
-          <div className="text-xl font-bold text-white font-mono mt-1">
-            Rp {totalSettled.toLocaleString('id-ID')}
-          </div>
-          <div className="flex items-center gap-1 text-[11px] text-emerald-400 mt-1">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>{transactions.filter(t => t.status === 'PAID').length} transaksi lunas via BNI SNAP</span>
-          </div>
-        </div>
-
-        <div className="bg-[#212121] border border-white/10 rounded-xl p-4">
-          <span className="text-[11px] font-medium text-neutral-400 uppercase tracking-wider">
-            Tagihan Pending (VA Aktif)
-          </span>
-          <div className="text-xl font-bold text-amber-400 font-mono mt-1">
-            Rp {pendingSettlement.toLocaleString('id-ID')}
-          </div>
-          <div className="flex items-center gap-1 text-[11px] text-amber-400/80 mt-1">
-            <Clock className="w-3.5 h-3.5" />
-            <span>{transactions.filter(t => t.status === 'PENDING').length} VA menunggu pembayaran nasabah</span>
-          </div>
-        </div>
-
-        <div className="bg-[#212121] border border-white/10 rounded-xl p-4">
-          <span className="text-[11px] font-medium text-neutral-400 uppercase tracking-wider">
-            Digital Signature Security
-          </span>
-          <div className="text-sm font-semibold text-white mt-1 flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>HMAC-SHA256 v2 Validated</span>
-          </div>
-          <p className="text-[11px] text-neutral-400 mt-1">
-            Signature tersanitasi otomatis & bebas kebocoran API Key.
-          </p>
-        </div>
-      </div>
-
-      {/* Filter & Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#212121] border border-white/10 rounded-xl p-3">
-        <div className="relative w-full sm:w-72">
-          <Search className="w-3.5 h-3.5 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari TRX ID, VA, atau judul sesi..."
-            className="w-full bg-[#171717] border border-white/10 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder:text-neutral-500 outline-none focus:border-white/30"
-          />
-        </div>
-
-        <div className="flex items-center gap-1 w-full sm:w-auto">
-          {(['ALL', 'PAID', 'PENDING'] as const).map(s => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-                statusFilter === s 
-                  ? 'bg-white/10 text-white border border-white/20' 
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              {s === 'ALL' ? 'Semua' : s === 'PAID' ? 'Lunas (Settled)' : 'Pending VA'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Transactions Table */}
-      <div className="bg-[#212121] border border-white/10 rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-white/10 bg-white/[0.02] text-neutral-400 uppercase tracking-wider font-mono text-[10px]">
-              <tr>
-                <th className="px-4 py-3">TRX ID</th>
-                <th className="px-4 py-3">Member Ref</th>
-                <th className="px-4 py-3">Layanan / Sesi</th>
-                <th className="px-4 py-3">BNI Virtual Account</th>
-                <th className="px-4 py-3 text-right">Nominal (IDR)</th>
-                <th className="px-4 py-3 text-center">Status</th>
-                <th className="px-4 py-3">Waktu Transaksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5 font-sans text-neutral-300">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-neutral-500">
-                    Tidak ada data transaksi yang sesuai filter.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((t) => (
-                  <tr key={t.trx_id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-4 py-3 font-mono font-medium text-white">
-                      {t.trx_id}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-neutral-400">
-                      {t.member_id}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-white max-w-[200px] truncate">
-                      {t.session_title}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-neutral-300">
-                      <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10">
-                        {t.bni_va_number}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-right font-semibold text-white">
-                      Rp {t.amount.toLocaleString('id-ID')}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {t.status === 'PAID' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                          <CheckCircle2 className="w-3 h-3" />
-                          PAID SETTLED
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 border border-amber-500/20 text-amber-400">
-                          <Clock className="w-3 h-3" />
-                          PENDING VA
-                        </span>
+      {/* Pure Table - Zero Card Background, Zero Border Containers */}
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-b border-white/5 hover:bg-transparent">
+              <TableHead className="w-8 px-2">
+                <Checkbox
+                  checked={isAllSelected}
+                  onCheckedChange={toggleSelectAll}
+                  aria-label="Select all"
+                />
+              </TableHead>
+              <TableHead 
+                onClick={() => toggleSort('trx_id')} 
+                className="cursor-pointer select-none text-[10px] font-mono text-neutral-500 hover:text-white uppercase tracking-wider py-3 px-3"
+              >
+                <div className="flex items-center gap-1">
+                  <span>TRX ID</span>
+                  {sortField === 'trx_id' && (
+                    sortOrder === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead 
+                onClick={() => toggleSort('member_id')} 
+                className="cursor-pointer select-none text-[10px] font-mono text-neutral-500 hover:text-white uppercase tracking-wider py-3 px-3"
+              >
+                <div className="flex items-center gap-1">
+                  <span>Member Ref</span>
+                  {sortField === 'member_id' && (
+                    sortOrder === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead 
+                onClick={() => toggleSort('session_title')} 
+                className="cursor-pointer select-none text-[10px] font-mono text-neutral-500 hover:text-white uppercase tracking-wider py-3 px-3"
+              >
+                <div className="flex items-center gap-1">
+                  <span>Layanan / Sesi</span>
+                  {sortField === 'session_title' && (
+                    sortOrder === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead className="text-[10px] font-mono text-neutral-500 uppercase tracking-wider py-3 px-3">
+                BNI Virtual Account
+              </TableHead>
+              <TableHead 
+                onClick={() => toggleSort('amount')} 
+                className="cursor-pointer select-none text-[10px] font-mono text-neutral-500 hover:text-white uppercase tracking-wider text-right py-3 px-3"
+              >
+                <div className="flex items-center justify-end gap-1">
+                  <span>Nominal (IDR)</span>
+                  {sortField === 'amount' && (
+                    sortOrder === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead 
+                onClick={() => toggleSort('status')} 
+                className="cursor-pointer select-none text-[10px] font-mono text-neutral-500 hover:text-white uppercase tracking-wider py-3 px-3"
+              >
+                <div className="flex items-center gap-1">
+                  <span>Status</span>
+                  {sortField === 'status' && (
+                    sortOrder === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead 
+                onClick={() => toggleSort('created_at')} 
+                className="cursor-pointer select-none text-[10px] font-mono text-neutral-500 hover:text-white uppercase tracking-wider py-3 px-3"
+              >
+                <div className="flex items-center gap-1">
+                  <span>Waktu</span>
+                  {sortField === 'created_at' && (
+                    sortOrder === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
+                  )}
+                </div>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="divide-y divide-white/5">
+            {sortedTransactions.length > 0 ? (
+              sortedTransactions.map((row) => (
+                <TableRow
+                  key={row.trx_id}
+                  className="hover:bg-white/[0.02] transition-colors border-none"
+                >
+                  <TableCell className="px-2 py-3">
+                    <Checkbox
+                      checked={!!selectedIds[row.trx_id]}
+                      onCheckedChange={(checked) => {
+                        setSelectedIds(prev => ({ ...prev, [row.trx_id]: !!checked }));
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell className="py-3 px-3">
+                    <div className="font-mono text-white text-xs">{row.trx_id}</div>
+                  </TableCell>
+                  <TableCell className="py-3 px-3">
+                    <div>
+                      <div className="font-mono text-neutral-300 text-xs">{row.member_id}</div>
+                      {row.customer_name && (
+                        <div className="text-[11px] text-neutral-500">{row.customer_name}</div>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-neutral-400 font-mono text-[11px]">
-                      {t.paid_at 
-                        ? new Date(t.paid_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })
-                        : new Date(t.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })
-                      }
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-3 px-3">
+                    <div className="text-white max-w-[220px] truncate text-xs">
+                      {row.session_title}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-3 px-3">
+                    <span className="font-mono text-neutral-400 text-xs">
+                      {row.bni_va_number}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-3 px-3">
+                    <div className="font-mono text-right font-medium text-white text-xs">
+                      Rp {row.amount.toLocaleString("id-ID")}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-3 px-3">
+                    {row.status === "PAID" && (
+                      <span className="text-[11px] font-medium text-emerald-400">
+                        PAID SETTLED
+                      </span>
+                    )}
+                    {row.status === "EXPIRED" && (
+                      <span className="text-[11px] font-medium text-red-400">
+                        EXPIRED
+                      </span>
+                    )}
+                    {row.status !== "PAID" && row.status !== "EXPIRED" && (
+                      <span className="text-[11px] font-medium text-amber-400">
+                        PENDING VA
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="py-3 px-3">
+                    <div className="text-neutral-500 font-mono text-[11px]">
+                      {row.paid_at || row.created_at
+                        ? new Date(row.paid_at || row.created_at).toLocaleString("id-ID", {
+                            dateStyle: "short",
+                            timeStyle: "short"
+                          })
+                        : "—"}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={8} className="h-24 text-center text-neutral-500">
+                  Tidak ada data transaksi.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

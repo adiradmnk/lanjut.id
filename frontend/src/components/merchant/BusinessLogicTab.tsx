@@ -17,6 +17,7 @@ import {
   BookOpen,
   Sliders
 } from 'lucide-react';
+import ThinkingState from '@/components/ui/thinking';
 
 interface BusinessLogicTabProps {
   tenantId: string;
@@ -62,6 +63,7 @@ export default function BusinessLogicTab({ tenantId, tenantName, tenantCategory 
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isSendingChat, setIsSendingChat] = useState(false);
+  const [thinkingKey, setThinkingKey] = useState(0);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   // Fetch Business Rules dari Backend
@@ -224,6 +226,7 @@ export default function BusinessLogicTab({ tenantId, tenantName, tenantCategory 
     setMessages(prev => [...prev, userMsg]);
     if (!presetText) setInputMessage('');
     setIsSendingChat(true);
+    setThinkingKey(k => k + 1);
 
     try {
       const res = await fetch(`/api/merchant/${tenantId}/chat-instruction`, {
@@ -679,10 +682,14 @@ export default function BusinessLogicTab({ tenantId, tenantName, tenantCategory 
             ))}
 
             {isSendingChat && (
-              <div className="flex items-start">
-                <div className="bg-[#212121] text-[#a1a1a1] border border-white/10 rounded-2xl rounded-tl-xs p-3 text-xs flex items-center gap-2">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
-                  <span>AI Agent sedang mengevaluasi kepatuhan margin BNI & menyusun mutasi...</span>
+              <div className="flex gap-3">
+                <div className="w-7 h-7 rounded-full bg-[#007979] flex items-center justify-center shrink-0 mt-0.5">
+                  <Sparkles className="w-3.5 h-3.5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="bg-[#2e2e2e] border border-white/10 rounded-2xl rounded-tl-none px-4 py-3" style={{ maxWidth: '480px' }}>
+                    <ThinkingState key={thinkingKey} variant="Steps" />
+                  </div>
                 </div>
               </div>
             )}

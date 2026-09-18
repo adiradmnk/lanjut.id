@@ -140,3 +140,30 @@ func (s *Store) ListPaymentGatewayLogsByTransaction(ctx context.Context, trxID s
 	}
 	return out, rows.Err()
 }
+
+// ListAllPaymentGatewayLogs returns the most recent audit logs across all transactions
+func (s *Store) ListAllPaymentGatewayLogs(ctx context.Context, limit int) ([]models.PaymentGatewayLog, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	rows, err := s.pool.Query(ctx, `
+		SELECT id::text, transaction_id, provider, direction, raw_payload::text, created_at::text
+		FROM payment_gateway_logs ORDER BY created_at DESC LIMIT $1`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []models.PaymentGatewayLog
+	for rows.Next() {
+		var l models.PaymentGatewayLog
+		var rawPayload string
+		if err := rows.Scan(&l.ID, &l.TransactionID, &l.Provider, &l.Direction, &rawPayload, &l.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan payment_gateway_log: %w", err)
+		}
+		l.RawPayload = json.RawMessage(rawPayload)
+		out = append(out, l)
+	}
+	return out, rows.Err()
+}
+

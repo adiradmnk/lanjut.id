@@ -18,7 +18,8 @@ import {
   Globe,
   Terminal,
   Blocks,
-  X
+  X,
+  Plus
 } from 'lucide-react';
 
 export type NavItemData = {
@@ -28,6 +29,7 @@ export type NavItemData = {
   badge?: number | string;
   shortcut?: string;
   children?: NavItemData[];
+  hasAddAction?: boolean;
 };
 
 export type NavGroupData = {
@@ -98,11 +100,13 @@ export function NavItem({
   item, 
   activeId, 
   onSelect,
+  onAction,
   level = 0
 }: { 
   item: NavItemData; 
   activeId: string; 
   onSelect: (id: string) => void;
+  onAction?: (id: string) => void;
   level?: number;
 }) {
   const isActive = activeId === item.id;
@@ -142,6 +146,25 @@ export function NavItem({
         </div>
         
         <div className="flex items-center gap-2">
+          {item.hasAddAction && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onAction) {
+                  onAction(item.id);
+                } else {
+                  if (item.id === 'analytics') onSelect('ai-chat');
+                  else if (item.id === 'business-logic') onSelect('ai-logic-chat');
+                  else onSelect(item.id);
+                }
+              }}
+              title="Mulai Sesi AI Baru"
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-white/15 text-neutral-400 hover:text-white rounded flex items-center justify-center"
+            >
+              <Plus className="w-3.5 h-3.5" strokeWidth={2} />
+            </button>
+          )}
           {item.shortcut && (
              <kbd className="hidden group-hover:inline-flex items-center justify-center h-5 px-1.5 text-[10px] font-medium font-mono text-[#a1a1a1] bg-[#212121] border border-white/10 rounded-[4px]">
                {item.shortcut}
@@ -178,6 +201,7 @@ export function NavItem({
                 item={child} 
                 activeId={activeId} 
                 onSelect={onSelect} 
+                onAction={onAction}
                 level={level + 1} 
               />
             ))}
@@ -192,6 +216,7 @@ export function SidebarNav({
   className = '',
   activeId,
   onSelect,
+  onAction,
   activeWorkspace,
   onWorkspaceSelect,
   navGroups,
@@ -202,6 +227,7 @@ export function SidebarNav({
   className?: string;
   activeId?: string;
   onSelect?: (id: string) => void;
+  onAction?: (id: string) => void;
   activeWorkspace?: string;
   onWorkspaceSelect?: (ws: string) => void;
   navGroups: NavGroupData[];
@@ -236,6 +262,7 @@ export function SidebarNav({
                 item={item} 
                 activeId={currentId} 
                 onSelect={handleSelect} 
+                onAction={onAction}
               />
             ))}
           </div>
@@ -249,6 +276,7 @@ export function SidebarNav({
             item={item} 
             activeId={currentId} 
             onSelect={handleSelect} 
+            onAction={onAction}
           />
         ))}
       </div>

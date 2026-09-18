@@ -330,6 +330,22 @@ func (h *Handlers) GetBNIMerchantList(c *gin.Context) {
 	})
 }
 
+// GetPaymentGatewayAuditLogs handles GET /api/bni/gateway-logs
+func (h *Handlers) GetPaymentGatewayAuditLogs(c *gin.Context) {
+	ctx := c.Request.Context()
+	logs, err := h.Store.ListAllPaymentGatewayLogs(ctx, 50)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "failed to load audit logs"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"logs":   logs,
+		"total":  len(logs),
+	})
+}
+
 // GetMerchantRetentionLogs handles GET /api/merchant/retention-logs
 func (h *Handlers) GetMerchantRetentionLogs(c *gin.Context) {
 	ctx := c.Request.Context()

@@ -1,7 +1,21 @@
 @import "tailwindcss";
 
-@theme {
+@theme inline {
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-inset: var(--inset);
+  --color-hover: var(--hover);
+  --color-hover-2: var(--hover-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-green: var(--green);
+  --color-orange: var(--orange);
+  --color-red: var(--red);
+  --radius-control: 8px;
 }
 
 @font-face {
@@ -24,6 +38,24 @@
 }
 
 :root {
+  /* Thinking Component Tokens */
+  --accent: #0285ff;
+  --page: #fafafb;
+  --canvas: #f1f2f3;
+  --surface: #ffffff;
+  --inset: #f7f8f9;
+  --hover: #f4f5f6;
+  --hover-2: #e7e9eb;
+  --ink: #1f2124;
+  --ink-2: #62656b;
+  --ink-3: #9a9da3;
+  --line: #ecedef;
+  --line-strong: #e0e2e5;
+  --green: #189a4d;
+  --orange: #ef720c;
+  --red: #e3474c;
+  --ease-link: cubic-bezier(0.16, 1, 0.3, 1);
+
   /* User requested palette */
   --teal-primary: #007979;
   --teal-light: #24B1B1;
@@ -719,4 +751,17 @@ body {
     max-width: 100%;
     font-size: 12px;
   }
+}
+
+/* Thinking component keyframes */
+@keyframes thinking-shimmer {
+  0% { background-position: 150%; }
+  100% { background-position: -50%; }
+}
+@keyframes thinking-fade-up {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes thinking-spin {
+  100% { transform: rotate(1turn); }
 }
