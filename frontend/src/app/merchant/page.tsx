@@ -45,7 +45,8 @@ import {
   MoreHorizontal,
   AlertTriangle,
   Cpu,
-  ArrowRight
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
 
 interface MerchantStats {
@@ -71,6 +72,14 @@ interface MemberItem {
   churn_risk_flag?: string;
   attendance_history?: string[];
   days_inactive?: number;
+}
+
+interface AnalyticsSessionSummary {
+  id: string;
+  tenant_id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // Retention Inbox badge reflects the real at-risk member count once loaded (see
@@ -146,6 +155,12 @@ export default function MerchantDashboardPage() {
   const [mlAnalytics, setMlAnalytics] = useState<any>(null);
   const [revenueInsights, setRevenueInsights] = useState<any>(null);
 
+  // Gemini-style sidebar split: 'menu' shows the normal nav tree, 'ai' swaps it for this
+  // tenant's AI analytics chat history and forces the main pane to the AI chat view.
+  const [sidebarMode, setSidebarMode] = useState<'menu' | 'ai'>('menu');
+  const [analyticsSessions, setAnalyticsSessions] = useState<AnalyticsSessionSummary[]>([]);
+  const [activeAnalyticsSessionId, setActiveAnalyticsSessionId] = useState<string | null>(null);
+
   const selectedTenant = tenantsList.find(t => t.name === activeWorkspace) || tenantsList[0];
 
   const loadData = async () => {
@@ -188,6 +203,65 @@ export default function MerchantDashboardPage() {
     return () => clearInterval(interval);
   }, [selectedTenant.id]);
 
+  const loadAnalyticsSessions = async () => {
+    try {
+      const res = await fetch(`/api/merchant/${selectedTenant.id}/analytics-sessions`);
+      if (res.ok) {
+        const data = await res.json();
+        setAnalyticsSessions(Array.isArray(data.sessions) ? data.sessions : []);
+      }
+    } catch (err) {
+      console.warn('Gagal memuat riwayat sesi analisis:', err);
+    }
+  };
+
+  useEffect(() => {
+    setActiveAnalyticsSessionId(null);
+    loadAnalyticsSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTenant.id]);
+
+  const upsertAnalyticsSession = (session: AnalyticsSessionSummary) => {
+    setAnalyticsSessions(prev => {
+      const exists = prev.some(s => s.id === session.id);
+      return exists ? prev.map(s => (s.id === session.id ? { ...s, ...session } : s)) : [session, ...prev];
+    });
+    setActiveAnalyticsSessionId(session.id);
+  };
+
+  const aiSidebarPanel = (
+    <div className="flex flex-col gap-0.5">
+      <button
+        onClick={() => setActiveAnalyticsSessionId(null)}
+        className={`flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg cursor-pointer transition-all text-[13px] font-medium mb-1 ${
+          activeAnalyticsSessionId === null
+            ? 'bg-[#2e2e2e] text-white'
+            : 'text-[#a1a1a1] hover:bg-[#2e2e2e]/40 hover:text-white'
+        }`}
+      >
+        <Sparkles className="w-[16px] h-[16px]" strokeWidth={1.5} />
+        Chat Baru
+      </button>
+      {analyticsSessions.length === 0 ? (
+        <p className="px-2.5 text-[12px] text-neutral-500">Belum ada riwayat analisis.</p>
+      ) : (
+        analyticsSessions.map(s => (
+          <button
+            key={s.id}
+            onClick={() => setActiveAnalyticsSessionId(s.id)}
+            className={`text-left px-2.5 py-[7px] rounded-lg cursor-pointer transition-all text-[13px] truncate ${
+              activeAnalyticsSessionId === s.id
+                ? 'bg-[#2e2e2e] text-white font-medium'
+                : 'text-[#a1a1a1] hover:bg-[#2e2e2e]/40 hover:text-white'
+            }`}
+          >
+            {s.title}
+          </button>
+        ))
+      )}
+    </div>
+  );
+
   const handleSelect = (id: string) => {
     if (id === 'search') {
       setIsSearchOpen(true);
@@ -222,40 +296,6 @@ export default function MerchantDashboardPage() {
     document.body.removeChild(link);
   };
 
-  const topPerformers = [
-    {
-      id: 1,
-      name: 'Louis Gutkowski',
-      tasks: '314 tasks completed',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 2,
-      name: 'Marlene Kuhlman',
-      tasks: '309 tasks completed',
-      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 3,
-      name: 'Kristi Lueilwitz',
-      tasks: '289 tasks completed',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 4,
-      name: 'Abel Pollich',
-      tasks: '242 tasks completed',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-    },
-  ];
-
-  const displayEmployees = [
-    { id: 'OM1246924', name: 'Judy Abbott', role: 'Interactions Manager', progress: 75, color: '#c96f48' },
-    { id: 'OM1243473', name: 'Martin Feeney', role: 'Accountability Specialist', progress: 85, color: '#dd845e' },
-    { id: 'OM4637343', name: 'Ellen Streich', role: 'Mobility Supervisor', progress: 55, color: '#c96f48' },
-    { id: 'OM1535524', name: 'Ellis Lubowitz', role: 'Product Security Engineer', progress: 40, color: '#e8a183' },
-  ];
-
   return (
     <div className="flex h-screen h-[100dvh] w-full bg-[#171717] text-[#fafafa] font-sans antialiased overflow-hidden select-none">
       
@@ -275,16 +315,19 @@ export default function MerchantDashboardPage() {
           bottomItems={merchantBottomItems}
           planLabel="Merchant Pro"
           workspaces={tenantsList.map(t => t.name)}
+          mode={sidebarMode}
+          onModeChange={setSidebarMode}
+          aiPanel={aiSidebarPanel}
         />
       </div>
 
       {/* 2. MAIN CONTENT AREA (FIT TO PAGE) */}
       <div className="flex-1 bg-[#171717] flex flex-col min-w-0 h-full overflow-hidden">
-        
+
         {/* Top Header Bar (Breadcrumb Only) */}
         <header className="h-12 border-b border-white/10 flex items-center px-4 sm:px-6 bg-[#171717] shrink-0 z-10">
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => setIsOpen(!isOpen)}
               className="p-1.5 rounded-md text-neutral-400 hover:bg-[#2e2e2e]/50 hover:text-white transition-colors cursor-pointer"
               title={isOpen ? "Tutup Sidebar" : "Buka Sidebar"}
@@ -294,13 +337,23 @@ export default function MerchantDashboardPage() {
             <div className="flex items-center gap-2 text-sm text-[#a1a1a1]">
               <span className="truncate max-w-[140px] sm:max-w-[200px]">{activeWorkspace}</span>
               <span>/</span>
-              <span className="font-medium text-white truncate capitalize">{activeId}</span>
+              <span className="font-medium text-white truncate capitalize">{sidebarMode === 'ai' ? 'AI Analytics' : activeId}</span>
             </div>
           </div>
         </header>
 
         {/* Dynamic Body Content */}
-        <main className={`flex-1 ${['ai-chat', 'ai-logic-chat'].includes(activeId) ? 'overflow-hidden flex flex-col p-4 sm:p-6' : 'overflow-y-auto p-4 sm:p-6 lg:p-8'} bg-[#171717]`}>
+        <main className={`flex-1 ${sidebarMode === 'ai' || ['ai-chat', 'ai-logic-chat'].includes(activeId) ? 'overflow-hidden flex flex-col p-4 sm:p-6' : 'overflow-y-auto p-4 sm:p-6 lg:p-8'} bg-[#171717]`}>
+          {sidebarMode === 'ai' ? (
+            <VisualAnalyticsTab
+              analytics={mlAnalytics}
+              revenueInsights={revenueInsights}
+              tenantId={selectedTenant.id}
+              sessionId={activeAnalyticsSessionId}
+              onSessionCreated={upsertAnalyticsSession}
+            />
+          ) : (
+          <>
           {activeId === 'home' && (
             <HomeTab
               stats={stats}
@@ -417,6 +470,8 @@ export default function MerchantDashboardPage() {
                 Pengaturan dan preferensi merchant untuk {activeId}.
               </p>
             </div>
+          )}
+          </>
           )}
         </main>
       </div>

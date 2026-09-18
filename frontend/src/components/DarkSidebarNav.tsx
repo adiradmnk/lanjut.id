@@ -212,7 +212,39 @@ export function NavItem({
   );
 }
 
-export function SidebarNav({ 
+export type SidebarPanelMode = 'menu' | 'ai';
+
+// Gemini-style top toggle: switches the panel below the workspace switcher between the
+// normal nav tree ("Menu") and whatever `aiPanel` the caller renders ("AI") — e.g. a list of
+// past AI chat sessions. Only shown when the caller passes `onModeChange`.
+function ModeToggle({
+  mode,
+  onModeChange,
+}: {
+  mode: SidebarPanelMode;
+  onModeChange: (mode: SidebarPanelMode) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1 p-1 mb-3 rounded-lg bg-[#212121] border border-white/10">
+      {(['menu', 'ai'] as SidebarPanelMode[]).map(m => (
+        <button
+          key={m}
+          type="button"
+          onClick={() => onModeChange(m)}
+          className={`flex-1 text-center text-[12px] font-medium py-1.5 rounded-md transition-colors cursor-pointer ${
+            mode === m
+              ? 'bg-[#2e2e2e] text-white'
+              : 'text-[#a1a1a1] hover:text-white'
+          }`}
+        >
+          {m === 'menu' ? 'Menu' : 'AI'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function SidebarNav({
   className = '',
   activeId,
   onSelect,
@@ -222,8 +254,11 @@ export function SidebarNav({
   navGroups,
   bottomItems,
   planLabel = 'Pro Plan',
-  workspaces
-}: { 
+  workspaces,
+  mode,
+  onModeChange,
+  aiPanel
+}: {
   className?: string;
   activeId?: string;
   onSelect?: (id: string) => void;
@@ -234,48 +269,61 @@ export function SidebarNav({
   bottomItems: NavItemData[];
   planLabel?: string;
   workspaces?: string[];
+  // Optional Menu/AI split panel (Gemini-style). Omit all three to keep the plain nav tree.
+  mode?: SidebarPanelMode;
+  onModeChange?: (mode: SidebarPanelMode) => void;
+  aiPanel?: React.ReactNode;
 }) {
   const [internalId, setInternalId] = useState('home');
   const currentId = activeId !== undefined ? activeId : internalId;
   const handleSelect = onSelect || setInternalId;
+  const showAiPanel = mode === 'ai' && !!onModeChange;
 
   return (
     <div className={`flex flex-col w-[260px] h-full bg-[#171717] border-none p-3 font-sans text-[#a1a1a1] ${className}`}>
-      <WorkspaceSwitcher 
-        selected={activeWorkspace} 
-        onSelect={onWorkspaceSelect} 
+      <WorkspaceSwitcher
+        selected={activeWorkspace}
+        onSelect={onWorkspaceSelect}
         planLabel={planLabel}
         workspaces={workspaces}
       />
 
-      <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex flex-col gap-4 mt-2">
-        {navGroups.map((group, idx) => (
-          <div key={idx} className="flex flex-col gap-0.5">
-            {group.heading && (
-              <span className="px-2.5 mb-1 text-[11px] font-semibold tracking-wider text-[#787878] uppercase">
-                {group.heading}
-              </span>
-            )}
-            {group.items.map(item => (
-              <NavItem 
-                key={item.id} 
-                item={item} 
-                activeId={currentId} 
-                onSelect={handleSelect} 
-                onAction={onAction}
-              />
-            ))}
-          </div>
-        ))}
-      </div>
+      {onModeChange && <ModeToggle mode={mode || 'menu'} onModeChange={onModeChange} />}
+
+      {showAiPanel ? (
+        <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex flex-col mt-2">
+          {aiPanel}
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex flex-col gap-4 mt-2">
+          {navGroups.map((group, idx) => (
+            <div key={idx} className="flex flex-col gap-0.5">
+              {group.heading && (
+                <span className="px-2.5 mb-1 text-[11px] font-semibold tracking-wider text-[#787878] uppercase">
+                  {group.heading}
+                </span>
+              )}
+              {group.items.map(item => (
+                <NavItem
+                  key={item.id}
+                  item={item}
+                  activeId={currentId}
+                  onSelect={handleSelect}
+                  onAction={onAction}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="mt-auto pt-4 border-t border-white/10 flex flex-col gap-0.5">
         {bottomItems.map(item => (
-          <NavItem 
-            key={item.id} 
-            item={item} 
-            activeId={currentId} 
-            onSelect={handleSelect} 
+          <NavItem
+            key={item.id}
+            item={item}
+            activeId={currentId}
+            onSelect={handleSelect}
             onAction={onAction}
           />
         ))}

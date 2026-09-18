@@ -4,10 +4,24 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Terminal, Send, Sparkles, RotateCcw, ArrowRight } from 'lucide-react';
 import ThinkingState from '@/components/ui/thinking';
 
+interface AnalyticsSessionSummary {
+  id: string;
+  tenant_id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface VisualAnalyticsTabProps {
   analytics: any;
   revenueInsights?: any;
   tenantId: string;
+  // Externally controlled session (from the sidebar's AI history panel). When set, this
+  // component loads that session's message history instead of starting a fresh chat.
+  // When it's created a brand-new session on the first message, it reports that session
+  // back via onSessionCreated so the sidebar list can pick it up.
+  sessionId?: string | null;
+  onSessionCreated?: (session: AnalyticsSessionSummary) => void;
 }
 
 interface Message {
@@ -23,12 +37,13 @@ const SAMPLE_PROMPTS = [
   'tren VA settlement 30 hari terakhir',
 ];
 
-export default function VisualAnalyticsTab({ analytics, revenueInsights, tenantId }: VisualAnalyticsTabProps) {
+export default function VisualAnalyticsTab({ analytics, revenueInsights, tenantId, sessionId: externalSessionId, onSessionCreated }: VisualAnalyticsTabProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [phase, setPhase] = useState<'idle' | 'thinking' | 'streaming'>('idle');
   const [thinkingKey, setThinkingKey] = useState(0);
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(externalSessionId ?? null);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -40,6 +55,36 @@ export default function VisualAnalyticsTab({ analytics, revenueInsights, tenantI
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Picking a session from the sidebar's AI history panel (or clearing it for a new chat)
+  // reloads this component's state to match — full message history for an existing session,
+  // a blank slate for null.
+  useEffect(() => {
+    if (externalSessionId === sessionId) return;
+    setSessionId(externalSessionId ?? null);
+    setMessages([]);
+    setPhase('idle');
+    setSendError(null);
+
+    if (!externalSessionId) return;
+    setHistoryLoading(true);
+    fetch(`/api/merchant/${tenantId}/analytics-sessions/${externalSessionId}/messages`)
+      .then(res => {
+        if (!res.ok) throw new Error('Gagal memuat riwayat sesi.');
+        return res.json();
+      })
+      .then(data => {
+        const loaded: Message[] = (data.messages || []).map((m: any) => ({
+          role: m.role,
+          content: m.content,
+          lines: m.role === 'assistant' ? m.content.split('\n') : undefined,
+        }));
+        setMessages(loaded);
+      })
+      .catch(err => setSendError(err?.message || 'Gagal memuat riwayat sesi.'))
+      .finally(() => setHistoryLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalSessionId, tenantId]);
 
   const handleReset = () => {
     setMessages([]);
@@ -97,6 +142,7 @@ export default function VisualAnalyticsTab({ analytics, revenueInsights, tenantI
         activeSessionId = sessionData.session?.id;
         if (!activeSessionId) throw new Error('Sesi analisis tidak valid.');
         setSessionId(activeSessionId);
+        if (sessionData.session) onSessionCreated?.(sessionData.session);
       }
 
       const res = await fetch(`/api/merchant/${tenantId}/analytics-sessions/${activeSessionId}/messages`, {
@@ -108,6 +154,9 @@ export default function VisualAnalyticsTab({ analytics, revenueInsights, tenantI
       const data = await res.json();
       const reportMarkdown: string = data.assistant_message?.content || 'Tidak ada respons dari AI.';
       streamLines(reportMarkdown.split('\n'));
+      if (data.session_title) {
+        onSessionCreated?.({ id: activeSessionId, tenant_id: tenantId, title: data.session_title, created_at: '', updated_at: new Date().toISOString() });
+      }
     } catch (err: any) {
       setSendError(err?.message || 'Gagal menghubungi AI analytics engine.');
       setPhase('idle');
@@ -182,8 +231,13 @@ export default function VisualAnalyticsTab({ analytics, revenueInsights, tenantI
 
       {/* Main Canvas / Chat Logs */}
       <div className="flex-1 overflow-y-auto px-6 sm:px-12 py-8 flex flex-col font-mono">
+        {historyLoading && (
+          <div className="flex-1 flex items-center justify-center text-neutral-500 text-xs">
+            Memuat riwayat sesi...
+          </div>
+        )}
         {/* Empty State: Centered Claude-style Prompt suggestions */}
-        {messages.length === 0 && phase === 'idle' && (
+        {!historyLoading && messages.length === 0 && phase === 'idle' && (
           <div className="flex-1 flex flex-col items-center justify-center gap-8 max-w-xl mx-auto my-auto text-center">
             <div className="flex flex-col items-center gap-3">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#007979]/40 to-[#24B1B1]/20 border border-[#24B1B1]/40 flex items-center justify-center shadow-lg shadow-[#007979]/20">
