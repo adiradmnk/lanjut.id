@@ -5,7 +5,7 @@ import time
 import shutil
 from typing import Dict, Any, List, Optional
 from app.core.schemas import ExtractedBusinessRules, BusinessProfile, FinancialConstraints, ProductItem, CancellationTrigger, RetentionPolicy
-from app.core.gemini_client import GeminiEngine
+from app.core.gemini_client import GeminiEngine, DEFAULT_GEMINI_MODEL
 
 class DocumentProcessor:
     """
@@ -15,7 +15,7 @@ class DocumentProcessor:
     3. Structured Extraction ke skema ExtractedBusinessRules.
     """
     def __init__(self):
-        self.model_name = "gemini-1.5-flash"
+        self.model_name = DEFAULT_GEMINI_MODEL
 
     def extract_structured_rules(self, raw_text: str, filename: str = "guidebook.pdf") -> Dict[str, Any]:
         start_time = time.time()
