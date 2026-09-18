@@ -9,5 +9,5 @@ CREATE TABLE IF NOT EXISTS churn_history (
     intervention_trigger VARCHAR(50),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX idx_churn_history_tenant_id ON churn_history(tenant_id);
-CREATE INDEX idx_churn_history_member_id ON churn_history(member_id);
+CREATE INDEX IF NOT EXISTS idx_churn_history_tenant_id ON churn_history(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_churn_history_member_id ON churn_history(member_id);

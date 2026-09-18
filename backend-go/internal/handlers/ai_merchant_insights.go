@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"lanjut/backend/internal/services"
 	"lanjut/backend/internal/store"
 )
 
@@ -69,10 +70,10 @@ func (h *Handlers) PredictChurn(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"prediction": gin.H{
-			"churn_probability":    prob,
-			"churn_prediction":     prob >= 0.5,
-			"risk_category":        riskCat,
-			"model_used":           "XGBoost Classifier + Logistic Calibration (Fallback)",
+			"churn_probability": prob,
+			"churn_prediction":  prob >= 0.5,
+			"risk_category":     riskCat,
+			"model_used":        "XGBoost Classifier + Logistic Calibration (Fallback)",
 			"top_contributing_factors": []string{
 				fmt.Sprintf("Jenis kontrak (%s)", contract),
 				fmt.Sprintf("Tenure langganan (%.0f bulan)", tenure),
@@ -115,11 +116,11 @@ func (h *Handlers) SimulateChurn(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"simulation": gin.H{
-			"price_change_pct":  priceChange,
-			"tenure_impact_pct": tenureImpact,
-			"current_avg_churn_risk": baseRisk,
-			"future_avg_churn_risk":  futureRisk,
-			"risk_percentage_change": riskChange,
+			"price_change_pct":         priceChange,
+			"tenure_impact_pct":        tenureImpact,
+			"current_avg_churn_risk":   baseRisk,
+			"future_avg_churn_risk":    futureRisk,
+			"risk_percentage_change":   riskChange,
 			"projected_churn_rate_pct": futureRisk,
 			"saved_members_estimate":   int(150.0 * (baseRisk - futureRisk) / 100.0),
 			"narrative_recommendation": "Simulasi parameter menunjukkan elastisitas harga berada dalam toleransi perbankan BNI.",
@@ -168,14 +169,14 @@ func (h *Handlers) Dataset900Summary(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
 		"metrics": gin.H{
-			"total_members":           900,
-			"high_risk_count":         142,
-			"medium_risk_count":       288,
-			"low_risk_count":          470,
-			"avg_churn_risk_pct":      31.4,
-			"avg_velocity_delta":      -0.18,
-			"bni_va_at_risk_idr":      71000000,
-			"autonomous_dispatched":   114,
+			"total_members":               900,
+			"high_risk_count":             142,
+			"medium_risk_count":           288,
+			"low_risk_count":              470,
+			"avg_churn_risk_pct":          31.4,
+			"avg_velocity_delta":          -0.18,
+			"bni_va_at_risk_idr":          71000000,
+			"autonomous_dispatched":       114,
 			"last_stress_test_latency_ms": 34.2,
 		},
 	})
@@ -224,15 +225,15 @@ func (h *Handlers) Dataset900Members(c *gin.Context) {
 		count++
 		if len(items) < limit {
 			items = append(items, gin.H{
-				"id":               id,
-				"name":             name,
-				"churn_risk_flag":  flag,
-				"churn_prob":       prob,
-				"days_to_expiry":   r.Intn(28) + 2,
-				"total_quota":      8,
-				"used_quota":       r.Intn(7) + 1,
-				"bni_va_settled":   r.Intn(2) == 1,
-				"tenure_months":    r.Intn(36) + 1,
+				"id":              id,
+				"name":            name,
+				"churn_risk_flag": flag,
+				"churn_prob":      prob,
+				"days_to_expiry":  r.Intn(28) + 2,
+				"total_quota":     8,
+				"used_quota":      r.Intn(7) + 1,
+				"bni_va_settled":  r.Intn(2) == 1,
+				"tenure_months":   r.Intn(36) + 1,
 			})
 		}
 	}
@@ -295,9 +296,9 @@ func (h *Handlers) GetBNIPortfolioHealth(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
 		"portfolio": gin.H{
-			"total_sme_merchants_supervised": len(tenants),
+			"total_sme_merchants_supervised":  len(tenants),
 			"total_bni_va_turnover_month_idr": totalTurnover,
-			"total_loan_exposure_idr":        totalExposure,
+			"total_loan_exposure_idr":         totalExposure,
 		},
 	})
 }
@@ -313,9 +314,44 @@ func (h *Handlers) GetBNIMerchantList(c *gin.Context) {
 
 	items := make([]gin.H, 0, len(tenants))
 	for _, t := range tenants {
-		// Mock passing empty lists to AI for health check
-		health, _ := h.AIGateway.EvaluateSMECreditDSS(ctx, t.ID, t.BusinessName, []map[string]any{}, []map[string]any{})
-		
+		// Feed the AI this tenant's real DSCR inputs — installment obligation, actual VA
+		// turnover this month, retention rate and active member count — so the credit health
+		// rating reflects that merchant instead of an empty-data placeholder score.
+		transactions, err := h.Store.ListTransactionsByTenant(ctx, t.ID, store.TransactionFilter{})
+		if err != nil {
+			transactions = nil
+		}
+		var monthlyTurnover int64
+		for _, trx := range transactions {
+			if trx.Status == "PAID" {
+				monthlyTurnover += int64(trx.Amount)
+			}
+		}
+
+		members, err := h.Store.ListMembersByTenant(ctx, t.ID)
+		if err != nil {
+			members = nil
+		}
+		activeCount := 0
+		for _, m := range members {
+			if m.SubscriptionStatus == "ACTIVE" {
+				activeCount++
+			}
+		}
+		retentionPct := 0.0
+		if len(members) > 0 {
+			retentionPct = float64(activeCount) / float64(len(members)) * 100
+		}
+
+		health, _ := h.AIGateway.EvaluateSMECreditDSS(ctx, services.EvaluateSMECreditDSSInput{
+			MerchantID:              t.ID,
+			MerchantName:            t.BusinessName,
+			MonthlyInstallmentIDR:   int64(t.MonthlyInstallmentIDR),
+			MonthlyBNIVATurnoverIDR: monthlyTurnover,
+			RetentionRatePct:        retentionPct,
+			ActiveMemberCount:       activeCount,
+		})
+
 		items = append(items, gin.H{
 			"id":       t.ID,
 			"name":     t.BusinessName,

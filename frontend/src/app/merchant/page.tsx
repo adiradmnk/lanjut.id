@@ -125,6 +125,7 @@ export default function MerchantDashboardPage() {
   const [isOpen, setIsOpen] = useState(true);
   const [activeId, setActiveId] = useState('home');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Tenant state mapped to Workspace
   const [tenantsList, setTenantsList] = useState<{ id: string; name: string; category: string }[]>([
@@ -360,6 +361,7 @@ export default function MerchantDashboardPage() {
               tenantName={selectedTenant.name}
               tenantCategory={selectedTenant.category}
               onNavigate={(tab) => setActiveId(tab)}
+              onOpenDataset900={() => setIsDataset900Open(true)}
             />
           )}
 
@@ -476,34 +478,78 @@ export default function MerchantDashboardPage() {
         </main>
       </div>
 
-      {/* Global Search Modal (Esc to Close) */}
+      {/* Global Search Modal (Esc to Close) — filters real loaded members by name/email */}
       {isSearchOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/60 backdrop-blur-sm px-4">
           <div className="fixed inset-0" onClick={() => setIsSearchOpen(false)} />
           <div className="relative w-full max-w-xl bg-[#212121] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center px-4 border-b border-white/10">
               <Search className="w-[18px] h-[18px] text-neutral-400 mr-3 shrink-0" strokeWidth={1.5} />
-              <input 
+              <input
                 autoFocus
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Escape') setIsSearchOpen(false); }}
                 className="flex-1 bg-transparent py-4 outline-none text-[14px] text-white placeholder:text-[#a1a1a1]"
-                placeholder="Search members, campaigns, or actions..."
+                placeholder="Search members by name or email..."
               />
-              <kbd 
+              <kbd
                 onClick={() => setIsSearchOpen(false)}
                 className="hidden sm:inline-flex items-center justify-center h-5 px-1.5 ml-2 text-[10px] font-medium font-mono text-neutral-400 bg-white/10 border border-white/10 rounded-[4px] cursor-pointer hover:text-white transition-colors"
               >
                 ESC
               </kbd>
-              <button 
+              <button
                 onClick={() => setIsSearchOpen(false)}
                 className="ml-3 p-1 rounded-md text-neutral-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
               >
                 <X className="w-[18px] h-[18px]" strokeWidth={1.5} />
               </button>
             </div>
-            <div className="p-2 py-8 flex flex-col items-center justify-center">
-              <Command className="w-6 h-6 text-neutral-600 mb-2" strokeWidth={1.5} />
-              <p className="text-[13px] text-neutral-400 font-medium">Type a command or search member...</p>
+            <div className="max-h-[320px] overflow-y-auto">
+              {searchQuery.trim() === '' ? (
+                <div className="p-2 py-8 flex flex-col items-center justify-center">
+                  <Command className="w-6 h-6 text-neutral-600 mb-2" strokeWidth={1.5} />
+                  <p className="text-[13px] text-neutral-400 font-medium">Ketik nama atau email member...</p>
+                </div>
+              ) : (
+                (() => {
+                  const q = searchQuery.trim().toLowerCase();
+                  const results = members.filter(m =>
+                    m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q)
+                  );
+                  if (results.length === 0) {
+                    return (
+                      <div className="p-6 text-center text-[13px] text-neutral-500">
+                        Tidak ada member yang cocok dengan "{searchQuery}".
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="py-2">
+                      {results.slice(0, 20).map(m => (
+                        <button
+                          key={m.id}
+                          onClick={() => {
+                            setActiveId('inbox');
+                            setIsSearchOpen(false);
+                            setSearchQuery('');
+                          }}
+                          className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-white/5 transition-colors cursor-pointer"
+                        >
+                          <div>
+                            <div className="text-[13px] text-white font-medium">{m.name}</div>
+                            <div className="text-[11px] text-neutral-500">{m.email}</div>
+                          </div>
+                          {m.churn_risk_flag === 'HIGH' && (
+                            <span className="text-[10px] font-semibold uppercase text-orange-400">At Risk</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()
+              )}
             </div>
           </div>
         </div>

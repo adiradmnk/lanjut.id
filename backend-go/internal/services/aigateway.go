@@ -743,9 +743,9 @@ func (a *AIGateway) GenerateCancellationSurvey(ctx context.Context, member *mode
 		}
 	}
 	return map[string]any{
-		"survey_id":    fmt.Sprintf("srv_fallback_%d", time.Now().UnixMilli()),
-		"question_title": fmt.Sprintf("Halo %s, apa yang sedang menjadi pertimbangan Anda mengenai kelanjutan layanan%s di %s?", member.Name, sessionTitle, bizName),
-		"instruction":  "Pilih satu atau beberapa alasan yang paling menggambarkan situasi Anda:",
+		"survey_id":       fmt.Sprintf("srv_fallback_%d", time.Now().UnixMilli()),
+		"question_title":  fmt.Sprintf("Halo %s, apa yang sedang menjadi pertimbangan Anda mengenai kelanjutan layanan%s di %s?", member.Name, sessionTitle, bizName),
+		"instruction":     "Pilih satu atau beberapa alasan yang paling menggambarkan situasi Anda:",
 		"is_multi_select": true,
 		"multiple_choice_options": []map[string]any{
 			{"id": "opt_schedule", "label": "Kendala fleksibilitas waktu atau jadwal " + category, "category": "schedule_conflict"},
@@ -872,18 +872,18 @@ func (a *AIGateway) AnalyzeSurveyFeedback(ctx context.Context, member *models.Me
 		"root_cause_summary": spec.rootCause,
 		"personalized_retention_offers": []map[string]any{
 			{
-				"offer_type":    spec.offerType,
-				"badge":         spec.badge,
-				"title":         spec.title,
-				"description":   spec.description,
-				"price_idr":     minFloor,
+				"offer_type":     spec.offerType,
+				"badge":          spec.badge,
+				"title":          spec.title,
+				"description":    spec.description,
+				"price_idr":      minFloor,
 				"discount_label": fmt.Sprintf("Diskon Retensi %.0f%%", maxDisc),
-				"action_button": spec.actionBtn,
+				"action_button":  spec.actionBtn,
 			},
 		},
 		"margin_guardrail_status": map[string]any{
 			"max_discount_enforced_pct": maxDisc,
-			"min_margin_floor_idr":     minFloor,
+			"min_margin_floor_idr":      minFloor,
 			"is_compliant":              true,
 		},
 		"engine_source": "LANJUT Deterministic Intent-Derived Fallback",
@@ -960,13 +960,11 @@ func containsAny(s string, subs ...string) bool {
 	return false
 }
 
-
-
 // ProcessMerchantChatbotInstruction proxies conversational business logic builder to LangChain agent
 func (a *AIGateway) ProcessMerchantChatbotInstruction(ctx context.Context, tenant *models.Tenant, userMessage string) (map[string]any, error) {
 	reqBody := map[string]any{
-		"tenant_id":    tenant.ID,
-		"message":      userMessage,
+		"tenant_id": tenant.ID,
+		"message":   userMessage,
 		"current_rules": map[string]any{
 			"business_profile": map[string]any{
 				"business_name": tenant.BusinessName,
@@ -1001,7 +999,6 @@ func (a *AIGateway) ProcessMerchantChatbotInstruction(ctx context.Context, tenan
 	return out, nil
 }
 
-
 // GetMerchantRevenueInsights calls the /merchant-revenue-insights sidecar endpoint.
 func (a *AIGateway) GetMerchantRevenueInsights(ctx context.Context, tenant *models.Tenant, totalMembers, atRisk, saved int) (map[string]any, error) {
 	reqBody := map[string]any{
@@ -1023,7 +1020,7 @@ func (a *AIGateway) GetMerchantRevenueInsights(ctx context.Context, tenant *mode
 			},
 		}
 	}
-	
+
 	bodyJSON, _ := json.Marshal(reqBody)
 	reqCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -1040,30 +1037,46 @@ func (a *AIGateway) GetMerchantRevenueInsights(ctx context.Context, tenant *mode
 			}
 		}
 	}
-	
+
 	// Fallback map if AI offline
 	return map[string]any{
 		"merchant_name": tenant.BusinessName,
 		"metrics": map[string]any{
-			"total_active_members": totalMembers,
-			"at_risk_members": atRisk,
-			"successfully_saved_members": saved,
-			"retention_success_rate_pct": float64(saved) / float64(max(1, atRisk)) * 100,
+			"total_active_members":          totalMembers,
+			"at_risk_members":               atRisk,
+			"successfully_saved_members":    saved,
+			"retention_success_rate_pct":    float64(saved) / float64(max(1, atRisk)) * 100,
 			"est_monthly_saved_revenue_idr": saved * int(tenant.Config.MinMarginFloorIDR),
 			"potential_at_risk_revenue_idr": atRisk * int(tenant.Config.MinMarginFloorIDR),
 		},
-		"market_trend_opportunity": "Fallback trend",
+		"market_trend_opportunity":         "Fallback trend",
 		"actionable_revenue_optimizations": []map[string]any{},
-		"engine_source": "Fallback",
+		"engine_source":                    "Fallback",
 	}, nil
 }
 
-func (a *AIGateway) EvaluateSMECreditDSS(ctx context.Context, merchantID, merchantName string, trxHistory, feedback []map[string]any) (map[string]any, error) {
+// EvaluateSMECreditDSSInput is the real DSCR-relevant data the sidecar's
+// /api/v1/retention/evaluate-sme-credit-dss endpoint requires (see
+// ai/app/features/retention/router.py's EvaluateSMECreditRequest) — installment obligation,
+// actual VA turnover, retention rate and active member count, all computed from this
+// tenant's real rows, never invented.
+type EvaluateSMECreditDSSInput struct {
+	MerchantID              string
+	MerchantName            string
+	MonthlyInstallmentIDR   int64
+	MonthlyBNIVATurnoverIDR int64
+	RetentionRatePct        float64
+	ActiveMemberCount       int
+}
+
+func (a *AIGateway) EvaluateSMECreditDSS(ctx context.Context, in EvaluateSMECreditDSSInput) (map[string]any, error) {
 	reqBody := map[string]any{
-		"merchant_id":         merchantID,
-		"merchant_name":       merchantName,
-		"transaction_history": trxHistory,
-		"feedback_list":       feedback,
+		"merchant_id":                 in.MerchantID,
+		"merchant_name":               in.MerchantName,
+		"monthly_installment_idr":     in.MonthlyInstallmentIDR,
+		"monthly_bni_va_turnover_idr": in.MonthlyBNIVATurnoverIDR,
+		"retention_rate_pct":          in.RetentionRatePct,
+		"active_member_count":         in.ActiveMemberCount,
 	}
 
 	bodyJSON, _ := json.Marshal(reqBody)
@@ -1076,20 +1089,25 @@ func (a *AIGateway) EvaluateSMECreditDSS(ctx context.Context, merchantID, mercha
 		resp, doErr := a.slowClient.Do(req)
 		if doErr == nil {
 			defer resp.Body.Close()
-			var out map[string]any
-			if decErr := json.NewDecoder(resp.Body).Decode(&out); decErr == nil && out != nil {
-				return out, nil
+			if resp.StatusCode == http.StatusOK {
+				var out map[string]any
+				if decErr := json.NewDecoder(resp.Body).Decode(&out); decErr == nil && out != nil {
+					return out, nil
+				}
 			}
 		}
 	}
-	
-	// Fallback
+
+	// Fallback — still real numbers, just without the AI narrative.
 	return map[string]any{
-		"merchant_id": merchantID,
-		"merchant_name": merchantName,
+		"merchant_id":   in.MerchantID,
+		"merchant_name": in.MerchantName,
 		"overview": map[string]any{
-			"total_transactions": len(trxHistory),
-			"bni_rm_priority": "MEDIUM_OBSERVATION",
+			"monthly_installment_idr":     in.MonthlyInstallmentIDR,
+			"monthly_bni_va_turnover_idr": in.MonthlyBNIVATurnoverIDR,
+			"retention_rate_pct":          in.RetentionRatePct,
+			"active_member_count":         in.ActiveMemberCount,
+			"bni_rm_priority":             "MEDIUM_OBSERVATION",
 		},
 	}, nil
 }

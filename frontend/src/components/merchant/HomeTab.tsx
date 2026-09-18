@@ -29,6 +29,7 @@ interface HomeTabProps {
   tenantName: string;
   tenantCategory: string;
   onNavigate: (tabId: string) => void;
+  onOpenDataset900?: () => void;
 }
 
 export default function HomeTab({
@@ -36,6 +37,7 @@ export default function HomeTab({
   tenantName,
   tenantCategory,
   onNavigate,
+  onOpenDataset900,
 }: HomeTabProps) {
   return (
     <div className="space-y-6">
@@ -57,6 +59,15 @@ export default function HomeTab({
         </div>
 
         <div className="flex items-center gap-2">
+          {onOpenDataset900 && (
+            <button
+              onClick={onOpenDataset900}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#2e2e2e] hover:bg-[#3a3a3a] text-white text-xs font-semibold transition-colors cursor-pointer border border-white/10"
+            >
+              <BarChart3 className="w-3.5 h-3.5 text-[#24B1B1]" />
+              Dataset 900 Audit
+            </button>
+          )}
           <button
             onClick={() => onNavigate('business-logic')}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white text-black hover:bg-neutral-200 text-xs font-semibold transition-colors cursor-pointer"

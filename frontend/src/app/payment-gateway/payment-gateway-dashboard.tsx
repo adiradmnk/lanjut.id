@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { 
   SidebarNav, 
@@ -121,7 +121,8 @@ export default function PaymentGatewayDashboard() {
   const [selectedMerchantId, setSelectedMerchantId] = useState('mch-fitbody-01');
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [uploadDone, setUploadDone] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const catalogFileInputRef = useRef<HTMLInputElement>(null);
 
   // Live Data States
   const [portfolio, setPortfolio] = useState<any>(null);
@@ -255,14 +256,15 @@ export default function PaymentGatewayDashboard() {
                 <p className="text-sm text-neutral-400 mt-1">Lengkapi persyaratan onboarding untuk mendapatkan approval BNI</p>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Checklist */}
+                {/* Checklist — no backend document-verification system exists yet, so legal
+                    docs stay honestly "pending manual review" instead of pre-approved. */}
                 <div className="bg-[#212121] border border-white/10 rounded-xl p-5 space-y-3">
                   <h2 className="text-sm font-semibold text-white mb-4">Syarat Persetujuan Merchant</h2>
                   {[
-                    { label: 'Izin Usaha (SIUP/NIB)', done: true },
-                    { label: 'NPWP Perusahaan', done: true },
-                    { label: 'Rekening BNI Aktif', done: true },
-                    { label: 'Katalog Produk & Harga', done: uploadDone, required: !uploadDone },
+                    { label: 'Izin Usaha (SIUP/NIB)', done: false },
+                    { label: 'NPWP Perusahaan', done: false },
+                    { label: 'Rekening BNI Aktif', done: false },
+                    { label: 'Katalog Produk & Harga', done: !!uploadedFile, required: !uploadedFile },
                   ].map(item => (
                     <div
                       key={item.label}
@@ -286,37 +288,49 @@ export default function PaymentGatewayDashboard() {
                       <span className={`text-[13px] font-medium ${
                         item.done ? 'text-emerald-400' : 'text-orange-400'
                       }`}>{item.label}</span>
-                      {item.required && (
-                        <span className="ml-auto text-[9px] font-bold uppercase tracking-wide bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded">Wajib</span>
-                      )}
+                      <span className="ml-auto text-[9px] font-bold uppercase tracking-wide bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded">
+                        {item.done ? 'Diterima' : 'Menunggu Verifikasi'}
+                      </span>
                     </div>
                   ))}
-                  {uploadDone && (
-                    <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                      <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-[12px] text-emerald-400">AI membaca <strong>12 aturan harga</strong> & <strong>8 paket produk</strong></span>
-                    </div>
-                  )}
                 </div>
 
-                {/* Drag and Drop Upload */}
+                {/* Drag and Drop Upload — captures the real dropped/selected file (name +
+                    size); no backend endpoint exists yet to store/verify this document, so
+                    it's shown as "received, pending verification" rather than "approved". */}
                 <div className="bg-[#212121] border border-white/10 rounded-xl p-5 flex flex-col items-center justify-center gap-4">
                   <h2 className="text-sm font-semibold text-white self-start">Upload Katalog Produk</h2>
+                  <input
+                    ref={catalogFileInputRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) setUploadedFile(file);
+                    }}
+                  />
                   <div
                     onDragOver={e => e.preventDefault()}
-                    onDrop={e => { e.preventDefault(); setUploadDone(true); }}
+                    onDrop={e => {
+                      e.preventDefault();
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) setUploadedFile(file);
+                    }}
                     className={`w-full flex-1 min-h-[180px] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-3 transition-all duration-500 ${
-                      uploadDone
+                      uploadedFile
                         ? 'border-emerald-500 bg-emerald-500/10'
                         : 'border-white/20 bg-white/3 hover:border-[#24B1B1]/50'
                     }`}
                   >
-                    {uploadDone ? (
+                    {uploadedFile ? (
                       <>
                         <CheckCircle2 className="w-10 h-10 text-emerald-400" />
                         <div className="text-center">
-                          <p className="text-sm font-semibold text-emerald-400">Katalog berhasil diunggah!</p>
-                          <p className="text-xs text-emerald-300/70 mt-1">panduan_bisnis_fitbody.pdf · 2.4 MB</p>
+                          <p className="text-sm font-semibold text-emerald-400">File diterima, menunggu verifikasi tim BNI</p>
+                          <p className="text-xs text-emerald-300/70 mt-1">
+                            {uploadedFile.name} · {(uploadedFile.size / 1024 / 1024).toFixed(1)} MB
+                          </p>
                         </div>
                       </>
                     ) : (
@@ -329,7 +343,7 @@ export default function PaymentGatewayDashboard() {
                           <p className="text-xs text-neutral-500 mt-1">PDF, DOCX, atau XLSX · Maks. 10 MB</p>
                         </div>
                         <button
-                          onClick={() => setUploadDone(true)}
+                          onClick={() => catalogFileInputRef.current?.click()}
                           className="px-4 py-2 rounded-lg bg-[#007979] hover:bg-[#005f5f] text-white text-sm font-medium transition-colors cursor-pointer"
                         >
                           Pilih File
@@ -345,159 +359,58 @@ export default function PaymentGatewayDashboard() {
           {/* Portfolio Health */}
           {activeNav === 'portfolio-health' && (
             <div className="space-y-8 animate-in fade-in duration-200">
-              {/* Stats - Borderless, Matching Background */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                {[
-                  { label: 'Merchant Terdaftar', value: '48', sub: 'SME aktif', color: 'text-[#24B1B1]' },
-                  { label: 'VA Turnover Bulan Ini', value: 'Rp 342jt', sub: '+18% MoM', color: 'text-emerald-400' },
-                  { label: 'NPL Rate Aktual', value: '0.42%', sub: 'Sangat sehat', color: 'text-emerald-400' },
-                  { label: 'Proyeksi NPL Tanpa LANJUT', value: '3.18%', sub: '7.6× lebih tinggi', color: 'text-orange-400' },
-                ].map(stat => (
-                  <div key={stat.label} className="p-0">
-                    <div className={`text-3xl font-bold tracking-tight ${stat.color}`}>{stat.value}</div>
-                    <div className="text-xs text-neutral-400 mt-1 font-medium">{stat.label}</div>
-                    <div className="text-[11px] text-neutral-600 mt-0.5">{stat.sub}</div>
+              {/* Stats - real portfolio aggregates from /api/bni/portfolio-health */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="p-0">
+                  <div className="text-3xl font-bold tracking-tight text-[#24B1B1]">
+                    {portfolio?.merchantCount ?? '—'}
                   </div>
-                ))}
-              </div>
-
-              {/* Minimalist Line & Bar Charts - Zero Background, Zero Borders */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-2 pb-2">
-                {/* 1. VA Turnover Trendline */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-neutral-400 font-medium">Tren VA Turnover (6 Bln)</span>
-                    <span className="text-emerald-400 font-mono text-[11px] font-semibold">Rp 342M (+42%)</span>
-                  </div>
-                  <div className="h-20 w-full flex items-end">
-                    <svg className="w-full h-16 overflow-visible" viewBox="0 0 300 60" preserveAspectRatio="none">
-                      <defs>
-                        <linearGradient id="gradientGreen" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#34d399" stopOpacity="0.25" />
-                          <stop offset="100%" stopColor="#34d399" stopOpacity="0.0" />
-                        </linearGradient>
-                      </defs>
-                      <path
-                        d="M 0 50 Q 50 48, 100 38 T 200 24 T 300 8 L 300 60 L 0 60 Z"
-                        fill="url(#gradientGreen)"
-                      />
-                      <path
-                        d="M 0 50 Q 50 48, 100 38 T 200 24 T 300 8"
-                        fill="none"
-                        stroke="#10b981"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                      />
-                      <circle cx="300" cy="8" r="3" fill="#10b981" />
-                    </svg>
-                  </div>
-                  <div className="flex justify-between text-[10px] text-neutral-600 font-mono">
-                    <span>Apr</span>
-                    <span>Mei</span>
-                    <span>Jun</span>
-                    <span>Jul</span>
-                    <span>Agu</span>
-                    <span>Sep</span>
-                  </div>
+                  <div className="text-xs text-neutral-400 mt-1 font-medium">Merchant Terdaftar</div>
+                  <div className="text-[11px] text-neutral-600 mt-0.5">SME aktif dalam portofolio</div>
                 </div>
-
-                {/* 2. NPL Mitigation Comparison */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-neutral-400 font-medium">NPL Suppression Curve</span>
-                    <span className="text-emerald-400 font-mono text-[11px] font-semibold">-2.76% Delta</span>
+                <div className="p-0">
+                  <div className="text-3xl font-bold tracking-tight text-emerald-400">
+                    {formatRupiah(portfolio?.monthlyTurnover ?? null)}
                   </div>
-                  <div className="h-20 w-full flex items-end">
-                    <svg className="w-full h-16 overflow-visible" viewBox="0 0 300 60" preserveAspectRatio="none">
-                      {/* Tanpa LANJUT (Red/Orange dashed line) */}
-                      <path
-                        d="M 0 45 Q 60 40, 120 28 T 240 18 T 300 10"
-                        fill="none"
-                        stroke="#f97316"
-                        strokeWidth="1.5"
-                        strokeDasharray="3 3"
-                      />
-                      {/* Dengan LANJUT (Emerald solid line) */}
-                      <path
-                        d="M 0 45 Q 60 46, 120 48 T 240 50 T 300 52"
-                        fill="none"
-                        stroke="#10b981"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                      />
-                      <circle cx="300" cy="52" r="3" fill="#10b981" />
-                    </svg>
-                  </div>
-                  <div className="flex justify-between text-[10px] text-neutral-600 font-mono">
-                    <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-emerald-500 inline-block" /> Aktual (0.42%)</span>
-                    <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-orange-500 inline-block" /> Estimasi Tanpa Retensi (3.18%)</span>
-                  </div>
-                </div>
-
-                {/* 3. Merchant Health Composition */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-neutral-400 font-medium">Komposisi Kesehatan Portofolio</span>
-                    <span className="text-neutral-400 font-mono text-[11px]">48 Merchant</span>
-                  </div>
-                  {/* Slim horizontal stacked bar */}
-                  <div className="h-2.5 w-full flex rounded-full overflow-hidden bg-neutral-800 mt-5">
-                    <div style={{ width: '75%' }} className="bg-emerald-500" title="Prime: 75%" />
-                    <div style={{ width: '18%' }} className="bg-yellow-500" title="Watchlist: 18%" />
-                    <div style={{ width: '7%' }} className="bg-red-500" title="High Alert: 7%" />
-                  </div>
-                  <div className="flex items-center justify-between text-[10px] text-neutral-500 font-mono pt-3">
-                    <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Prime (36)</span>
-                    <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-yellow-500" /> Watchlist (9)</span>
-                    <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> High Alert (3)</span>
-                  </div>
+                  <div className="text-xs text-neutral-400 mt-1 font-medium">VA Turnover Bulan Ini</div>
+                  <div className="text-[11px] text-neutral-600 mt-0.5">Total settlement BNI VA</div>
                 </div>
               </div>
 
-              {/* Merchant Health Table - Borderless, Clean & Minimal */}
+              {/* Merchant Health Table - real merchant list from /api/bni/merchant-list */}
               <div className="pt-2">
                 <div className="pb-3 flex items-center justify-between border-b border-white/5">
                   <h3 className="text-xs font-semibold text-neutral-300 uppercase tracking-wider">Merchant Health Overview</h3>
-                  <span className="text-[10px] text-neutral-600 font-mono">Data per 18 Sep 2026</span>
+                  <span className="text-[10px] text-neutral-600 font-mono">{merchants.length} merchant</span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-white/5 text-neutral-500 uppercase text-[10px] tracking-wider">
                         <th className="text-left py-3 font-medium">Merchant</th>
-                        <th className="text-left py-3 font-medium">Risk Level</th>
-                        <th className="text-left py-3 font-medium">Retention</th>
-                        <th className="text-left py-3 font-medium">VA Turnover</th>
-                        <th className="text-left py-3 font-medium">Rekomendasi RM</th>
+                        <th className="text-left py-3 font-medium">Kategori</th>
+                        <th className="text-left py-3 font-medium">Credit Health Rating</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {[
-                        { name: 'FitBody Gym & Movement', id: 'mch-001', risk: 'WATCHLIST', retention: '88.4%', va: 'Rp 11.9jt', action: 'Monitor konversi AI retention' },
-                        { name: 'Zenith Yoga Sanctuary', id: 'mch-002', risk: 'PRIME', retention: '94.2%', va: 'Rp 8.45jt', action: 'Tawarkan KUR Wirausaha BNI' },
-                        { name: 'Surabaya Iron CrossFit', id: 'mch-003', risk: 'PRIME', retention: '91.0%', va: 'Rp 6.2jt', action: 'Eligible ekspansi cabang' },
-                        { name: 'Bandung Core Pilates', id: 'mch-004', risk: 'HIGH_ALERT', retention: '72.1%', va: 'Rp 2.1jt', action: 'Intervensi RM segera ⚡' },
-                      ].map(m => {
-                        const riskColor = m.risk === 'PRIME'
-                          ? 'text-emerald-400'
-                          : m.risk === 'WATCHLIST'
-                          ? 'text-yellow-400'
-                          : 'text-red-400';
-                        return (
+                      {merchants.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className="py-6 text-center text-neutral-500">Belum ada data merchant.</td>
+                        </tr>
+                      ) : (
+                        merchants.map(m => (
                           <tr key={m.id} className="hover:bg-white/[0.02] transition-colors">
                             <td className="py-3.5 pr-4">
                               <div className="font-medium text-white">{m.name}</div>
                               <div className="text-[10px] text-neutral-600 font-mono">{m.id}</div>
                             </td>
-                            <td className="py-3.5 pr-4">
-                              <span className={`text-[10px] font-semibold uppercase tracking-wider ${riskColor}`}>{m.risk}</span>
+                            <td className="py-3.5 pr-4 text-neutral-300">{m.category || '—'}</td>
+                            <td className="py-3.5 text-neutral-400">
+                              {m.health?.creditHealthRating || m.health?.credit_health_rating || 'Belum dievaluasi'}
                             </td>
-                            <td className="py-3.5 pr-4 text-neutral-300">{m.retention}</td>
-                            <td className="py-3.5 pr-4 text-neutral-300 font-mono">{m.va}</td>
-                            <td className="py-3.5 text-neutral-400">{m.action}</td>
                           </tr>
-                        );
-                      })}
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -549,22 +462,31 @@ export default function PaymentGatewayDashboard() {
               <div className="text-[11px] font-semibold text-neutral-500 px-3 py-1.5 uppercase tracking-wider">
                 Merchants
               </div>
-              {merchants.map((m) => (
-                <div 
-                  key={m.id}
-                  onClick={() => {
-                    setSelectedMerchantId(m.id);
-                    setSearchModalOpen(false);
-                  }}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/5 cursor-pointer text-xs transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-[#24B1B1]" />
-                    <span className="text-neutral-200 font-medium">{m.name}</span>
+              {(() => {
+                const q = searchQuery.trim().toLowerCase();
+                const filtered = q === '' ? merchants : merchants.filter(m => m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q));
+                if (filtered.length === 0) {
+                  return <div className="px-3 py-4 text-center text-xs text-neutral-500">Tidak ada merchant yang cocok.</div>;
+                }
+                return filtered.map((m) => (
+                  <div
+                    key={m.id}
+                    onClick={() => {
+                      setSelectedMerchantId(m.id);
+                      setActiveNav('portfolio-health');
+                      setSearchModalOpen(false);
+                      setSearchQuery('');
+                    }}
+                    className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/5 cursor-pointer text-xs transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-[#24B1B1]" />
+                      <span className="text-neutral-200 font-medium">{m.name}</span>
+                    </div>
+                    <span className="text-neutral-500 font-mono text-[10px]">{m.id}</span>
                   </div>
-                  <span className="text-neutral-500 font-mono text-[10px]">{m.id}</span>
-                </div>
-              ))}
+                ));
+              })()}
             </div>
           </div>
         </div>
