@@ -3,7 +3,6 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -144,135 +143,122 @@ func (h *Handlers) GetChurnAnalytics(c *gin.Context) {
 		return
 	}
 
-	// Deterministic analytics payload
+	// AI sidecar has no ml-churn/analytics route (yet) — compute the real distribution
+	// directly from this tenant's real members instead of returning invented numbers.
+	members, mErr := h.Store.ListMembersByTenant(ctx, tenantID)
+	if mErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "member lookup failed"})
+		return
+	}
+	var low, medium, high int
+	for _, m := range members {
+		switch m.ChurnRiskFlag {
+		case "HIGH":
+			high++
+		case "MEDIUM":
+			medium++
+		default:
+			low++
+		}
+	}
+	total := len(members)
+	pct := func(n int) float64 {
+		if total == 0 {
+			return 0
+		}
+		return float64(n) / float64(total) * 100
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"analytics": gin.H{
 			"distribution": []gin.H{
-				{"segment": "Low Risk (< 35%)", "count": 620, "percentage": 68.8},
-				{"segment": "Medium Risk (35-70%)", "count": 195, "percentage": 21.6},
-				{"segment": "High Risk (> 70%)", "count": 85, "percentage": 9.4},
+				{"segment": "Low Risk", "count": low, "percentage": pct(low)},
+				{"segment": "Medium Risk", "count": medium, "percentage": pct(medium)},
+				{"segment": "High Risk", "count": high, "percentage": pct(high)},
 			},
-			"feature_importance": []gin.H{
-				{"feature": "Contract Duration", "importance": 0.38},
-				{"feature": "Tenure Months", "importance": 0.29},
-				{"feature": "Monthly Charges", "importance": 0.18},
-				{"feature": "Payment Method", "importance": 0.15},
-			},
-			"total_analyzed": 900,
+			"total_analyzed": total,
 		},
 	})
 }
 
-// Dataset900Summary handles GET /api/merchant/dataset-900/summary
+// Dataset900Summary handles GET /api/merchant/dataset-900/summary — real aggregates from
+// the seeded 900-member cohort (mch-gen-1/2/3), not synthesized per request.
 func (h *Handlers) Dataset900Summary(c *gin.Context) {
+	ctx := c.Request.Context()
+	summary, err := h.Store.GetDataset900Summary(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "failed to aggregate dataset-900 summary"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
 		"metrics": gin.H{
-			"total_members":               900,
-			"high_risk_count":             142,
-			"medium_risk_count":           288,
-			"low_risk_count":              470,
-			"avg_churn_risk_pct":          31.4,
-			"avg_velocity_delta":          -0.18,
-			"bni_va_at_risk_idr":          71000000,
-			"autonomous_dispatched":       114,
-			"last_stress_test_latency_ms": 34.2,
+			"total_active_members":  summary.TotalActiveMembers,
+			"avg_churn_risk_pct":    summary.AvgChurnRiskPct,
+			"autonomous_dispatched": summary.AutonomousDispatched,
+			"distribution": gin.H{
+				"high_risk_critical": summary.HighRiskCritical,
+				"medium_risk_drift":  summary.MediumRiskDrift,
+				"low_risk_stable":    summary.LowRiskStable,
+			},
 		},
 	})
 }
 
-// Dataset900Members handles GET /api/merchant/dataset-900/members
+// Dataset900Members handles GET /api/merchant/dataset-900/members — real members from the
+// seeded cohort, filtered/searched via SQL instead of generated per request.
 func (h *Handlers) Dataset900Members(c *gin.Context) {
+	ctx := c.Request.Context()
 	riskFilter := strings.ToUpper(c.DefaultQuery("risk", "ALL"))
 	search := strings.ToLower(c.DefaultQuery("search", ""))
-	limitStr := c.DefaultQuery("limit", "25")
-	limit, _ := strconv.Atoi(limitStr)
-	if limit <= 0 || limit > 100 {
-		limit = 25
-	}
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "25"))
 
-	firstNames := []string{"Budi", "Siti", "Andi", "Dewi", "Rizky", "Nadia", "Eko", "Maya", "Fajar", "Lestari", "Reza", "Tari"}
-	lastNames := []string{"Santoso", "Wijaya", "Kusuma", "Pratama", "Siregar", "Utami", "Gunawan", "Hidayat", "Saputra"}
-
-	var items []gin.H
-	count := 0
-	r := rand.New(rand.NewSource(42))
-
-	for i := 1; i <= 900; i++ {
-		fn := firstNames[r.Intn(len(firstNames))]
-		ln := lastNames[r.Intn(len(lastNames))]
-		name := fmt.Sprintf("%s %s", fn, ln)
-		id := fmt.Sprintf("mbr-ds900-%04d", i)
-
-		prob := r.Float64()
-		var flag string
-		if prob >= 0.70 {
-			flag = "HIGH"
-		} else if prob >= 0.35 {
-			flag = "MEDIUM"
-		} else {
-			flag = "LOW"
-		}
-
-		if riskFilter != "ALL" && flag != riskFilter {
-			continue
-		}
-		if search != "" && !strings.Contains(strings.ToLower(name), search) && !strings.Contains(strings.ToLower(id), search) {
-			continue
-		}
-
-		count++
-		if len(items) < limit {
-			items = append(items, gin.H{
-				"id":              id,
-				"name":            name,
-				"churn_risk_flag": flag,
-				"churn_prob":      prob,
-				"days_to_expiry":  r.Intn(28) + 2,
-				"total_quota":     8,
-				"used_quota":      r.Intn(7) + 1,
-				"bni_va_settled":  r.Intn(2) == 1,
-				"tenure_months":   r.Intn(36) + 1,
-			})
-		}
+	members, total, err := h.Store.ListDataset900Members(ctx, store.Dataset900Filter{
+		RiskFlag: riskFilter,
+		Search:   search,
+		Limit:    limit,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "failed to list dataset-900 members"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
-		"members": items,
-		"total":   count,
+		"members": members,
+		"total":   total,
 	})
 }
 
-// Dataset900RunStressTest handles POST /api/merchant/dataset-900/run-stress-test
+// Dataset900RunStressTest handles POST /api/merchant/dataset-900/run-stress-test — actually
+// queries the full real 900-member cohort and reports the real DB round-trip latency, rather
+// than reporting a fabricated latency for a call that never touches the dataset.
 func (h *Handlers) Dataset900RunStressTest(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	start := time.Now()
-	_, err := h.AIGateway.BatchPredictChurnVelocity(ctx, map[string]any{
-		"members": []any{},
-	})
-	latency := float64(time.Since(start).Microseconds()) / 1000.0
-	if latency < 15.0 {
-		latency = 32.5
-	}
+	summary, err := h.Store.GetDataset900Summary(ctx)
+	latencyMs := float64(time.Since(start).Microseconds()) / 1000.0
 
 	status := "COMPLETED_OPTIMAL"
 	if err != nil {
-		status = "COMPLETED_OFFLINE_FALLBACK"
+		status = "COMPLETED_ERROR"
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
 		"execution": gin.H{
-			"batch_size":            900,
+			"source": "database",
+			"summary": gin.H{
+				"total_processed":    summary.TotalActiveMembers,
+				"processing_time_ms": latencyMs,
+			},
+			"gateway_roundtrip_ms":  latencyMs,
 			"status":                status,
-			"execution_latency_ms":  latency,
-			"throughput_items_sec":  int(900.0 / (latency / 1000.0)),
-			"sla_compliance_pass":   latency < 150.0,
-			"high_risk_flagged":     142,
-			"interventions_created": 114,
+			"high_risk_flagged":     summary.HighRiskCritical,
+			"interventions_created": summary.AutonomousDispatched,
 			"tested_at":             time.Now().Format(time.RFC3339),
 		},
 	})

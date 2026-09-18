@@ -182,10 +182,10 @@ func (h *Handlers) GetMerchantChurnEvents(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "failed to load churn events"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"events": events,
+		"events":  events,
 	})
 }
 
@@ -211,7 +211,23 @@ func (h *Handlers) GetMerchantRevenueInsights(c *gin.Context) {
 	atRisk := stats.AtRiskMembers
 	saved := stats.SavedMembers
 
-	insights, err := h.AIGateway.GetMerchantRevenueInsights(ctx, tenant, totalMembers, atRisk, saved)
+	transactions, _ := h.Store.ListTransactionsByTenant(ctx, tenantID, store.TransactionFilter{})
+	feedback, _ := h.Store.ListFeedbackByTenant(ctx, tenantID)
+	feedbackForAI := make([]map[string]any, 0, len(feedback))
+	for _, f := range feedback {
+		feedbackForAI = append(feedbackForAI, map[string]any{
+			"member_id":          f.MemberID,
+			"raw_text":           f.RawText,
+			"category":           f.Category,
+			"sentiment":          f.Sentiment,
+			"churn_risk_score":   f.ChurnRiskScore,
+			"root_cause_summary": f.RootCauseSummary,
+			"recommended_action": f.RecommendedAction,
+			"created_at":         f.CreatedAt,
+		})
+	}
+
+	insights, err := h.AIGateway.GetMerchantRevenueInsights(ctx, tenant, totalMembers, atRisk, saved, feedbackForAI, redactTransactionsForAnalytics(transactions))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate insights"})
 		return

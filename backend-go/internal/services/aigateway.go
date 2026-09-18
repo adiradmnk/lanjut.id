@@ -1000,13 +1000,13 @@ func (a *AIGateway) ProcessMerchantChatbotInstruction(ctx context.Context, tenan
 }
 
 // GetMerchantRevenueInsights calls the /merchant-revenue-insights sidecar endpoint.
-func (a *AIGateway) GetMerchantRevenueInsights(ctx context.Context, tenant *models.Tenant, totalMembers, atRisk, saved int) (map[string]any, error) {
+func (a *AIGateway) GetMerchantRevenueInsights(ctx context.Context, tenant *models.Tenant, totalMembers, atRisk, saved int, feedbackSummaryList, transactionHistory []map[string]any) (map[string]any, error) {
 	reqBody := map[string]any{
 		"total_members":         totalMembers,
 		"churn_risk_count":      atRisk,
 		"saved_members_count":   saved,
-		"feedback_summary_list": []map[string]any{},
-		"transaction_history":   []map[string]any{},
+		"feedback_summary_list": feedbackSummaryList,
+		"transaction_history":   transactionHistory,
 	}
 	if tenant != nil {
 		reqBody["business_rules"] = map[string]any{

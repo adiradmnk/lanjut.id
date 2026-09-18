@@ -167,7 +167,7 @@ export default function MerchantDashboardPage() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const statsRes = await fetch(`/api/merchant/dashboard-stats?merchant_id=${selectedTenant.id}`);
+      const statsRes = await fetch(`/api/merchant/${selectedTenant.id}/insights`);
       if (statsRes.ok) {
         const s = await statsRes.json();
         if (s.stats) setStats(s.stats);
