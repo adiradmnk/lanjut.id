@@ -262,7 +262,7 @@ export default function CancellationFeedbackDemoModal({
                   🎯 Skenario Alur Pembatalan (Order Canceled / Expiration Event):
                 </p>
                 <p className="text-[11px] leading-relaxed">
-                  Ketika member melakukan pembatalan (atau sistem mendeteksi order/tagihan VA kedaluwarsa tanpa dibayar), backend akan memanggil model <strong>Gemini 1.5 Flash</strong> via FastAPI untuk meracik kuesioner empati dinamis beserta opsi spesifik yang relevan.
+                  Ketika member melakukan pembatalan (atau sistem mendeteksi order/tagihan VA kedaluwarsa tanpa dibayar), backend akan memanggil model <strong>Gemini</strong> via FastAPI untuk meracik kuesioner empati dinamis beserta opsi spesifik yang relevan.
                 </p>
               </div>
 
@@ -354,7 +354,7 @@ export default function CancellationFeedbackDemoModal({
                 <div className="flex items-center justify-between text-xs font-bold mb-1">
                   <div className="flex items-center gap-1.5 text-amber-900">
                     <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                    <span>{survey.engine_source || 'Gemini 1.5 Dynamic Generator'}</span>
+                    <span>{survey.engine_source || 'Gemini Dynamic Generator'}</span>
                   </div>
                   {lastTransactionContext && (
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-900 text-white font-mono">

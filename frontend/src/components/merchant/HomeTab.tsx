@@ -175,7 +175,7 @@ export default function HomeTab({
 
           <div className="p-3.5 bg-white/5 border border-white/10 rounded-lg flex items-center justify-between text-xs">
             <span className="text-neutral-300">
-              Tingkat konversi penyelamatan member saat ini berada pada <strong>89.4%</strong>.
+              Tingkat konversi penyelamatan member saat ini berada pada <strong>{stats.retention_rate_pct.toFixed(1)}%</strong>.
             </span>
             <button
               onClick={() => onNavigate('analytics')}
@@ -216,7 +216,7 @@ export default function HomeTab({
                 <ArrowUpRight className="w-3.5 h-3.5 text-neutral-500 group-hover:text-white transition-colors" />
               </div>
               <p className="text-[11px] text-neutral-400 mt-0.5">
-                Cek status settlement 34+ transaksi BNI VA.
+                Cek status settlement {stats.va_settled} transaksi BNI VA.
               </p>
             </button>
 
