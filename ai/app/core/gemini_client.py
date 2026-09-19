@@ -21,6 +21,17 @@ except ImportError:
     genai = None
     HAS_GENAI = False
 
+# Loud, unambiguous startup signal — without this, "no [GeminiEngine] Call failed in the
+# logs" could mean either "Gemini calls are succeeding" or "GEMINI_API_KEY is empty so
+# Gemini is never even attempted", and those look identical unless we say so explicitly.
+if GEMINI_API_KEY and HAS_GENAI:
+    logger.warning(f"[GeminiEngine] ACTIVE — using model '{DEFAULT_GEMINI_MODEL}' with a configured GEMINI_API_KEY.")
+else:
+    logger.warning(
+        "[GeminiEngine] DISABLED — GEMINI_API_KEY is not set (or google-generativeai failed to import). "
+        "Every AI feature will use its deterministic/rule-based fallback engine, not Gemini."
+    )
+
 class GeminiEngine:
     @classmethod
     def is_available(cls) -> bool:
