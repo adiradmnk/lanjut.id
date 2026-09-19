@@ -46,14 +46,15 @@ class ConversationalLogicAgent:
 
         # SKENARIO A: KONSULTASI / PERTANYAAN ATURAN AKTIF (INQUIRY)
         if intent_type == "INQUIRY":
-            reply = self._synthesize_inquiry_reply(sanitized_msg, current_rules, history)
+            reply, used_gemini = self._synthesize_inquiry_reply(sanitized_msg, current_rules, history)
             return {
                 "tenant_id": tenant_id,
                 "status": "INQUIRY_ANSWER",
                 "reply_message": PIISanitizer.desanitize_text(reply, pii_map),
                 "updated_rules": current_rules.model_dump(),
                 "mutation_diff": [],
-                "guardrail_report": {"is_safe": True, "violations": []}
+                "guardrail_report": {"is_safe": True, "violations": []},
+                "engine_source": "Google Gemini" if used_gemini else "LANJUT Deterministic Fallback Engine"
             }
 
         # SKENARIO B: MUTASI ATURAN BISNIS (MUTATION VIA TOOL CALL)
@@ -72,7 +73,7 @@ class ConversationalLogicAgent:
 
         # JIKA MELANGGAR MARGIN AMAN BNI:
         if not guardrail["is_safe"]:
-            rejection_reply = self._synthesize_guardrail_rejection_reply(
+            rejection_reply, used_gemini = self._synthesize_guardrail_rejection_reply(
                 message=sanitized_msg,
                 current_rules=current_rules,
                 guardrail=guardrail
@@ -83,7 +84,8 @@ class ConversationalLogicAgent:
                 "reply_message": PIISanitizer.desanitize_text(rejection_reply, pii_map),
                 "updated_rules": current_rules.model_dump(),
                 "mutation_diff": [],
-                "guardrail_report": guardrail
+                "guardrail_report": guardrail,
+                "engine_source": "Google Gemini" if used_gemini else "LANJUT Deterministic Fallback Engine"
             }
 
         # JIKA LOLOS: APLIKASIKAN MUTASI SCHEMA & DIFF
@@ -117,7 +119,7 @@ class ConversationalLogicAgent:
             diff_logs.append(f"Ditambahkan paket layanan baru: '{prod_obj.name}' (Rp {prod_obj.price_idr:,.0f})")
 
         # 3. Pure LLM Confirmation Synthesis
-        success_reply = self._synthesize_success_reply(
+        success_reply, used_gemini = self._synthesize_success_reply(
             message=sanitized_msg,
             diff_logs=diff_logs,
             current_rules=current_rules,
@@ -130,7 +132,8 @@ class ConversationalLogicAgent:
             "reply_message": PIISanitizer.desanitize_text(success_reply, pii_map),
             "updated_rules": updated_dict,
             "mutation_diff": diff_logs,
-            "guardrail_report": guardrail
+            "guardrail_report": guardrail,
+            "engine_source": "Google Gemini" if used_gemini else "LANJUT Deterministic Fallback Engine"
         }
 
     def _parse_tool_call_with_llm(
@@ -183,7 +186,7 @@ class ConversationalLogicAgent:
         message: str,
         current_rules: ExtractedBusinessRules,
         guardrail: Dict[str, Any]
-    ) -> str:
+    ) -> tuple[str, bool]:
         violations_text = "\n".join([f"- {v}" for v in guardrail.get("violations", [])])
         safe_alt = guardrail.get("suggested_safe_discount_pct", 15.0)
         
@@ -206,14 +209,14 @@ class ConversationalLogicAgent:
                 system_instruction="Anda adalah Asisten Konsultan Bisnis & Keuangan Merchant B2B."
             )
             if text_out:
-                return text_out
+                return text_out, True
 
         return (
             f"Permintaan Anda belum dapat diterapkan karena melanggar batas keselamatan margin operasional:\n"
             f"{violations_text}\n\n"
             f"Saran sistem: Batas diskon maksimal yang aman untuk seluruh katalog Anda adalah {safe_alt:.1f}%. "
             f"Apakah Anda ingin menerapkan diskon aman ini?"
-        )
+        ), False
 
     def _synthesize_success_reply(
         self,
@@ -221,7 +224,7 @@ class ConversationalLogicAgent:
         diff_logs: List[str],
         current_rules: ExtractedBusinessRules,
         guardrail: Dict[str, Any]
-    ) -> str:
+    ) -> tuple[str, bool]:
         diff_summary = "\n".join([f"- {d}" for d in diff_logs])
         if GeminiEngine.is_available():
             prompt = f"""
@@ -238,20 +241,20 @@ class ConversationalLogicAgent:
                 system_instruction="Anda adalah Asisten Operasional Virtual Merchant yang ramah dan solutif."
             )
             if text_out:
-                return text_out
+                return text_out, True
 
         return (
             f"Perubahan aturan bisnis berhasil disimpan:\n"
             f"{diff_summary}\n\n"
             f"Aturan baru telah aktif dan seluruh simulasi harga dipastikan aman mematuhi batas margin minimum."
-        )
+        ), False
 
     def _synthesize_inquiry_reply(
         self,
         message: str,
         current_rules: ExtractedBusinessRules,
         history: Optional[List[Dict[str, str]]]
-    ) -> str:
+    ) -> tuple[str, bool]:
         biz = current_rules.business_profile
         fin = current_rules.financial_constraints
         pol = current_rules.retention_policy
@@ -275,13 +278,13 @@ class ConversationalLogicAgent:
                 system_instruction="Anda adalah Virtual Assistant pengatur logika bisnis merchant."
             )
             if text_out:
-                return text_out
+                return text_out, True
 
         return (
             f"Saat ini aturan bisnis aktif untuk {biz.business_name} adalah diskon maksimal {fin.max_discount_allowed_pct}%, "
             f"margin minimal Rp {fin.min_margin_floor_idr:,.0f}, dan jeda akun hingga {pol.max_freeze_days} hari. "
             f"Anda dapat memerintahkan saya untuk mengubah aturan ini kapan saja."
-        )
+        ), False
 
     def _heuristic_tool_call(self, message: str, current_rules: ExtractedBusinessRules) -> Dict[str, Any]:
         lower = message.lower()
