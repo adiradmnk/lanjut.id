@@ -11,8 +11,6 @@ import BusinessLogicTab from '@/components/merchant/BusinessLogicTab';
 import FinanceTab from '@/components/merchant/FinanceTab';
 import RetentionInboxTab from '@/components/merchant/RetentionInboxTab';
 import HomeTab from '@/components/merchant/HomeTab';
-import AiChatAnalysisTab from '@/components/merchant/AiChatAnalysisTab';
-import AiBusinessLogicChatTab from '@/components/merchant/AiBusinessLogicChatTab';
 import { 
   SidebarNav, 
   type NavGroupData, 
@@ -344,7 +342,7 @@ export default function MerchantDashboardPage() {
         </header>
 
         {/* Dynamic Body Content */}
-        <main className={`flex-1 ${sidebarMode === 'ai' || ['ai-chat', 'ai-logic-chat'].includes(activeId) ? 'overflow-hidden flex flex-col p-4 sm:p-6' : 'overflow-y-auto p-4 sm:p-6 lg:p-8'} bg-[#171717]`}>
+        <main className={`flex-1 ${sidebarMode === 'ai' ? 'overflow-hidden flex flex-col p-4 sm:p-6' : 'overflow-y-auto p-4 sm:p-6 lg:p-8'} bg-[#171717]`}>
           {sidebarMode === 'ai' ? (
             <VisualAnalyticsTab
               analytics={mlAnalytics}
@@ -382,23 +380,9 @@ export default function MerchantDashboardPage() {
             />
           )}
 
-          {activeId === 'ai-chat' && (
-            <AiChatAnalysisTab
-              tenantName={selectedTenant.name}
-              tenantCategory={selectedTenant.category}
-            />
-          )}
-
           {activeId === 'business-logic' && (
             <BusinessLogicTab 
               tenantId={selectedTenant.id}
-              tenantName={selectedTenant.name}
-              tenantCategory={selectedTenant.category}
-            />
-          )}
-
-          {activeId === 'ai-logic-chat' && (
-            <AiBusinessLogicChatTab
               tenantName={selectedTenant.name}
               tenantCategory={selectedTenant.category}
             />
@@ -460,7 +444,7 @@ export default function MerchantDashboardPage() {
             </div>
           )}
 
-          {!['home', 'inbox', 'analytics', 'ai-chat', 'business-logic', 'ai-logic-chat', 'finance', 'api', 'webhooks'].includes(activeId) && (
+          {!['home', 'inbox', 'analytics', 'business-logic', 'finance', 'api', 'webhooks'].includes(activeId) && (
             <div className="flex flex-col items-center justify-center min-h-[60vh] border border-dashed border-white/10 rounded-2xl p-12 text-center">
               <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white mb-4">
                 <Cpu className="w-6 h-6 text-white" />

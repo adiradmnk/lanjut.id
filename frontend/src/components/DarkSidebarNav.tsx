@@ -154,9 +154,7 @@ export function NavItem({
                 if (onAction) {
                   onAction(item.id);
                 } else {
-                  if (item.id === 'analytics') onSelect('ai-chat');
-                  else if (item.id === 'business-logic') onSelect('ai-logic-chat');
-                  else onSelect(item.id);
+                  onSelect(item.id);
                 }
               }}
               title="Mulai Sesi AI Baru"

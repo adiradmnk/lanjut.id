@@ -20,11 +20,10 @@ interface MemberItem {
   email: string;
   phone: string;
   current_package: string;
+  active_until?: string;
   total_quota: number;
   used_quota: number;
   churn_risk_flag?: string;
-  attendance_history?: string[];
-  days_inactive?: number;
 }
 
 interface RetentionInboxTabProps {
@@ -42,17 +41,29 @@ export default function RetentionInboxTab({
 }: RetentionInboxTabProps) {
   const [selectedMember, setSelectedMember] = useState<MemberItem | null>(null);
   const [sentOffers, setSentOffers] = useState<Record<string, boolean>>({});
-  const [isSending, setIsSending] = useState(false);
+  const [sendingMemberId, setSendingMemberId] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   const atRiskMembers = members.filter(m => m.churn_risk_flag === 'HIGH');
 
   const handleSendOffer = async (memberId: string) => {
-    setIsSending(true);
-    // Simulasi pengiriman penawaran AI
-    setTimeout(() => {
+    setSendingMemberId(memberId);
+    setSendError(null);
+    try {
+      const res = await fetch(`/api/ai/tenants/${tenantId}/members/${memberId}/generate-offers`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (!res.ok || !data.offers_created?.length) {
+        throw new Error(data.message || 'AI tidak menemukan slot penawaran yang aman untuk member ini.');
+      }
       setSentOffers(prev => ({ ...prev, [memberId]: true }));
-      setIsSending(false);
-    }, 800);
+      onRefresh();
+    } catch (err: any) {
+      setSendError(err.message || 'Gagal mengirim intervensi AI.');
+    } finally {
+      setSendingMemberId(null);
+    }
   };
 
   return (
@@ -72,6 +83,9 @@ export default function RetentionInboxTab({
           <p className="text-xs text-neutral-400 mt-0.5">
             Ditemukan <strong className="text-amber-400 font-semibold">{atRiskMembers.length} member berisiko tinggi</strong> yang memerlukan intervensi retensi cerdas.
           </p>
+          {sendError && (
+            <p className="text-xs text-rose-400 mt-1">{sendError}</p>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -122,8 +136,12 @@ export default function RetentionInboxTab({
                       </p>
                       <div className="flex items-center gap-4 text-[11px] text-neutral-400 mt-2 font-mono">
                         <span>Sisa Kuota: <strong className="text-white">{quotaLeft}/{m.total_quota}</strong></span>
-                        <span>&bull;</span>
-                        <span>Terakhir Presensi: <strong className="text-amber-400">3 minggu lalu</strong></span>
+                        {m.active_until && (
+                          <>
+                            <span>&bull;</span>
+                            <span>Aktif Hingga: <strong className="text-amber-400">{new Date(m.active_until).toLocaleDateString('id-ID')}</strong></span>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -136,11 +154,11 @@ export default function RetentionInboxTab({
                       ) : (
                         <button
                           onClick={() => handleSendOffer(m.id)}
-                          disabled={isSending}
+                          disabled={sendingMemberId === m.id}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-black hover:bg-neutral-200 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
                         >
                           <Sparkles className="w-3.5 h-3.5 text-orange-500" />
-                          Kirim Intervensi AI
+                          {sendingMemberId === m.id ? 'Menganalisis...' : 'Kirim Intervensi AI'}
                         </button>
                       )}
                     </div>
