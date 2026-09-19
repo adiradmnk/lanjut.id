@@ -22,6 +22,7 @@ class ChatbotMessageResponse(BaseModel):
     mutation_diff: List[str] = Field(default_factory=list, description="Daftar rincian field aturan bisnis yang termutasi")
     guardrail_report: Dict[str, Any] = Field(default_factory=dict, description="Hasil evaluasi kepatuhan margin finansial")
     processing_time_ms: float
+    engine_source: str = Field("LANJUT Deterministic Fallback Engine", description="Engine yang menghasilkan balasan: 'Google Gemini' atau fallback deterministik")
 
 @router.post("/process-instruction", response_model=ChatbotMessageResponse)
 async def process_chatbot_instruction(payload: ChatbotMessageRequest):
@@ -43,5 +44,6 @@ async def process_chatbot_instruction(payload: ChatbotMessageRequest):
         updated_rules=result["updated_rules"],
         mutation_diff=result["mutation_diff"],
         guardrail_report=result["guardrail_report"],
-        processing_time_ms=elapsed
+        processing_time_ms=elapsed,
+        engine_source=result.get("engine_source", "LANJUT Deterministic Fallback Engine")
     )
