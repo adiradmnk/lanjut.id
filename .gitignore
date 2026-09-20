@@ -2,9 +2,6 @@
 .env*
 !.env.example
 
-# Documentation
-README.md
-
 # Node & Next.js
 node_modules/
 .next/
