@@ -19,7 +19,7 @@ class GuidebookExtractResponse(BaseModel):
     rules: Dict[str, Any]
 
 @router.post("/extract-rules", response_model=GuidebookExtractResponse)
-async def extract_rules_from_text(payload: GuidebookTextRequest):
+def extract_rules_from_text(payload: GuidebookTextRequest):
     if not payload.raw_text.strip():
         raise HTTPException(status_code=400, detail="raw_text cannot be empty")
 
@@ -36,11 +36,15 @@ async def extract_rules_from_text(payload: GuidebookTextRequest):
     )
 
 @router.post("/upload-and-extract", response_model=GuidebookExtractResponse)
-async def upload_and_extract_file(
+def upload_and_extract_file(
     file: UploadFile = File(...),
     notes: Optional[str] = Form(None)
 ):
-    contents = await file.read()
+    # Plain `def` (not `async def`) so Starlette runs this in its threadpool instead of on
+    # the single asyncio event loop — GuidebookExtractor.extract_rules below blocks on a
+    # synchronous Gemini API call, which would otherwise stall every other request the AI
+    # sidecar is serving (chatbot, retention, analytics, ...) until it returns.
+    contents = file.file.read()
     if not contents:
         raise HTTPException(status_code=400, detail="Uploaded file is empty")
 

@@ -56,7 +56,7 @@ class RMGatewayHealthRequest(BaseModel):
     feedback_list: List[Dict[str, Any]] = Field(default_factory=list)
 
 @router.post("/detect-transaction-churn")
-async def detect_transaction_churn(payload: DetectTransactionChurnRequest):
+def detect_transaction_churn(payload: DetectTransactionChurnRequest):
     start = time.time()
     raw_history = [t.model_dump() for t in payload.transaction_history]
     result = TransactionChurnDetector.analyze_transactions(
@@ -71,7 +71,7 @@ async def detect_transaction_churn(payload: DetectTransactionChurnRequest):
     return result
 
 @router.post("/generate-cancellation-survey")
-async def generate_cancellation_survey(payload: GenerateSurveyRequest):
+def generate_cancellation_survey(payload: GenerateSurveyRequest):
     start = time.time()
     rules = payload.business_rules or ExtractedBusinessRules()
     ctx = payload.last_transaction_context or payload.last_transaction or {
@@ -86,7 +86,7 @@ async def generate_cancellation_survey(payload: GenerateSurveyRequest):
     return survey
 
 @router.post("/analyze-survey-feedback")
-async def analyze_survey_feedback(payload: AnalyzeFeedbackRequest):
+def analyze_survey_feedback(payload: AnalyzeFeedbackRequest):
     start = time.time()
     rules = payload.business_rules or ExtractedBusinessRules()
     analysis = UserFeedbackAnalyzer.analyze_feedback_and_generate_offer(
@@ -99,7 +99,7 @@ async def analyze_survey_feedback(payload: AnalyzeFeedbackRequest):
     return analysis
 
 @router.post("/merchant-revenue-insights")
-async def get_merchant_revenue_insights(payload: RevenueInsightsRequest):
+def get_merchant_revenue_insights(payload: RevenueInsightsRequest):
     start = time.time()
     rules = payload.business_rules or ExtractedBusinessRules()
     raw_trx = [t.model_dump() for t in payload.transaction_history] if payload.transaction_history else []
@@ -115,7 +115,7 @@ async def get_merchant_revenue_insights(payload: RevenueInsightsRequest):
     return insights
 
 @router.post("/rm-gateway-health")
-async def get_rm_gateway_health(payload: RMGatewayHealthRequest):
+def get_rm_gateway_health(payload: RMGatewayHealthRequest):
     start = time.time()
     raw_history = [t.model_dump() for t in payload.transaction_history]
     report = RMPaymentHealthEngine.evaluate_gateway_health(

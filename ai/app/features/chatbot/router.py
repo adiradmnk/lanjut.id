@@ -25,7 +25,7 @@ class ChatbotMessageResponse(BaseModel):
     engine_source: str = Field("LANJUT Deterministic Fallback Engine", description="Engine yang menghasilkan balasan: 'Google Gemini' atau fallback deterministik")
 
 @router.post("/process-instruction", response_model=ChatbotMessageResponse)
-async def process_chatbot_instruction(payload: ChatbotMessageRequest):
+def process_chatbot_instruction(payload: ChatbotMessageRequest):
     start_time = time.time()
     agent = ConversationalLogicAgent()
     

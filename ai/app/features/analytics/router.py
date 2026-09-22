@@ -19,7 +19,7 @@ class AnalyticsQueryRequest(BaseModel):
 
 
 @router.post("/query")
-async def query_analytics(payload: AnalyticsQueryRequest):
+def query_analytics(payload: AnalyticsQueryRequest):
     start = time.time()
     result = AnalyticsQueryAgent.answer_query(
         merchant_name=payload.merchant_name,

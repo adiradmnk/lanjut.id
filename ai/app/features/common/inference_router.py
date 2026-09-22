@@ -30,7 +30,7 @@ class InferenceResponse(BaseModel):
 
 
 @router.post("/analyze", response_model=InferenceResponse, tags=["Inference"])
-async def analyze_data(request: InferenceRequest):
+def analyze_data(request: InferenceRequest):
     """
     Generic AI inference endpoint — calls Gemini with the supplied prompt.
     Returns an honest error response (not a fake reply) if Gemini is unavailable.

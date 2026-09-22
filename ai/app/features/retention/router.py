@@ -146,7 +146,7 @@ class EvaluateSMECreditResponse(BaseModel):
 # 1. AI Grievance Translator (Pure Guidebook RAG + Zero Hardcode)
 # ----------------------------------------------------
 @router.post("/translate-grievance", response_model=GrievanceTranslateResponse)
-async def translate_grievance(payload: GrievanceTranslateRequest):
+def translate_grievance(payload: GrievanceTranslateRequest):
     start_time = time.time()
     rules = payload.business_rules or ExtractedBusinessRules()
     biz_name = rules.business_profile.business_name
@@ -250,7 +250,7 @@ async def translate_grievance(payload: GrievanceTranslateRequest):
 # 2. Smart Options Ranker (Guidebook & Margin-Locked)
 # ----------------------------------------------------
 @router.post("/rank-smart-options", response_model=RankSmartOptionsResponse)
-async def rank_smart_options(payload: RankSmartOptionsRequest):
+def rank_smart_options(payload: RankSmartOptionsRequest):
     start_time = time.time()
     rules = payload.business_rules or ExtractedBusinessRules()
     fin = rules.financial_constraints
@@ -340,7 +340,7 @@ async def rank_smart_options(payload: RankSmartOptionsRequest):
 # 3. RM Executive Health Generator (AI Contextual Narrative)
 # ----------------------------------------------------
 @router.post("/generate-rm-summary", response_model=RMSummaryResponse)
-async def generate_rm_summary(payload: RMSummaryRequest):
+def generate_rm_summary(payload: RMSummaryRequest):
     start_time = time.time()
     rules = payload.business_rules or ExtractedBusinessRules()
     
@@ -416,7 +416,7 @@ async def generate_rm_summary(payload: RMSummaryRequest):
 # 4. Attendance Velocity & Churn Scoring
 # ----------------------------------------------------
 @router.post("/predict-churn-velocity", response_model=PredictChurnVelocityResponse)
-async def predict_churn_velocity(payload: PredictChurnVelocityRequest):
+def predict_churn_velocity(payload: PredictChurnVelocityRequest):
     total_pts = len(payload.attendance_history_90d)
     if total_pts == 0:
         return PredictChurnVelocityResponse(
@@ -458,7 +458,7 @@ async def predict_churn_velocity(payload: PredictChurnVelocityRequest):
 # 5. SME Credit DSS for BNI RM
 # ----------------------------------------------------
 @router.post("/evaluate-sme-credit-dss", response_model=EvaluateSMECreditResponse)
-async def evaluate_sme_credit_dss(payload: EvaluateSMECreditRequest):
+def evaluate_sme_credit_dss(payload: EvaluateSMECreditRequest):
     start_time = time.time()
     installment = max(1, payload.monthly_installment_idr)
     dscr = round(payload.monthly_bni_va_turnover_idr / installment, 2)
@@ -499,24 +499,24 @@ async def evaluate_sme_credit_dss(payload: EvaluateSMECreditRequest):
 # 6. ML Churn & Risk Engine Proxies
 # ----------------------------------------------------
 @router.post("/evaluate-member-risk")
-async def evaluate_member_risk(payload: Dict[str, Any]):
+def evaluate_member_risk(payload: Dict[str, Any]):
     profile = payload.get("profile", payload)
     raw_rules = payload.get("business_rules")
     rules = ExtractedBusinessRules(**raw_rules) if raw_rules else ExtractedBusinessRules()
     return PaymentRiskScoringEngine.evaluate(profile, rules)
 
 @router.post("/ml-churn/predict")
-async def ml_churn_predict(inputs: Dict[str, Any]):
+def ml_churn_predict(inputs: Dict[str, Any]):
     return MLChurnPredictionEngine.predict_churn(inputs)
 
 @router.post("/ml-churn/simulate")
-async def ml_churn_simulate(payload: Dict[str, Any]):
+def ml_churn_simulate(payload: Dict[str, Any]):
     current = payload.get("current_inputs", {})
     mods = payload.get("modifications", {})
     return MLChurnPredictionEngine.simulate_what_if(current, mods)
 
 @router.post("/agentic/run")
-async def run_agentic_retention(payload: Dict[str, Any]):
+def run_agentic_retention(payload: Dict[str, Any]):
     customer = payload.get("customer_profile", {})
     risk_eval = payload.get("risk_evaluation", {})
     raw_rules = payload.get("business_rules")
@@ -560,7 +560,7 @@ class GenerateOffersResponse(BaseModel):
     processing_time_ms: float
 
 @router.post("/generate-offers", response_model=GenerateOffersResponse)
-async def generate_offers(payload: GenerateOffersRequest):
+def generate_offers(payload: GenerateOffersRequest):
     start_time = time.time()
     t_cfg = payload.tenant_constraint or {}
     max_discount = float(t_cfg.get("max_discount_allowed_pct") or 10.0)
