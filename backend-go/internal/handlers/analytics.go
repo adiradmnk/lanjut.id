@@ -214,13 +214,19 @@ func (h *Handlers) PostAnalyticsMessage(c *gin.Context) {
 		History:      history,
 	})
 
-	var reportMarkdown, title string
+	var reportMarkdown, title, engineSource string
 	if aiErr != nil {
 		reportMarkdown = "Maaf, AI analytics engine sedang tidak tersedia. Silakan coba lagi sebentar lagi."
 		title = req.Query
+		engineSource = "LANJUT Deterministic Fallback Engine"
 	} else {
 		reportMarkdown = result.ReportMarkdown
 		title = result.Title
+		if result.Source == "gemini" {
+			engineSource = "Google Gemini"
+		} else {
+			engineSource = "LANJUT Deterministic Fallback Engine"
+		}
 	}
 	if len(title) > 80 {
 		title = title[:80]
@@ -243,5 +249,6 @@ func (h *Handlers) PostAnalyticsMessage(c *gin.Context) {
 		"session_title":     session.Title,
 		"user_message":      userMsg,
 		"assistant_message": assistantMsg,
+		"engine_source":     engineSource,
 	})
 }
