@@ -2,7 +2,7 @@ import os
 import json
 import re
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Iterator, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -84,3 +84,29 @@ class GeminiEngine:
         except Exception as e:
             logger.warning(f"[GeminiEngine Text] Call failed: {e}")
             return None
+
+    @classmethod
+    def generate_text_stream(cls, prompt: str, system_instruction: Optional[str] = None, model_name: str = DEFAULT_GEMINI_MODEL) -> Iterator[str]:
+        """
+        Same as generate_text, but yields real text chunks as Gemini generates them instead
+        of waiting for the full response — so the caller can stream tokens to the client as
+        they actually arrive rather than faking a typing animation over an already-complete
+        answer. Yields nothing (empty iterator) if unavailable or the call fails; callers
+        must have their own fallback for that case.
+        """
+        if not cls.is_available():
+            return
+
+        try:
+            full_system = system_instruction or "Anda adalah AI Engine penasihat bisnis dan retensi pelanggan LANJUT."
+            model = genai.GenerativeModel(
+                model_name=model_name,
+                system_instruction=full_system
+            )
+            response = model.generate_content(prompt, stream=True)
+            for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+        except Exception as e:
+            logger.warning(f"[GeminiEngine Stream] Call failed: {e}")
+            return

@@ -11,7 +11,7 @@ narrative synthesis.
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 from app.core.gemini_client import GeminiEngine
 
@@ -114,6 +114,85 @@ class AnalyticsQueryAgent:
                 "source": "gemini",
             }
         return None
+
+    @classmethod
+    def answer_query_stream(
+        cls,
+        merchant_name: str,
+        category: str,
+        query: str,
+        transactions: List[Dict[str, Any]],
+        feedback_list: List[Dict[str, Any]],
+        history: Optional[List[Dict[str, str]]] = None,
+    ) -> Iterator[Dict[str, Any]]:
+        """
+        Same job as answer_query, but yields the report as it's actually generated instead
+        of waiting for the full text: {"type": "chunk", "text": "..."} for each piece as
+        Gemini streams it, then a final {"type": "done", "title": ..., "engine_source": ...}.
+        Falls back to yielding the whole deterministic report as one chunk when Gemini is
+        unavailable or fails — there's nothing to genuinely stream in that case since it's
+        already fully computed, not generated token-by-token.
+        """
+        aggregates = cls._compute_aggregates(transactions, feedback_list)
+
+        if GeminiEngine.is_available():
+            prompt = cls._build_prompt(merchant_name, category, query, transactions, feedback_list, history, aggregates)
+            got_any_chunk = False
+            for text_chunk in GeminiEngine.generate_text_stream(
+                prompt=prompt,
+                system_instruction=(
+                    "Anda adalah AI Data Analyst yang jujur, selalu berbasis data riil yang "
+                    "diberikan, dan tidak pernah mengarang angka atau fakta. Jawab langsung "
+                    "dalam format Markdown, tanpa JSON, tanpa pembungkus lain."
+                ),
+            ):
+                got_any_chunk = True
+                yield {"type": "chunk", "text": text_chunk}
+            if got_any_chunk:
+                yield {"type": "done", "title": query[:60], "engine_source": "Google Gemini"}
+                return
+
+        fallback = cls._fallback_report(query, aggregates)
+        yield {"type": "chunk", "text": fallback["report_markdown"]}
+        yield {"type": "done", "title": fallback["title"], "engine_source": "LANJUT Deterministic Fallback Engine"}
+
+    @classmethod
+    def _build_prompt(
+        cls,
+        merchant_name: str,
+        category: str,
+        query: str,
+        transactions: List[Dict[str, Any]],
+        feedback_list: List[Dict[str, Any]],
+        history: Optional[List[Dict[str, str]]],
+        aggregates: Dict[str, Any],
+    ) -> str:
+        history_text = json.dumps(history or [], ensure_ascii=False)
+        return f"""
+        Anda adalah AI Data Analyst internal untuk merchant "{merchant_name}" ({category}) di
+        platform LANJUT x BNI.
+
+        Pertanyaan pemilik merchant: "{query}"
+
+        Data riwayat transaksi nyata milik merchant ini (JSON, maksimal 60 baris terbaru):
+        {json.dumps(transactions[:60], default=str, ensure_ascii=False)}
+
+        Data feedback pelanggan nyata (JSON, maksimal 40 baris terbaru):
+        {json.dumps(feedback_list[:40], default=str, ensure_ascii=False)}
+
+        Ringkasan agregat yang sudah dihitung sistem dari data di atas (gunakan sebagai
+        acuan angka, jangan mengarang angka lain):
+        {json.dumps(aggregates, ensure_ascii=False)}
+
+        Riwayat percakapan analisis sebelumnya di sesi ini (jika ada): {history_text}
+
+        Tugas Anda:
+        1. Jawab pertanyaan pemilik merchant secara spesifik HANYA berdasarkan data riil di
+           atas. Jangan pernah mengarang angka atau transaksi yang tidak ada di data.
+        2. Jika data tidak cukup untuk menjawab dengan pasti, katakan dengan jujur alih-alih
+           menebak.
+        3. Tulis laporan dalam format Markdown yang rapi: heading, bullet point, angka nyata.
+        """
 
     @classmethod
     def _fallback_report(cls, query: str, aggregates: Dict[str, Any]) -> Dict[str, Any]:
