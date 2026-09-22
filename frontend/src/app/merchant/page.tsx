@@ -198,7 +198,12 @@ export default function MerchantDashboardPage() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 8000);
+    // 60s, not a few seconds: these endpoints call the AI sidecar (RM summary, revenue
+    // insights), which makes a real Gemini API call each time. Polling too aggressively
+    // burns through Gemini quota fast and, worse, queues up requests faster than the AI
+    // sidecar can answer them, starving every other AI feature (chat, analytics, ...) of
+    // capacity while this tab sits open in the background.
+    const interval = setInterval(loadData, 60000);
     return () => clearInterval(interval);
   }, [selectedTenant.id]);
 

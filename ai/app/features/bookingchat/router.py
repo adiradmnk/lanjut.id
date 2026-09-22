@@ -30,7 +30,7 @@ class BookingChatResponse(BaseModel):
 
 
 @router.post("/query", response_model=BookingChatResponse)
-async def query_booking_chat(payload: BookingChatRequest):
+def query_booking_chat(payload: BookingChatRequest):
     if GeminiEngine.is_available():
         history_text = json.dumps(payload.history or [], ensure_ascii=False)
         prompt = f"""
