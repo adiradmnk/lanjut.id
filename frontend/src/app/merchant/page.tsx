@@ -132,7 +132,12 @@ export default function MerchantDashboardPage() {
     { id: 'mch-ironcrossfit-03', name: 'Surabaya Iron CrossFit', category: 'High-Intensity Strength' },
     { id: 'mch-bandungpilates-04', name: 'Bandung Core Pilates (Cold-Start)', category: 'Pilates Reformer' },
   ]);
-  const [activeWorkspace, setActiveWorkspace] = useState('FitBody Gym & Movement');
+  // Selection tracked by stable tenant ID, not display name — the backend's real business
+  // names don't match the placeholder names above ("FitBody Gym & Movement" vs the real
+  // "FitBody Gym & Functional Movement"), so a name-based lookup silently falls back to
+  // tenantsList[0] the moment members-overview replaces tenantsList with real names,
+  // switching the whole dashboard to a different (often near-empty seed) tenant.
+  const [activeTenantId, setActiveTenantId] = useState('mch-fitbody-01');
 
   const [stats, setStats] = useState<MerchantStats>({
     total_members: 0,
@@ -160,7 +165,12 @@ export default function MerchantDashboardPage() {
   const [analyticsSessions, setAnalyticsSessions] = useState<AnalyticsSessionSummary[]>([]);
   const [activeAnalyticsSessionId, setActiveAnalyticsSessionId] = useState<string | null>(null);
 
-  const selectedTenant = tenantsList.find(t => t.name === activeWorkspace) || tenantsList[0];
+  const selectedTenant = tenantsList.find(t => t.id === activeTenantId) || tenantsList[0];
+  const activeWorkspace = selectedTenant.name;
+  const handleWorkspaceSelect = (name: string) => {
+    const t = tenantsList.find(x => x.name === name);
+    if (t) setActiveTenantId(t.id);
+  };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -314,7 +324,7 @@ export default function MerchantDashboardPage() {
           activeId={activeId}
           onSelect={handleSelect}
           activeWorkspace={activeWorkspace}
-          onWorkspaceSelect={setActiveWorkspace}
+          onWorkspaceSelect={handleWorkspaceSelect}
           navGroups={buildMerchantNavGroups(stats.at_risk_members)}
           bottomItems={merchantBottomItems}
           planLabel="Merchant Pro"

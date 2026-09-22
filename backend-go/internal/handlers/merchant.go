@@ -50,6 +50,16 @@ func (h *Handlers) MerchantDashboard(c *gin.Context) {
 	}
 	retentionRate := float64(saved) / float64(totalMembers) * 100
 
+	// Real aggregates (revenue, quota utilization, VA settlement) come from the same
+	// store.GetTenantInsightStats used by the BNI credit-dss/merchant-list endpoints, so the
+	// merchant dashboard's stat cards show actual transaction/quota data instead of only the
+	// member-count-derived fields above. Added alongside the original fields (rather than
+	// replacing them) since baseline_test.go pins their exact names.
+	insightStats, err := h.Store.GetTenantInsightStats(ctx, tenant.ID)
+	if err != nil {
+		insightStats = &store.TenantInsightStats{}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"merchant": gin.H{
@@ -64,6 +74,16 @@ func (h *Handlers) MerchantDashboard(c *gin.Context) {
 			"members_saved_by_ai":  saved,
 			"retention_rate_pct":   retentionRate,
 			"saved_revenue_idr":    float64(saved) * (tenant.Config.MinMarginFloorIDR * 4),
+
+			// Aliases matching the frontend's MerchantStats shape (merchant/page.tsx).
+			"total_members":             len(members),
+			"at_risk_members":           atRisk,
+			"saved_members":             saved,
+			"total_revenue_paid_idr":    insightStats.TotalRevenuePaidIDR,
+			"avg_quota_utilization_pct": insightStats.AvgQuotaUtilizationPct,
+			"outreach_sent":             insightStats.OutreachSent,
+			"magic_link_opened":         insightStats.MagicLinkOpened,
+			"va_settled":                insightStats.VaSettled,
 		},
 	})
 }
