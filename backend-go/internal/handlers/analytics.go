@@ -8,9 +8,14 @@ package handlers
 // listable in the sidebar and reopenable with full history.
 
 import (
+	"bufio"
+	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -178,6 +183,24 @@ func (h *Handlers) PostAnalyticsMessage(c *gin.Context) {
 		return
 	}
 
+	// From here on the response is a Server-Sent Events stream: a "status" event per real
+	// step this handler is actually doing (not a fake progress bar), then "chunk" events as
+	// Gemini's answer streams in, then one final "done" event once it's persisted.
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	flusher, canFlush := c.Writer.(http.Flusher)
+
+	writeSSE := func(event string, data gin.H) {
+		payload, _ := json.Marshal(data)
+		fmt.Fprintf(c.Writer, "event: %s\ndata: %s\n\n", event, payload)
+		if canFlush {
+			flusher.Flush()
+		}
+	}
+
+	writeSSE("status", gin.H{"label": "Menyiapkan riwayat transaksi & feedback merchant..."})
+
 	trxForAI := redactTransactionsForAnalytics(transactions)
 	if len(trxForAI) > analyticsMaxTransactionsForAI {
 		trxForAI = trxForAI[:analyticsMaxTransactionsForAI]
@@ -205,7 +228,11 @@ func (h *Handlers) PostAnalyticsMessage(c *gin.Context) {
 		history = append(history, map[string]string{"role": m.Role, "content": m.Content})
 	}
 
-	result, aiErr := h.AIGateway.GenerateAnalyticsReport(ctx, services.AnalyticsReportInput{
+	writeSSE("status", gin.H{"label": "Menghubungi Google Gemini untuk analisis..."})
+
+	streamCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+	resp, aiErr := h.AIGateway.StreamAnalyticsReport(streamCtx, services.AnalyticsReportInput{
 		MerchantName: tenant.BusinessName,
 		Category:     tenant.Category,
 		Query:        req.Query,
@@ -219,13 +246,47 @@ func (h *Handlers) PostAnalyticsMessage(c *gin.Context) {
 		reportMarkdown = "Maaf, AI analytics engine sedang tidak tersedia. Silakan coba lagi sebentar lagi."
 		title = req.Query
 		engineSource = "LANJUT Deterministic Fallback Engine"
+		writeSSE("chunk", gin.H{"text": reportMarkdown})
 	} else {
-		reportMarkdown = result.ReportMarkdown
-		title = result.Title
-		if result.Source == "gemini" {
-			engineSource = "Google Gemini"
-		} else {
-			engineSource = "LANJUT Deterministic Fallback Engine"
+		defer resp.Body.Close()
+		var textBuf strings.Builder
+		title = req.Query
+		engineSource = "LANJUT Deterministic Fallback Engine"
+
+		scanner := bufio.NewScanner(resp.Body)
+		scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+		var currentEvent string
+		for scanner.Scan() {
+			line := scanner.Text()
+			switch {
+			case strings.HasPrefix(line, "event: "):
+				currentEvent = strings.TrimPrefix(line, "event: ")
+			case strings.HasPrefix(line, "data: "):
+				raw := strings.TrimPrefix(line, "data: ")
+				var payload map[string]any
+				if err := json.Unmarshal([]byte(raw), &payload); err != nil {
+					continue
+				}
+				switch currentEvent {
+				case "chunk":
+					if text, ok := payload["text"].(string); ok {
+						textBuf.WriteString(text)
+						writeSSE("chunk", gin.H{"text": text})
+					}
+				case "done":
+					if t, ok := payload["title"].(string); ok && t != "" {
+						title = t
+					}
+					if es, ok := payload["engine_source"].(string); ok && es != "" {
+						engineSource = es
+					}
+				}
+			}
+		}
+		reportMarkdown = textBuf.String()
+		if reportMarkdown == "" {
+			reportMarkdown = "Maaf, AI analytics engine sedang tidak tersedia. Silakan coba lagi sebentar lagi."
+			writeSSE("chunk", gin.H{"text": reportMarkdown})
 		}
 	}
 	if len(title) > 80 {
@@ -234,7 +295,7 @@ func (h *Handlers) PostAnalyticsMessage(c *gin.Context) {
 
 	assistantMsg, err := h.Store.AddAnalyticsMessage(ctx, sessionID, "assistant", reportMarkdown)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "failed to save AI report"})
+		writeSSE("error", gin.H{"message": "failed to save AI report"})
 		return
 	}
 
@@ -244,8 +305,7 @@ func (h *Handlers) PostAnalyticsMessage(c *gin.Context) {
 		session.Title = title
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"status":            "success",
+	writeSSE("done", gin.H{
 		"session_title":     session.Title,
 		"user_message":      userMsg,
 		"assistant_message": assistantMsg,

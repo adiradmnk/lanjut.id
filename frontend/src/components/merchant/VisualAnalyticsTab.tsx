@@ -29,17 +29,36 @@ interface Message {
   engineSource?: string;
 }
 
+// Parses one Server-Sent Events frame ("event: x\ndata: {...}\n\n") into its parts.
+function parseSSEFrame(frame: string): { event: string; data: any } | null {
+  let event = 'message';
+  let dataLine = '';
+  for (const line of frame.split('\n')) {
+    if (line.startsWith('event: ')) event = line.slice('event: '.length);
+    else if (line.startsWith('data: ')) dataLine = line.slice('data: '.length);
+  }
+  if (!dataLine) return null;
+  try {
+    return { event, data: JSON.parse(dataLine) };
+  } catch {
+    return null;
+  }
+}
+
 export default function VisualAnalyticsTab({ analytics, revenueInsights, tenantId, sessionId: externalSessionId, onSessionCreated }: VisualAnalyticsTabProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  // The real backend step currently in flight (set from actual "status" events the server
+  // sends as it does each step — never a scripted/fake sequence).
+  const [statusLabel, setStatusLabel] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(externalSessionId ?? null);
   const [sendError, setSendError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, statusLabel]);
 
   // Picking a session from the sidebar's AI history panel (or clearing it for a new chat)
   // reloads this component's state to match — full message history for an existing session,
@@ -75,6 +94,7 @@ export default function VisualAnalyticsTab({ analytics, revenueInsights, tenantI
     setInput('');
     setIsLoading(true);
     setSendError(null);
+    setStatusLabel('Mengirim pertanyaan...');
 
     try {
       let activeSessionId = sessionId;
@@ -93,17 +113,67 @@ export default function VisualAnalyticsTab({ analytics, revenueInsights, tenantI
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query }),
       });
-      if (!res.ok) throw new Error('AI analytics engine gagal merespons.');
-      const data = await res.json();
-      const reportMarkdown: string = data.assistant_message?.content || 'Tidak ada respons dari AI.';
-      setMessages(prev => [...prev, { role: 'assistant', content: reportMarkdown, engineSource: data.engine_source }]);
-      if (data.session_title) {
-        onSessionCreated?.({ id: activeSessionId, tenant_id: tenantId, title: data.session_title, created_at: '', updated_at: new Date().toISOString() });
+      if (!res.ok || !res.body) throw new Error('AI analytics engine gagal merespons.');
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let assistantStarted = false;
+      let engineSource: string | undefined;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let sepIdx;
+        while ((sepIdx = buffer.indexOf('\n\n')) !== -1) {
+          const frame = buffer.slice(0, sepIdx);
+          buffer = buffer.slice(sepIdx + 2);
+          const parsed = parseSSEFrame(frame);
+          if (!parsed) continue;
+
+          if (parsed.event === 'status') {
+            setStatusLabel(parsed.data.label || null);
+          } else if (parsed.event === 'chunk') {
+            setStatusLabel(null);
+            if (!assistantStarted) {
+              assistantStarted = true;
+              setMessages(prev => [...prev, { role: 'assistant', content: parsed.data.text || '' }]);
+            } else {
+              setMessages(prev => {
+                const updated = [...prev];
+                const last = { ...updated[updated.length - 1] };
+                last.content += parsed.data.text || '';
+                updated[updated.length - 1] = last;
+                return updated;
+              });
+            }
+          } else if (parsed.event === 'done') {
+            engineSource = parsed.data.engine_source;
+            if (parsed.data.session_title) {
+              onSessionCreated?.({ id: activeSessionId!, tenant_id: tenantId, title: parsed.data.session_title, created_at: '', updated_at: new Date().toISOString() });
+            }
+          } else if (parsed.event === 'error') {
+            throw new Error(parsed.data.message || 'AI analytics engine gagal merespons.');
+          }
+        }
+      }
+
+      if (engineSource) {
+        setMessages(prev => {
+          const updated = [...prev];
+          const last = { ...updated[updated.length - 1] };
+          last.engineSource = engineSource;
+          updated[updated.length - 1] = last;
+          return updated;
+        });
       }
     } catch (err: any) {
       setSendError(err?.message || 'Gagal menghubungi AI analytics engine.');
     } finally {
       setIsLoading(false);
+      setStatusLabel(null);
     }
   };
 
@@ -158,9 +228,9 @@ export default function VisualAnalyticsTab({ analytics, revenueInsights, tenantI
               </div>
             </div>
           ))}
-          {isLoading && (
+          {isLoading && statusLabel && (
             <div className="flex justify-start">
-              <div className="text-sm text-neutral-500">Menganalisis data transaksi...</div>
+              <div className="text-sm text-neutral-500 animate-pulse">{statusLabel}</div>
             </div>
           )}
           <div ref={bottomRef} />

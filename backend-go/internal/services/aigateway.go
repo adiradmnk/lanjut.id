@@ -24,13 +24,18 @@ type AIGateway struct {
 	// or parsing an uploaded PDF/docx (ExtractDocumentText). Both are manually-triggered
 	// "boleh dipanggil kapan saja" operations per the brief, not part of the hot path.
 	slowClient *http.Client
+	// streamClient has no fixed http.Client.Timeout (which would cut a streamed response
+	// off mid-body the instant it fires, however long the stream still had to run) — the
+	// caller instead bounds each streaming call with a context deadline.
+	streamClient *http.Client
 }
 
 func NewAIGateway(baseURL string) *AIGateway {
 	return &AIGateway{
-		baseURL:    baseURL,
-		client:     &http.Client{Timeout: 500 * time.Millisecond},
-		slowClient: &http.Client{Timeout: 20 * time.Second},
+		baseURL:      baseURL,
+		client:       &http.Client{Timeout: 500 * time.Millisecond},
+		slowClient:   &http.Client{Timeout: 20 * time.Second},
+		streamClient: &http.Client{},
 	}
 }
 
@@ -1175,6 +1180,44 @@ func (a *AIGateway) GenerateAnalyticsReport(ctx context.Context, in AnalyticsRep
 		return nil, fmt.Errorf("decode analytics query response: %w", err)
 	}
 	return &out, nil
+}
+
+// StreamAnalyticsReport calls the sidecar's /api/v1/analytics/query-stream endpoint and
+// returns the raw Server-Sent Events response body for the caller to relay to its own
+// client as it arrives, instead of buffering the whole report before responding. The
+// caller owns closing the returned response body.
+func (a *AIGateway) StreamAnalyticsReport(ctx context.Context, in AnalyticsReportInput) (*http.Response, error) {
+	reqBody := map[string]any{
+		"merchant_name": in.MerchantName,
+		"category":      in.Category,
+		"query":         in.Query,
+		"transactions":  in.Transactions,
+		"feedback":      in.Feedback,
+		"history":       in.History,
+	}
+
+	bodyJSON, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		a.baseURL+"/api/v1/analytics/query-stream", bytes.NewReader(bodyJSON))
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "text/event-stream")
+
+	resp, err := a.streamClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ai sidecar unreachable: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return nil, fmt.Errorf("ai sidecar returned status %d", resp.StatusCode)
+	}
+	return resp, nil
 }
 
 // BookingChatInput is a prospective tenant's message in the Rukita pre-checkout chat, plus
